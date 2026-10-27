@@ -1,0 +1,6 @@
+[workspace]
+members = [
+    "clinical_engine",
+    "openclinical_desktop",
+]
+resolver = "2"

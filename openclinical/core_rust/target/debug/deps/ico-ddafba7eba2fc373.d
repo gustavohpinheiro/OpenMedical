@@ -1,0 +1,12 @@
+E:\source\OpenMedical\openclinical\core_rust\target\debug\deps\ico-ddafba7eba2fc373.d: C:\Users\gusta\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\ico-0.6.0\src\lib.rs C:\Users\gusta\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\ico-0.6.0\src\macros.rs C:\Users\gusta\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\ico-0.6.0\src\bmpdepth.rs C:\Users\gusta\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\ico-0.6.0\src\icondir.rs C:\Users\gusta\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\ico-0.6.0\src\image.rs C:\Users\gusta\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\ico-0.6.0\src\restype.rs
+
+E:\source\OpenMedical\openclinical\core_rust\target\debug\deps\libico-ddafba7eba2fc373.rlib: C:\Users\gusta\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\ico-0.6.0\src\lib.rs C:\Users\gusta\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\ico-0.6.0\src\macros.rs C:\Users\gusta\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\ico-0.6.0\src\bmpdepth.rs C:\Users\gusta\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\ico-0.6.0\src\icondir.rs C:\Users\gusta\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\ico-0.6.0\src\image.rs C:\Users\gusta\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\ico-0.6.0\src\restype.rs
+
+E:\source\OpenMedical\openclinical\core_rust\target\debug\deps\libico-ddafba7eba2fc373.rmeta: C:\Users\gusta\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\ico-0.6.0\src\lib.rs C:\Users\gusta\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\ico-0.6.0\src\macros.rs C:\Users\gusta\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\ico-0.6.0\src\bmpdepth.rs C:\Users\gusta\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\ico-0.6.0\src\icondir.rs C:\Users\gusta\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\ico-0.6.0\src\image.rs C:\Users\gusta\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\ico-0.6.0\src\restype.rs
+
+C:\Users\gusta\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\ico-0.6.0\src\lib.rs:
+C:\Users\gusta\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\ico-0.6.0\src\macros.rs:
+C:\Users\gusta\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\ico-0.6.0\src\bmpdepth.rs:
+C:\Users\gusta\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\ico-0.6.0\src\icondir.rs:
+C:\Users\gusta\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\ico-0.6.0\src\image.rs:
+C:\Users\gusta\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\ico-0.6.0\src\restype.rs:

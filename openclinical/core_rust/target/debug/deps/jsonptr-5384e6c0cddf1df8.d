@@ -1,0 +1,17 @@
+E:\source\OpenMedical\openclinical\core_rust\target\debug\deps\jsonptr-5384e6c0cddf1df8.d: C:\Users\gusta\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\jsonptr-0.7.1\src\lib.rs C:\Users\gusta\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\jsonptr-0.7.1\src\assign.rs C:\Users\gusta\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\jsonptr-0.7.1\src\delete.rs C:\Users\gusta\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\jsonptr-0.7.1\src\resolve.rs C:\Users\gusta\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\jsonptr-0.7.1\src\diagnostic.rs C:\Users\gusta\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\jsonptr-0.7.1\src\pointer.rs C:\Users\gusta\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\jsonptr-0.7.1\src\pointer\slice.rs C:\Users\gusta\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\jsonptr-0.7.1\src\token.rs C:\Users\gusta\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\jsonptr-0.7.1\src\index.rs C:\Users\gusta\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\jsonptr-0.7.1\src\component.rs C:\Users\gusta\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\jsonptr-0.7.1\src\../README.md
+
+E:\source\OpenMedical\openclinical\core_rust\target\debug\deps\libjsonptr-5384e6c0cddf1df8.rmeta: C:\Users\gusta\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\jsonptr-0.7.1\src\lib.rs C:\Users\gusta\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\jsonptr-0.7.1\src\assign.rs C:\Users\gusta\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\jsonptr-0.7.1\src\delete.rs C:\Users\gusta\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\jsonptr-0.7.1\src\resolve.rs C:\Users\gusta\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\jsonptr-0.7.1\src\diagnostic.rs C:\Users\gusta\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\jsonptr-0.7.1\src\pointer.rs C:\Users\gusta\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\jsonptr-0.7.1\src\pointer\slice.rs C:\Users\gusta\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\jsonptr-0.7.1\src\token.rs C:\Users\gusta\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\jsonptr-0.7.1\src\index.rs C:\Users\gusta\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\jsonptr-0.7.1\src\component.rs C:\Users\gusta\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\jsonptr-0.7.1\src\../README.md
+
+C:\Users\gusta\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\jsonptr-0.7.1\src\lib.rs:
+C:\Users\gusta\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\jsonptr-0.7.1\src\assign.rs:
+C:\Users\gusta\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\jsonptr-0.7.1\src\delete.rs:
+C:\Users\gusta\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\jsonptr-0.7.1\src\resolve.rs:
+C:\Users\gusta\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\jsonptr-0.7.1\src\diagnostic.rs:
+C:\Users\gusta\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\jsonptr-0.7.1\src\pointer.rs:
+C:\Users\gusta\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\jsonptr-0.7.1\src\pointer\slice.rs:
+C:\Users\gusta\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\jsonptr-0.7.1\src\token.rs:
+C:\Users\gusta\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\jsonptr-0.7.1\src\index.rs:
+C:\Users\gusta\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\jsonptr-0.7.1\src\component.rs:
+C:\Users\gusta\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\jsonptr-0.7.1\src\../README.md:
+
+# env-dep:CARGO_PKG_VERSION=0.7.1

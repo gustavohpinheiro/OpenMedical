@@ -1,0 +1,30 @@
+cargo:rerun-if-env-changed=TAURI_CONFIG
+cargo:rustc-check-cfg=cfg(desktop)
+cargo:rustc-cfg=desktop
+cargo:rustc-check-cfg=cfg(mobile)
+cargo:rerun-if-changed=E:\source\OpenMedical\openclinical\core_rust\openclinical_desktop\tauri.conf.json
+cargo:rustc-env=TAURI_ANDROID_PACKAGE_NAME_APP_NAME=app
+cargo:rustc-env=TAURI_ANDROID_PACKAGE_NAME_PREFIX=org_openclinical
+cargo:rustc-check-cfg=cfg(dev)
+cargo:rustc-cfg=dev
+cargo:PERMISSION_FILES_PATH=E:\source\OpenMedical\openclinical\core_rust\target\debug\build\openclinical_desktop-bfb32a6e3af8addf\out\app-manifest\__app__-permission-files
+cargo:rerun-if-changed=E:\source\OpenMedical\openclinical\core_rust\openclinical_desktop\capabilities
+cargo:rerun-if-env-changed=REMOVE_UNUSED_COMMANDS
+cargo:rustc-env=TAURI_ENV_TARGET_TRIPLE=x86_64-pc-windows-msvc
+cargo:rerun-if-changed=openclinical_core.sqlite
+package.metadata does not exist
+Microsoft (R) Windows (R) Resource Compiler Version 10.0.10011.16384
+Copyright (C) Microsoft Corporation.  All rights reserved.
+
+cargo:rustc-link-arg-bins=E:\source\OpenMedical\openclinical\core_rust\target\debug\build\openclinical_desktop-bfb32a6e3af8addf\out\resource.lib
+cargo:rustc-link-arg=/NODEFAULTLIB:libvcruntimed.lib
+cargo:rustc-link-arg=/NODEFAULTLIB:vcruntime.lib
+cargo:rustc-link-arg=/NODEFAULTLIB:vcruntimed.lib
+cargo:rustc-link-arg=/NODEFAULTLIB:libcmtd.lib
+cargo:rustc-link-arg=/NODEFAULTLIB:msvcrt.lib
+cargo:rustc-link-arg=/NODEFAULTLIB:msvcrtd.lib
+cargo:rustc-link-arg=/NODEFAULTLIB:libucrt.lib
+cargo:rustc-link-arg=/NODEFAULTLIB:libucrtd.lib
+cargo:rustc-link-arg=/DEFAULTLIB:libcmt.lib
+cargo:rustc-link-arg=/DEFAULTLIB:libvcruntime.lib
+cargo:rustc-link-arg=/DEFAULTLIB:ucrt.lib
