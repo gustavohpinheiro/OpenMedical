@@ -14,6 +14,7 @@ import {
   ChevronRight,
   Database,
   Clock,
+  FileCheck,
 } from 'lucide-react';
 import { SearchModal } from './components/SearchModal';
 import { DrugDetail } from './components/DrugDetail';
@@ -21,12 +22,13 @@ import { PediatricCalculator } from './components/PediatricCalculator';
 import { InteractionChecker } from './components/InteractionChecker';
 import { ClinicalCalculators } from './components/ClinicalCalculators';
 import { ProtocolsView } from './components/ProtocolsView';
+import { PublicDatabasesView } from './components/PublicDatabasesView';
 import { DetalheMedicamentoCompleto } from './types';
 import { obterDetalheMedicamento } from './api';
 
 export const App: React.FC = () => {
   const [buscaAberta, setBuscaAberta] = useState(false);
-  const [secaoAtiva, setSecaoAtiva] = useState<'medicamentos' | 'pediatria' | 'interacoes' | 'calculadoras' | 'protocolos'>('medicamentos');
+  const [secaoAtiva, setSecaoAtiva] = useState<'medicamentos' | 'protocolos' | 'pcdt' | 'pediatria' | 'interacoes' | 'calculadoras'>('medicamentos');
   const [medicamentoAtual, setMedicamentoAtual] = useState<DetalheMedicamentoCompleto | null>(null);
   const [protocoloSelecionadoId, setProtocoloSelecionadoId] = useState<string | null>(null);
   const [toastMensagem, setToastMensagem] = useState<string | null>(null);
@@ -156,10 +158,11 @@ export const App: React.FC = () => {
       <nav className="bg-[#0b1322] border-b border-slate-800 px-4 sm:px-8 flex overflow-x-auto gap-1.5 py-2.5 scrollbar-none">
         {[
           { id: 'medicamentos', label: 'Bulas Estruturadas', icon: Pill, badge: '10 DCB' },
+          { id: 'protocolos', label: 'Receitas & Prescrições', icon: BookOpen, badge: '45 Prontas' },
+          { id: 'pcdt', label: 'Bases Públicas (PCDT MS)', icon: FileCheck, badge: '83 Oficiais' },
           { id: 'pediatria', label: 'Calculadora Pediátrica', icon: Baby, badge: 'Teto ANVISA' },
           { id: 'interacoes', label: 'Verificador de Interações', icon: ShieldAlert, badge: 'Combinatória' },
           { id: 'calculadoras', label: 'Escores & Nefrologia', icon: Calculator, badge: 'CKD-EPI 2021' },
-          { id: 'protocolos', label: 'Receitas & Prescrições', icon: BookOpen, badge: '11 Prontas' },
         ].map((item) => {
           const Icone = item.icon;
           const ativo = secaoAtiva === item.id;
@@ -213,6 +216,8 @@ export const App: React.FC = () => {
         {secaoAtiva === 'protocolos' && (
           <ProtocolsView protocoloSelecionadoId={protocoloSelecionadoId} />
         )}
+
+        {secaoAtiva === 'pcdt' && <PublicDatabasesView />}
       </main>
 
       {/* Modal de Busca Rápida Unificada */}

@@ -14,32 +14,29 @@ import {
 } from 'lucide-react';
 import { ProtocoloClinico } from '../types';
 import { listarProtocolos } from '../api';
+import { FARMACOS_POR_PROTOCOLO, CATEGORIAS_POR_PROTOCOLO } from '../catalog_protocolos';
 
 interface ProtocolsViewProps {
   protocoloSelecionadoId?: string | null;
 }
 
-// Mapeamento dos fármacos principais prescritos em cada receita para exibição em chips
-const FARMACOS_POR_PROTOCOLO: Record<string, string[]> = {
-  faringite_amigdalite_aguda: ['Amoxicilina 500mg', 'Dipirona 500mg', 'Penicilina Benzatina'],
-  lombalgia_aguda: ['Dipirona Monoidratada 500mg', 'Ciclobenzaprina 5mg'],
-  cefaleia_tensional_enxaqueca: ['Dipirona 1000mg', 'Metoclopramida 10mg'],
-  manejo_dengue_ms: ['Dipirona Monoidratada', 'Sais de Reidratação Oral (SRO)'],
-  pneumonia_adquirida_comunidade: ['Amoxicilina 500mg', 'Azitromicina 500mg', 'Dipirona 500mg'],
-  itu_nao_complicada: ['Fosfomicina trometamol 3g', 'Dipirona Gotas 500mg/mL'],
-  crise_hipertensiva: ['Maleato de Enalapril 10mg', 'Hidroclorotiazida 25mg'],
-  diabetes_mellitus_tipo2: ['Cloridrato de Metformina 850mg'],
-  asma_exacerbacao_aguda: ['Sulfato de Salbutamol 100mcg', 'Prednisona 20mg'],
-  gastrite_drge: ['Omeprazol 20mg cápsula'],
-  dislipidemia_prevencao_cardiovascular: ['Sinvastatina 20mg'],
-};
+type CategoriaFiltro =
+  | 'todos'
+  | 'dipirona'
+  | 'infecto'
+  | 'cardio'
+  | 'respiratorio'
+  | 'gastro'
+  | 'endocrino'
+  | 'neuro'
+  | 'urgencia';
 
 export const ProtocolsView: React.FC<ProtocolsViewProps> = ({ protocoloSelecionadoId }) => {
   const [protocolos, setProtocolos] = useState<ProtocoloClinico[]>([]);
   const [selecionado, setSelecionado] = useState<ProtocoloClinico | null>(null);
   const [copiado, setCopiado] = useState(false);
   const [termoFiltro, setTermoFiltro] = useState('');
-  const [categoriaAtiva, setCategoriaAtiva] = useState<'todos' | 'dipirona' | 'antibioticos' | 'cardio' | 'metabolico' | 'respiratorio'>('todos');
+  const [categoriaAtiva, setCategoriaAtiva] = useState<CategoriaFiltro>('todos');
 
   useEffect(() => {
     listarProtocolos().then((lista) => {
@@ -66,7 +63,7 @@ export const ProtocolsView: React.FC<ProtocolsViewProps> = ({ protocoloSeleciona
     setTimeout(() => setCopiado(false), 2000);
   };
 
-  // Filtragem combinada por termo e categoria
+  // Filtragem combinada por termo e categoria médica
   const protocolosFiltrados = useMemo(() => {
     const t = termoFiltro.toLowerCase().trim();
 
@@ -82,20 +79,31 @@ export const ProtocolsView: React.FC<ProtocolsViewProps> = ({ protocoloSeleciona
 
       if (!matchTexto) return false;
 
+      const cat = CATEGORIAS_POR_PROTOCOLO[p.id_protocolo] || '';
+
       if (categoriaAtiva === 'dipirona') {
         return farmacos.includes('dipirona') || p.bloco_prescricao_copiavel.toLowerCase().includes('dipirona');
       }
-      if (categoriaAtiva === 'antibioticos') {
-        return farmacos.includes('amoxicilina') || farmacos.includes('azitromicina') || farmacos.includes('fosfomicina');
+      if (categoriaAtiva === 'infecto') {
+        return cat === 'infectologia' || cat === 'ginecologia';
       }
       if (categoriaAtiva === 'cardio') {
-        return p.id_protocolo === 'crise_hipertensiva' || p.id_protocolo === 'dislipidemia_prevencao_cardiovascular';
-      }
-      if (categoriaAtiva === 'metabolico') {
-        return p.id_protocolo === 'diabetes_mellitus_tipo2' || p.id_protocolo === 'gastrite_drge';
+        return cat === 'cardiovascular' || cat === 'nefrologia';
       }
       if (categoriaAtiva === 'respiratorio') {
-        return p.id_protocolo === 'asma_exacerbacao_aguda' || p.id_protocolo === 'pneumonia_adquirida_comunidade' || p.id_protocolo === 'faringite_amigdalite_aguda';
+        return cat === 'respiratorio';
+      }
+      if (categoriaAtiva === 'gastro') {
+        return cat === 'gastroenterologia';
+      }
+      if (categoriaAtiva === 'endocrino') {
+        return cat === 'endocrinologia' || cat === 'reumatologia';
+      }
+      if (categoriaAtiva === 'neuro') {
+        return cat === 'neurologia' || cat === 'saude_mental';
+      }
+      if (categoriaAtiva === 'urgencia') {
+        return cat === 'urgencia' || cat === 'pediatria';
       }
 
       return true;
@@ -113,13 +121,13 @@ export const ProtocolsView: React.FC<ProtocolsViewProps> = ({ protocoloSeleciona
             </div>
             <div>
               <h2 className="text-base font-bold text-slate-100 flex items-center gap-2">
-                Central de Receitas & Condutas Clínicas (SUS)
+                Central de Receitas & Condutas Clínicas (SUS e Mundiais)
                 <span className="text-[10px] bg-teal-900/60 text-teal-300 border border-teal-700/60 px-2 py-0.5 rounded-full font-mono font-semibold">
-                  11 Oficiais
+                  45 Oficiais
                 </span>
               </h2>
               <p className="text-xs text-slate-400">
-                Prescrições prontas para uso em prontuário eletrônico (PEC e-SUS) com orientações terapêuticas
+                Prescrições estruturadas para prontuário eletrônico com orientações do MS, OMS, SBC, SBD, SBPT, GINA, GOLD e KDIGO
               </p>
             </div>
           </div>
@@ -131,7 +139,7 @@ export const ProtocolsView: React.FC<ProtocolsViewProps> = ({ protocoloSeleciona
               type="text"
               value={termoFiltro}
               onChange={(e) => setTermoFiltro(e.target.value)}
-              placeholder="Buscar receita (ex: Dipirona, Amoxicilina, CID)..."
+              placeholder="Buscar receita (ex: Dipirona, Dengue, Amoxicilina, CID)..."
               className="w-full bg-slate-950 border border-slate-750 focus:border-teal-500 rounded-xl pl-9 pr-4 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none transition-all"
             />
           </div>
@@ -143,12 +151,15 @@ export const ProtocolsView: React.FC<ProtocolsViewProps> = ({ protocoloSeleciona
             <Filter className="w-3.5 h-3.5" /> Filtros:
           </span>
           {[
-            { id: 'todos', label: 'Todas as Receitas (11)' },
+            { id: 'todos', label: 'Todas as Receitas (45)' },
             { id: 'dipirona', label: '⭐ Dor & Febre (Dipirona)', highlight: true },
-            { id: 'antibioticos', label: 'Antimicrobianos (Amoxicilina/Azitro)' },
-            { id: 'cardio', label: 'Cardiovascular (Hipertensão/Sinvastatina)' },
-            { id: 'metabolico', label: 'Metabólico & Gastro (Diabetes/Omeprazol)' },
-            { id: 'respiratorio', label: 'Respiratório (Asma/PAC)' },
+            { id: 'infecto', label: 'Infectologia & Arboviroses (18)' },
+            { id: 'cardio', label: 'Cardio & Nefro (7)' },
+            { id: 'respiratorio', label: 'Pneumologia & Asma (4)' },
+            { id: 'gastro', label: 'Gastroenterologia (4)' },
+            { id: 'endocrino', label: 'Endócrino & Reumato (5)' },
+            { id: 'neuro', label: 'Neurologia & Saúde Mental (5)' },
+            { id: 'urgencia', label: 'Urgência & Pediatria (2)' },
           ].map((cat) => (
             <button
               key={cat.id}

@@ -620,318 +620,11 @@ export const MOCK_INTERACOES: MatrizInteracao[] = [
 ];
 
 // -----------------------------------------------------------------------------
-// LISTA DE 11 RECEITAS E PROTOCOLOS CLÍNICOS OFICIAIS DO SUS
+// CATÁLOGO COMPLETO DE 45 RECEITAS E PROTOCOLOS CLÍNICOS (SUS E MUNDIAIS)
 // -----------------------------------------------------------------------------
-export const MOCK_PROTOCOLOS: ProtocoloClinico[] = [
-  {
-    id_protocolo: 'faringite_amigdalite_aguda',
-    titulo: 'Manejo da Faringoamigdalite Aguda Estreptocócica',
-    cids_relacionados: ['J02.0', 'J02.9', 'J03.0'],
-    ciaps_relacionados: ['R74'],
-    nivel_atencao: 'Atencao_Primaria',
-    data_revisao: '2026-10-25',
-    conteudo_markdown: `Critérios de Centor Modificados:
-- Febre aferida > 38 ºC (+1)
-- Ausência de tosse (+1)
-- Exsudato ou edema amigdaliano (+1)
-- Linfonodomegalia cervical dolorosa (+1)
-- Idade 3-14 (+1), 15-44 (0), >= 45 (-1)
-
-Conduta: Escore >= 3 justifica Amoxicilina 500mg por 10 dias para erradicação e prevenção primária de febre reumática. Associar Dipirona para alívio térmico e álgico.`,
-    bloco_prescricao_copiavel: `RECEITUÁRIO MÉDICO - FARINGOAMIGDALITE AGUDA
-Paciente: [Nome do Paciente]
-Data: [Data do Atendimento]
-
-USO ORAL:
-1. Amoxicilina 500mg cápsula --------------------------- 1 caixa (30 cápsulas)
-   Tomar 1 cápsula por via oral a cada 8 horas por 10 dias consecutivos.
-   (Atenção: Não suspender antes de 10 dias mesmo após alívio completo dos sintomas).
-
-2. Dipirona Monoidratada 500mg comprimido -------------- 1 blister (10 comprimidos)
-   Tomar 1 a 2 comprimidos (500 a 1000 mg) por via oral a cada 6 horas se dor de garganta ou febre.
-
-Orientações:
-- Hidratação oral abundante e gargarejos mornos.
-- Trocar a escova dental após 48 horas de antibiótico para evitar reinfecção estreptocócica.`,
-  },
-  {
-    id_protocolo: 'lombalgia_aguda',
-    titulo: 'Abordagem da Lombalgia Mecânica Aguda (Lumbago)',
-    cids_relacionados: ['M54.5'],
-    ciaps_relacionados: ['L03'],
-    nivel_atencao: 'Atencao_Primaria',
-    data_revisao: '2026-10-25',
-    conteudo_markdown: `Rastreamento obrigatório de Red Flags:
-- Síndrome da Cauda Equina (anestesia em sela, retenção/incontinência urinária - emergência cirúrgica).
-- Fratura (trauma, corticoterapia, osteoporose).
-- Infecção/Neoplasia (febre, perda de peso, histórico oncológico).
-
-Manejo:
-- DESESTÍMULO AO REPOUSO EM CAMA: manutenção de atividade física leve.
-- Analgesia de base com Dipirona escalonada e relaxante muscular por curto período.`,
-    bloco_prescricao_copiavel: `RECEITUÁRIO MÉDICO - LOMBALGIA MECÂNICA AGUDA
-Paciente: [Nome do Paciente]
-Data: [Data do Atendimento]
-
-USO ORAL:
-1. Dipirona Monoidratada 500mg comprimido -------------- 1 caixa (20 comprimidos)
-   Tomar 1 a 2 comprimidos (500 a 1000 mg) por via oral a cada 6 horas em caso de dor lombar por até 5 dias.
-
-2. Ciclobenzaprina 5mg comprimido ---------------------- 1 caixa (15 comprimidos)
-   Tomar 1 comprimido por via oral à noite antes de dormir por 3 a 5 dias.
-   (Atenção: causa sonolência; não dirigir veículos).
-
-Orientações:
-- Evitar repouso prolongado no leito. Fazer pequenas caminhadas dentro do limite da dor.
-- Compressas mornas na região lombar por 20 minutos, 2 a 3 vezes ao dia.
-- Procurar atendimento de urgência se perder força nas pernas ou controle de urina/fezes.`,
-  },
-  {
-    id_protocolo: 'cefaleia_tensional_enxaqueca',
-    titulo: 'Abordagem da Cefaleia Tensional e Enxaqueca na Atenção Primária',
-    cids_relacionados: ['R51', 'G43.9', 'G44.2'],
-    ciaps_relacionados: ['N01', 'N89', 'N90'],
-    nivel_atencao: 'Atencao_Primaria_e_Pronto_Atendimento',
-    data_revisao: '2026-10-25',
-    conteudo_markdown: `Sinais de Alarme SNOOP:
-- S (Systemic): Febre, calafrios, HIV, câncer.
-- N (Neurologic): Déficit motor, alteração visual, ataxia.
-- O (Onset): Súbito 'em trovoada' (thunderclap headache - suspeita de HSA).
-- O (Older): Início > 50 anos (arterite temporal/neoplasia).
-- P (Pattern): Mudança progressiva de padrão.
-
-Tratamento Abortivo: Dipirona 1g precoce associada a antiemético.`,
-    bloco_prescricao_copiavel: `RECEITUÁRIO MÉDICO - CEFALEIA / ENXAQUECA
-Paciente: [Nome do Paciente]
-Data: [Data do Atendimento]
-
-USO ORAL:
-1. Dipirona Monoidratada 500mg comprimido -------------- 1 caixa (20 comprimidos)
-   Tomar 2 comprimidos (1000 mg) por via oral logo ao primeiro sinal de dor de cabeça.
-   Se necessário, repetir após 6 horas. (Dose máxima de 4000 mg/dia).
-
-2. Cloridrato de Metoclopramida 10mg comprimido -------- 1 blister (10 comprimidos)
-   Tomar 1 comprimido por via oral se houver enjoo ou náusea associada.
-
-Orientações:
-- Descansar em ambiente escuro e silencioso.
-- Limitar analgésicos a no máximo 2 a 3 dias por semana para evitar cefaleia por rebote medicamentoso.`,
-  },
-  {
-    id_protocolo: 'manejo_dengue_ms',
-    titulo: 'Protocolo de Manejo Clínico da Dengue (Ministério da Saúde do Brasil)',
-    cids_relacionados: ['A90'],
-    ciaps_relacionados: ['A77'],
-    nivel_atencao: 'Atencao_Primaria_e_Urgencia',
-    data_revisao: '2026-10-25',
-    conteudo_markdown: `Classificação de Risco do Ministério da Saúde:
-- Grupo A: Sem sinais de alarme, sem comorbidades. Hidratação oral 60 mL/kg/dia.
-- Grupo B: Sangramento espontâneo de pele, gestantes, idosos, nefropatas. Solicitar hemograma e vigilância.
-- Grupos C e D: Sinais de alarme (dor abdominal intensa, vômitos persistentes, lipotimia) ou choque. Expansão venosa imediata!
-
-PROIBIÇÃO: Contraindicado formalmente AAS e AINEs (ibuprofeno, cetoprofeno, diclofenaco).`,
-    bloco_prescricao_copiavel: `RECEITUÁRIO MÉDICO - DENGUE (GRUPO A)
-Paciente: [Nome do Paciente]
-Data: [Data do Atendimento]
-
-USO ORAL:
-1. Sais de Reidratação Oral (SRO) sachê 27.9g ------------ 10 envelopes
-   Diluir 1 envelope em exatamente 1 litro de água filtrada ou fervida.
-   Ingerir ao longo do dia em pequenos goles. Volume mínimo diário: 60 mL por kg de peso.
-
-2. Dipirona Monoidratada 500mg comprimido --------------- 1 caixa (20 comprimidos)
-   Tomar 1 a 2 comprimidos por via oral a cada 6 horas em caso de dor ou febre superior a 37.8 ºC.
-
-ATENÇÃO CRÍTICA:
-- NÃO TOMAR aspirina (AAS) nem anti-inflamatórios (ibuprofeno, diclofenaco, nimesulida) pelo alto risco de hemorragia grave.
-- Retorno imediato ao posto ou pronto-socorro se apresentar dor forte na barriga, vômitos contínuos, tontura ao levantar ou sangramento de gengiva/nariz.`,
-  },
-  {
-    id_protocolo: 'pneumonia_adquirida_comunidade',
-    titulo: 'Pneumonia Adquirida na Comunidade (PAC) no Adulto: Manejo Ambulatorial',
-    cids_relacionados: ['J18.9', 'J13', 'J15.9'],
-    ciaps_relacionados: ['R81'],
-    nivel_atencao: 'Atencao_Primaria',
-    data_revisao: '2026-10-25',
-    conteudo_markdown: `Estratificação CURB-65:
-- Confusão mental (+1)
-- Ureia > 50 mg/dL (+1)
-- FR >= 30 ipm (+1)
-- PAS < 90 ou PAD <= 60 (+1)
-- Idade >= 65 anos (+1)
-
-Conduta: CURB-65 escore 0 ou 1: Tratamento ambulatorial seguro com Amoxicilina 500mg 8/8h associada a Macrolídeo (Azitromicina) se comorbidades.`,
-    bloco_prescricao_copiavel: `RECEITUÁRIO MÉDICO - PNEUMONIA COMUNITÁRIA (AMBULATORIAL)
-Paciente: [Nome do Paciente]
-Data: [Data do Atendimento]
-
-USO ORAL:
-1. Amoxicilina 500mg cápsula --------------------------- 1 caixa (21 cápsulas)
-   Tomar 1 cápsula por via oral a cada 8 horas durante 7 dias.
-
-2. Azitromicina 500mg comprimido ----------------------- 1 caixa (3 comprimidos)
-   Tomar 1 comprimido por via oral uma vez ao dia, 1 hora antes ou 2 horas após a refeição, durante 3 dias.
-
-3. Dipirona Monoidratada 500mg comprimido -------------- 1 blister (10 comprimidos)
-   Tomar 1 a 2 comprimidos por via oral a cada 6 horas em caso de dor torácica pleurítica ou febre.
-
-Orientações:
-- Manter repouso relativo e boa ingesta de líquidos.
-- Retorno para reavaliação médica em 48 a 72 horas ou imediatamente se houver falta de ar progressiva ou prostração.`,
-  },
-  {
-    id_protocolo: 'itu_nao_complicada',
-    titulo: 'Manejo da Infecção do Trato Urinário Não Complicada (Cistite Aguda)',
-    cids_relacionados: ['N39.0', 'N30.0'],
-    ciaps_relacionados: ['U71'],
-    nivel_atencao: 'Atencao_Primaria',
-    data_revisao: '2026-10-25',
-    conteudo_markdown: `Cistite aguda em mulher jovem não gestante:
-- Sintomas típicos: Disúria, polaciúria, urgência miccional e dor suprapúbica.
-- Ausência de febre e ausência de dor lombar (sinais de pielonefrite).
-- Primeira linha: Fosfomicina trometamol dose única ou Nitrofurantoína por 5 dias.`,
-    bloco_prescricao_copiavel: `RECEITUÁRIO MÉDICO - CISTITE AGUDA NÃO COMPLICADA
-Paciente: [Nome do Paciente]
-Data: [Data do Atendimento]
-
-USO ORAL:
-1. Fosfomicina trometamol 3g pó para solução oral ------- 1 sachê
-   Dissolver 1 sachê em meio copo de água e tomar em dose única por via oral, à noite ao deitar, logo após urinar e esvaziar a bexiga.
-
-2. Dipirona Monoidratada 500mg/mL gotas ---------------- 1 frasco (20 mL)
-   Tomar 35 a 40 gotas (875 a 1000 mg) por via oral a cada 6 a 8 horas se dor ou cólica miccional.
-
-Orientações:
-- Ingerir pelo menos 2 litros de água ao longo do dia.
-- Urinar após relações sexuais e não segurar a urina por longos períodos.`,
-  },
-  {
-    id_protocolo: 'crise_hipertensiva',
-    titulo: 'Abordagem da Crise Hipertensiva: Urgência vs Emergência Hipertensiva',
-    cids_relacionados: ['I10', 'I15'],
-    ciaps_relacionados: ['K86', 'K87'],
-    nivel_atencao: 'Atencao_Primaria_e_Pronto_Atendimento',
-    data_revisao: '2026-10-25',
-    conteudo_markdown: `Diferenciação Crítica:
-- Urgência Hipertensiva: PA >= 180x120 mmHg SEM lesão aguda de órgão-alvo. Tratamento oral gradual (redução em 24 a 48h).
-- Emergência Hipertensiva: PA elevada COM lesão aguda em evolução (AVE, SCA, EAP, dissecção de aorta). Requer internação em UTI e medicação intravenosa contínua.`,
-    bloco_prescricao_copiavel: `RECEITUÁRIO MÉDICO - URGÊNCIA HIPERTENSIVA (CONTROLE AMBULATORIAL)
-Paciente: [Nome do Paciente]
-Data: [Data do Atendimento]
-
-USO ORAL:
-1. Maleato de Enalapril 10mg comprimido ----------------- 1 caixa (30 comprimidos)
-   Tomar 1 comprimido por via oral uma vez ao dia pela manhã.
-
-2. Hidroclorotiazida 25mg comprimido ------------------- 1 caixa (30 comprimidos)
-   Tomar 1 comprimido por via oral uma vez ao dia pela manhã.
-
-Orientações:
-- Reduzir o sal na alimentação e evitar alimentos ultraprocessados ricos em sódio.
-- Monitorar a pressão arterial duas vezes ao dia por 7 dias e registrar no diário.
-- Retornar ao pronto-socorro se apresentar dor forte no peito, falta de ar súbita, perda de visão ou fraqueza de um lado do corpo.`,
-  },
-  {
-    id_protocolo: 'diabetes_mellitus_tipo2',
-    titulo: 'Manejo Farmacológico Inicial do Diabetes Mellitus Tipo 2 no SUS',
-    cids_relacionados: ['E11', 'E11.9'],
-    ciaps_relacionados: ['T90'],
-    nivel_atencao: 'Atencao_Primaria',
-    data_revisao: '2026-10-25',
-    conteudo_markdown: `Diretrizes SBD / SUS:
-- Metformina como fármaco de primeira linha para todos os recém-diagnosticados sem contraindicações.
-- Titulação lenta (aumento a cada 14 dias) para minimizar efeitos adversos gastrintestinais.
-- Contraindicação: TFG < 30 mL/min/1.73m².`,
-    bloco_prescricao_copiavel: `RECEITUÁRIO MÉDICO - DIABETES MELLITUS TIPO 2
-Paciente: [Nome do Paciente]
-Data: [Data do Atendimento]
-
-USO ORAL:
-1. Cloridrato de Metformina 850mg comprimido ----------- 2 caixas (60 comprimidos)
-   - Primeiros 14 dias: Tomar 1 comprimido por via oral logo após o almoço ou jantar.
-   - A partir do 15º dia: Tomar 1 comprimido após o café da manhã e 1 comprimido após o jantar (total 1700 mg/dia).
-
-Orientações Clínicas:
-- Tomar sempre junto ou logo após as refeições para evitar enjoo ou desconforto no estômago.
-- Praticar caminhadas de 30 minutos pelo menos 5 vezes por semana.
-- Agendar coleta de hemoglobina glicada (HbA1c) e creatinina em 3 meses.`,
-  },
-  {
-    id_protocolo: 'asma_exacerbacao_aguda',
-    titulo: 'Manejo da Exacerbação Aguda de Asma na Atenção Básica e Urgência',
-    cids_relacionados: ['J45', 'J45.9', 'J46'],
-    ciaps_relacionados: ['R96'],
-    nivel_atencao: 'Atencao_Primaria_e_Urgencia',
-    data_revisao: '2026-10-25',
-    conteudo_markdown: `Diretrizes GINA / SUS:
-- Crise leve a moderada: Salbutamol inalatório 100mcg com espaçador (4 a 8 jatos a cada 20 minutos na primeira hora).
-- Corticoide oral precoce: Prednisona 40 a 50 mg/dia por 5 a 7 dias (previne recaídas sem necessidade de desmame progressivo).`,
-    bloco_prescricao_copiavel: `RECEITUÁRIO MÉDICO - ALTA DA EXACERBAÇÃO DE ASMA
-Paciente: [Nome do Paciente]
-Data: [Data do Atendimento]
-
-USO INALATÓRIO:
-1. Sulfato de Salbutamol Spray 100mcg/dose ------------- 1 frasco (200 doses)
-   Inalar 2 a 4 jatos com espaçador a cada 4 ou 6 horas em caso de chiado no peito, tosse ou falta de ar.
-
-USO ORAL:
-2. Prednisona 20mg comprimido -------------------------- 1 caixa (20 comprimidos)
-   Tomar 2 comprimidos (40 mg) por via oral pela manhã, em dose única diária, durante 5 dias consecutivos.
-   (Não necessita de desmame se usado por apenas 5 dias).
-
-Orientações:
-- Usar sempre o espaçador valvulado para garantir a chegada do medicamento aos brônquios.
-- Procurar emergência imediatamente se houver dificuldade para falar frases completas ou cansaço intenso.`,
-  },
-  {
-    id_protocolo: 'gastrite_drge',
-    titulo: 'Manejo da Doença do Refluxo Gastroesofágico (DRGE) e Dispepsia',
-    cids_relacionados: ['K21.9', 'K29.7'],
-    ciaps_relacionados: ['D84', 'D87'],
-    nivel_atencao: 'Atencao_Primaria',
-    data_revisao: '2026-10-25',
-    conteudo_markdown: `Sintomas cardinais de DRGE: Pirose e regurgitação ácida.
-- Rastreio de sinais de alarme para EDA: Idade > 50 anos, disfagia, odinofagia, emagrecimento inexplicado, anemia, hematêmese/melena.
-- Tratamento de prova com IBP (Omeprazol) por 4 a 8 semanas em jejum estrito.`,
-    bloco_prescricao_copiavel: `RECEITUÁRIO MÉDICO - DRGE E DISPEPSIA
-Paciente: [Nome do Paciente]
-Data: [Data do Atendimento]
-
-USO ORAL:
-1. Omeprazol 20mg cápsula ------------------------------ 2 caixas (56 cápsulas)
-   Tomar 1 a 2 cápsulas (20 a 40 mg) por via oral uma vez ao dia pela manhã em jejum rigoroso, exatamente 30 minutos antes do café da manhã, durante 8 semanas consecutivas.
-
-Orientações Não Farmacológicas:
-- Fracionar as refeições em porções menores e não deitar antes de 2 horas após comer.
-- Elevar a cabeceira da cama em 15 centímetros.
-- Evitar café, chocolates, refrigerantes gasosos, bebidas alcoólicas e alimentos muito gordurosos.`,
-  },
-  {
-    id_protocolo: 'dislipidemia_prevencao_cardiovascular',
-    titulo: 'Prevenção Cardiovascular Primária e Manejo das Dislipidemias (SBC)',
-    cids_relacionados: ['E78.0', 'E78.2'],
-    ciaps_relacionados: ['T93'],
-    nivel_atencao: 'Atencao_Primaria',
-    data_revisao: '2026-10-25',
-    conteudo_markdown: `Estratificação de Risco Cardiovascular Global (Diretriz SBC):
-- Risco Alto / Muito Alto: Sinvastatina 20 a 40 mg ou Atorvastatina.
-- Meta de LDL-c: < 70 mg/dL (Alto risco) ou < 50 mg/dL (Muito alto risco).
-- Avaliar enzimas hepáticas (TGO/TGP) e CPK basal.`,
-    bloco_prescricao_copiavel: `RECEITUÁRIO MÉDICO - PREVENÇÃO CARDIOVASCULAR E DISLIPIDEMIA
-Paciente: [Nome do Paciente]
-Data: [Data do Atendimento]
-
-USO ORAL:
-1. Sinvastatina 20mg comprimido revestido -------------- 2 caixas (60 comprimidos)
-   Tomar 1 a 2 comprimidos (20 a 40 mg) por via oral uma vez ao dia à noite ao deitar.
-   (A síntese hepática do colesterol ocorre preferencialmente durante a madrugada).
-
-Orientações:
-- Reduzir gorduras saturadas e frituras; priorizar azeite de oliva, aveia e verduras.
-- Praticar pelo menos 150 minutos de exercício físico aeróbico por semana.
-- Comunicar o médico se sentir dores musculares intensas ou fraqueza generalizada nos braços e pernas.`,
-  },
-];
+import { CATALOGO_PROTOCOLOS } from './catalog_protocolos';
+import { LISTA_PCDT_OFICIAL_MS } from './data/pcdt_oficial_ms';
+export const MOCK_PROTOCOLOS: ProtocoloClinico[] = CATALOGO_PROTOCOLOS;
 
 // -----------------------------------------------------------------------------
 // LISTA DE CÓDIGOS DIAGNÓSTICOS PARA BUSCA (CID-10 e CIAP-2)
@@ -1044,6 +737,29 @@ export async function buscarGeral(termo: string): Promise<ItemBuscaFts[]> {
         titulo_primario: `${d.codigo_cid10} / ${d.codigo_ciap2}`,
         subtitulo: `${d.descricao_cid10} (${d.descricao_ciap2})`,
         score_relevancia: -3.0,
+      });
+    }
+  }
+
+  // 4. Pesquisa nos 83 PCDT Oficiais do Ministério da Saúde / CONITEC
+  for (const pcdt of LISTA_PCDT_OFICIAL_MS) {
+    const nome = pcdt.nome_protocolo.toLowerCase();
+    const cids = pcdt.cids_relacionados.join(' ').toLowerCase();
+    const farmacos = pcdt.farmacos_principais.join(' ').toLowerCase();
+    const conduta = pcdt.conduta_clinica.toLowerCase();
+
+    if (
+      nome.includes(termoNormalizado) ||
+      cids.includes(termoNormalizado) ||
+      farmacos.includes(termoNormalizado) ||
+      conduta.includes(termoNormalizado)
+    ) {
+      resultados.push({
+        tipo_registro: 'protocolo',
+        id_referencia: pcdt.id_protocolo as any,
+        titulo_primario: `PCDT MS: ${pcdt.nome_protocolo}`,
+        subtitulo: `${pcdt.tipo_protocolo} (${pcdt.status_conitec}) - CIDs: ${pcdt.cids_relacionados.join(', ')}`,
+        score_relevancia: nome.includes(termoNormalizado) ? -5.5 : -3.5,
       });
     }
   }

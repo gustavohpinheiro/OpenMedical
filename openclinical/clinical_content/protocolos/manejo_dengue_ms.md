@@ -1,43 +1,25 @@
 ---
 id_protocolo: "manejo_dengue_ms"
-titulo: "Protocolo de Manejo Clínico da Dengue (Ministério da Saúde do Brasil)"
+titulo: "Protocolo de Manejo Clínico da Dengue (MS / OMS)"
 cids_relacionados: ["A90"]
 ciaps_relacionados: ["A77"]
 nivel_atencao: "Atencao_Primaria_e_Urgencia"
-data_revisao: "2026-10-25"
+diretrizes_referencia: "Ministério da Saúde do Brasil (2024), Organização Pan-Americana da Saúde (OPAS/OMS)"
+data_revisao: "2026-10-26"
 ---
 
-# Protocolo de Manejo Clínico da Dengue (Diretrizes Ministério da Saúde)
+# Protocolo de Manejo Clínico da Dengue (Diretrizes MS / OPAS)
 
-## 1. Definição de Caso Suspeito
-Pessoa que vive ou viajou para área endêmica nos últimos 14 dias com febre aguda (2 a 7 dias de duração) associada a pelo menos dois dos seguintes sinais/sintomas:
-* Náuseas ou vômitos;
-* Exantema;
-* Mialgia ou artralgia;
-* Cefaleia ou dor retro-orbital;
-* Petéquias ou prova do laço positiva;
-* Leucopenia.
+## 1. Classificação de Risco e Conduta
+* **Grupo A (Sem sinais de alarme, sem comorbidades):** Tratamento domiciliar com hidratação oral volumosa calculada a 60 mL/kg/dia (sendo 1/3 com Sais de Reidratação Oral e 2/3 com líquidos caseiros).
+* **Grupo B (Sem alarme, mas com sangramento de pele espontâneo, gestantes, idosos, nefropatas):** Hemograma completo obrigatório e hidratação oral supervisionada (80 mL/kg/dia).
+* **Grupos C e D (Presença de Sinais de Alarme ou Choque):** Internação hospitalar imediata. Expansão venosa com SF 0.9% ou Ringer Lactato (10 mL/kg na 1ª hora no grupo C; 20 mL/kg em 20 min no grupo D).
 
-## 2. Estratificação de Risco e Condutas por Grupo
-
-### Grupo A (Sem Sinais de Alarme, Sem Condição Especial, Prova do Laço Negativa)
-* **Hidratação Oral Imediata e Abundante:**
-  - Adultos: 60 mL/kg/dia (sendo 1/3 com Sais de Reidratação Oral - SRO e 2/3 com líquidos caseiros: água, sucos e água de coco).
-  - Crianças: Oferta hídrica frequente calculada por superfície corporal ou regra de Holliday-Segar.
-* **Manejo Sintomático:** Dipirona ou Paracetamol.
-* **PROIBIÇÃO FORMAL:** Contraindicado o uso de Ácido Acetilsalicílico (AAS), Anti-inflamatórios Não Esteroidais (AINEs como ibuprofeno, diclofenaco, cetoprofeno) e corticoides pelo risco iminente de manifestações hemorrágicas graves.
-
-### Grupo B (Sem Sinais de Alarme, com Sangramento Espontâneo de Pele ou Condições Especiais)
-* Gestantes, lactentes (< 2 anos), idosos (> 65 anos), portadores de comorbidades (hipertensão, DM, DRC, cardiopatias).
-* Solicitar Hemograma completo obrigatório (avaliar hematócrito e plaquetas).
-* Hidratação supervisionada: 80 mL/kg/dia oral enquanto aguarda exames.
-
-### Grupos C e D (Presença de Sinais de Alarme ou Sinais de Choque)
-* **Sinais de Alarme:** Dor abdominal intensa e contínua, vômitos persistentes, acúmulo de líquidos (ascite, derrame pleural/pericárdico), hipotensão postural ou lipotimia, hepatomegalia > 2 cm, letargia/irritabilidade, aumento progressivo do hematócrito.
-* **Conduta:** Internação imediata. Expansão volêmica venosa rápida com Solução Fisiológica 0.9% ou Ringer Lactato (10 mL/kg na primeira hora no Grupo C; 20 mL/kg em 20 minutos no Grupo D com choque).
+## 2. Contraindicação Formal Absoluta
+* **PROIBIDO O USO DE AAS E AINEs** (ibuprofeno, diclofenaco, cetoprofeno, nimesulida) e corticoides pelo risco crítico de hemorragia grave e plaquetopenia aguda.
 
 ```receita
-RECEITUÁRIO MÉDICO - DENGUE (GRUPO A)
+RECEITUÁRIO MÉDICO - DENGUE (GRUPO A AMBULATORIAL)
 Paciente: [Nome do Paciente]
 Data: [Data do Atendimento]
 
@@ -48,9 +30,8 @@ USO ORAL:
 
 2. Dipirona Monoidratada 500mg comprimido --------------- 1 caixa (20 comprimidos)
    Tomar 1 a 2 comprimidos por via oral a cada 6 horas em caso de dor ou febre superior a 37.8 ºC.
-   (Dose máxima diária de 4000 mg).
 
-Orientações Críticas:
-- NÃO TOMAR ÁCIDO ACETILSALICÍLICO (AAS, ASPIRINA) OU ANTI-INFLAMATÓRIOS (IBUPROFENO, DICLOFENACO, CETOPROFENO, NIDOR).
-- Retorno imediato ao serviço de saúde se apresentar dor abdominal forte e contínua, vômitos que não cessam, tontura ao se levantar, sangramentos na gengiva ou fezes escuras.
+ADVERTÊNCIA CRÍTICA:
+- NÃO TOMAR Ácido Acetilsalicílico (Aspirina/AAS) nem anti-inflamatórios (ibuprofeno, cetoprofeno, diclofenaco).
+- Retorno IMEDIATO ao pronto-atendimento se houver dor abdominal intensa e contínua, vômitos frequentes, tontura ao levantar, sangramento de gengiva/nariz ou sonolência excessiva.
 ```
