@@ -6,19 +6,26 @@ import {
   Check,
   FileCheck,
   Building2,
-  ShieldCheck,
   Filter,
-  ExternalLink,
   Pill,
   BookOpen,
-  Sparkles,
-  Info,
+  DollarSign,
+  Tag,
+  ShieldCheck,
+  Barcode,
 } from 'lucide-react';
 import { LISTA_PCDT_OFICIAL_MS, ProtocoloPCDTOficial } from '../data/pcdt_oficial_ms';
 import { LISTA_MEDICAMENTOS_ANVISA_OFICIAL, MedicamentoAnvisaOficial } from '../data/anvisa_medicamentos_publicos';
+import { CATALOGO_CMED_NACIONAL, MedicamentoComercialCMED } from '../data/catalogo_cmed_nacional';
 
 export const PublicDatabasesView: React.FC = () => {
-  const [abaAtiva, setAbaAtiva] = useState<'pcdt' | 'anvisa'>('pcdt');
+  const [abaAtiva, setAbaAtiva] = useState<'cmed' | 'pcdt' | 'anvisa'>('cmed');
+
+  // Estado CMED (Remédios Registrados no Brasil)
+  const [termoCmed, setTermoCmed] = useState('');
+  const [filtroTipoCmed, setFiltroTipoCmed] = useState<string>('todos');
+  const [cmedSelecionado, setCmedSelecionado] = useState<MedicamentoComercialCMED | null>(CATALOGO_CMED_NACIONAL[0] || null);
+  const [copiadoCmed, setCopiadoCmed] = useState(false);
 
   // Estado PCDT
   const [termoPcdt, setTermoPcdt] = useState('');
@@ -30,12 +37,50 @@ export const PublicDatabasesView: React.FC = () => {
   const [termoAnvisa, setTermoAnvisa] = useState('');
   const [filtroClasse, setFiltroClasse] = useState<string>('todas');
 
-  const copiarPrescricao = () => {
+  const copiarPrescricaoPcdt = () => {
     if (!pcdtSelecionado) return;
     navigator.clipboard.writeText(pcdtSelecionado.bloco_prescricao_copiavel);
     setCopiadoPcdt(true);
     setTimeout(() => setCopiadoPcdt(false), 2000);
   };
+
+  const copiarPrescricaoCmed = (med: MedicamentoComercialCMED) => {
+    navigator.clipboard.writeText(med.receita_padrao_copiavel);
+    setCopiadoCmed(true);
+    setTimeout(() => setCopiadoCmed(false), 2000);
+  };
+
+  // Filtragem CMED (26.635 Apresentações Comerciais)
+  const cmedFiltrados = useMemo(() => {
+    const t = termoCmed.toLowerCase().trim();
+    return CATALOGO_CMED_NACIONAL.filter((m) => {
+      const matchTexto =
+        !t ||
+        m.nome_produto.toLowerCase().includes(t) ||
+        m.substancia.toLowerCase().includes(t) ||
+        m.apresentacao.toLowerCase().includes(t) ||
+        m.laboratorio.toLowerCase().includes(t) ||
+        m.numero_registro.includes(t) ||
+        m.codigo_ean.includes(t);
+
+      if (!matchTexto) return false;
+
+      if (filtroTipoCmed === 'generico') {
+        return m.tipo_produto.toLowerCase().includes('genérico') || m.tipo_produto.toLowerCase().includes('generico');
+      }
+      if (filtroTipoCmed === 'novo') {
+        return m.tipo_produto.toLowerCase().includes('novo') || m.tipo_produto.toLowerCase().includes('refer');
+      }
+      if (filtroTipoCmed === 'similar') {
+        return m.tipo_produto.toLowerCase().includes('similar');
+      }
+      if (filtroTipoCmed === 'biologico') {
+        return m.tipo_produto.toLowerCase().includes('biol');
+      }
+
+      return true;
+    });
+  }, [termoCmed, filtroTipoCmed]);
 
   // Filtragem PCDT
   const pcdtsFiltrados = useMemo(() => {
@@ -51,24 +96,16 @@ export const PublicDatabasesView: React.FC = () => {
 
       if (!matchTexto) return false;
 
-      if (filtroStatus === 'aprovado') {
-        return p.status_conitec.toLowerCase().includes('aprovado');
-      }
-      if (filtroStatus === 'atualizacao') {
-        return p.status_conitec.toLowerCase().includes('atualiza');
-      }
-      if (filtroStatus === 'elaboracao') {
-        return p.status_conitec.toLowerCase().includes('elabora');
-      }
-      if (filtroStatus === 'conitec') {
-        return p.status_conitec.toLowerCase().includes('conitec');
-      }
+      if (filtroStatus === 'aprovado') return p.status_conitec.toLowerCase().includes('aprovado');
+      if (filtroStatus === 'atualizacao') return p.status_conitec.toLowerCase().includes('atualiza');
+      if (filtroStatus === 'elaboracao') return p.status_conitec.toLowerCase().includes('elabora');
+      if (filtroStatus === 'conitec') return p.status_conitec.toLowerCase().includes('conitec');
 
       return true;
     });
   }, [termoPcdt, filtroStatus]);
 
-  // Filtragem ANVISA
+  // Filtragem ANVISA Geral
   const anvisaFiltrados = useMemo(() => {
     const t = termoAnvisa.toLowerCase().trim();
     return LISTA_MEDICAMENTOS_ANVISA_OFICIAL.filter((m) => {
@@ -81,11 +118,7 @@ export const PublicDatabasesView: React.FC = () => {
         m.numero_registro_anvisa.includes(t);
 
       if (!matchTexto) return false;
-
-      if (filtroClasse !== 'todas') {
-        return m.classe_terapeutica.toLowerCase().includes(filtroClasse.toLowerCase());
-      }
-
+      if (filtroClasse !== 'todas') return m.classe_terapeutica.toLowerCase().includes(filtroClasse.toLowerCase());
       return true;
     });
   }, [termoAnvisa, filtroClasse]);
@@ -101,22 +134,33 @@ export const PublicDatabasesView: React.FC = () => {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-lg font-bold text-slate-100">Bases Públicas Oficiais do Governo Federal</h2>
-                <span className="text-[10px] bg-indigo-900/60 text-indigo-300 border border-indigo-700/60 px-2.5 py-0.5 rounded-full font-mono font-semibold">
-                  Dados Abertos
+                <h2 className="text-lg font-bold text-slate-100">Bases Públicas Oficiais do Brasil (ANVISA / CMED / MS)</h2>
+                <span className="text-[10px] bg-emerald-900/60 text-emerald-300 border border-emerald-700/60 px-2.5 py-0.5 rounded-full font-mono font-semibold">
+                  26.635 Apresentações Registradas
                 </span>
               </div>
               <p className="text-xs text-slate-400">
-                Leitura direta dos arquivos públicos do Ministério da Saúde (ckan.saude.gov.br) e da ANVISA (dados.anvisa.gov.br)
+                Consulta direta a todos os remédios, substâncias DCB, preços máximos (PMC) e receitas oficiais registradas no Brasil
               </p>
             </div>
           </div>
 
           {/* Abas Alternadoras das Fontes */}
-          <div className="flex bg-slate-950 p-1 rounded-xl border border-slate-800">
+          <div className="flex bg-slate-950 p-1 rounded-xl border border-slate-800 overflow-x-auto scrollbar-none">
+            <button
+              onClick={() => setAbaAtiva('cmed')}
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-all ${
+                abaAtiva === 'cmed'
+                  ? 'bg-gradient-to-r from-teal-600 to-emerald-600 text-white shadow-md'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Pill className="w-4 h-4" />
+              <span>Remédios do Brasil (CMED)</span>
+            </button>
             <button
               onClick={() => setAbaAtiva('pcdt')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-all ${
                 abaAtiva === 'pcdt'
                   ? 'bg-gradient-to-r from-teal-600 to-emerald-600 text-white shadow-md'
                   : 'text-slate-400 hover:text-white'
@@ -127,23 +171,184 @@ export const PublicDatabasesView: React.FC = () => {
             </button>
             <button
               onClick={() => setAbaAtiva('anvisa')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-all ${
                 abaAtiva === 'anvisa'
                   ? 'bg-gradient-to-r from-teal-600 to-emerald-600 text-white shadow-md'
                   : 'text-slate-400 hover:text-white'
               }`}
             >
               <Building2 className="w-4 h-4" />
-              <span>Catálogo ANVISA Oficial</span>
+              <span>Registro ANVISA</span>
             </button>
           </div>
         </div>
       </div>
 
-      {/* ABA 1: PCDT MINISTÉRIO DA SAÚDE */}
+      {/* ABA 1: CATÁLOGO NACIONAL CMED / ANVISA (TODOS OS REMÉDIOS DO BRASIL) */}
+      {abaAtiva === 'cmed' && (
+        <div className="space-y-6">
+          {/* Barra de Busca e Filtros CMED */}
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl flex flex-col md:flex-row gap-4 justify-between items-center">
+            <div className="relative w-full md:w-96">
+              <Search className="w-4 h-4 text-teal-400 absolute left-3 top-2.5" />
+              <input
+                type="text"
+                value={termoCmed}
+                onChange={(e) => setTermoCmed(e.target.value)}
+                placeholder="Buscar por produto, substância DCB ou laboratório..."
+                className="w-full bg-slate-950 border border-slate-750 focus:border-teal-500 rounded-xl pl-9 pr-4 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none"
+              />
+            </div>
+
+            <div className="flex items-center gap-2 overflow-x-auto w-full md:w-auto text-xs scrollbar-none">
+              <span className="text-slate-400 font-semibold text-[11px] flex items-center gap-1">
+                <Filter className="w-3.5 h-3.5" /> Tipo:
+              </span>
+              {[
+                { id: 'todos', label: 'Todos os Tipos' },
+                { id: 'novo', label: 'Referência / Novo' },
+                { id: 'generico', label: 'Genérico' },
+                { id: 'similar', label: 'Similar' },
+                { id: 'biologico', label: 'Biológico' },
+              ].map((s) => (
+                <button
+                  key={s.id}
+                  onClick={() => setFiltroTipoCmed(s.id)}
+                  className={`px-3 py-1.5 rounded-xl font-medium whitespace-nowrap transition-all ${
+                    filtroTipoCmed === s.id
+                      ? 'bg-teal-600 text-white shadow-md'
+                      : 'bg-slate-800 text-slate-300 hover:bg-slate-750'
+                  }`}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Grid Principal CMED: Lista e Detalhe da Receita */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            {/* Lista Lateral de Medicamentos Comerciais */}
+            <div className="lg:col-span-6 bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl space-y-2.5 max-h-[720px] overflow-y-auto">
+              <div className="flex justify-between items-center text-xs pb-2 border-b border-slate-800 text-slate-300 font-bold uppercase tracking-wider">
+                <span>Medicamentos Encontrados ({cmedFiltrados.length})</span>
+                {termoCmed && (
+                  <button onClick={() => setTermoCmed('')} className="text-teal-400 hover:text-teal-300 text-[11px]">
+                    Limpar
+                  </button>
+                )}
+              </div>
+
+              {cmedFiltrados.map((m) => {
+                const ativo = cmedSelecionado?.id_cmed === m.id_cmed;
+                return (
+                  <div
+                    key={m.id_cmed}
+                    onClick={() => setCmedSelecionado(m)}
+                    className={`p-3.5 rounded-xl border cursor-pointer transition-all ${
+                      ativo
+                        ? 'bg-teal-950/70 border-teal-500 shadow-lg shadow-teal-950/50 ring-1 ring-teal-500/40'
+                        : 'bg-slate-850/60 border-slate-800 hover:bg-slate-800/80 hover:border-slate-700'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between text-xs mb-1">
+                      <span className="text-[10px] bg-slate-800 text-teal-300 px-2 py-0.5 rounded font-mono font-bold">
+                        {m.tipo_produto || 'Medicamento'}
+                      </span>
+                      {m.preco_maximo_consumidor > 0 && (
+                        <span className="text-[10px] font-mono text-emerald-400 font-bold">
+                          PMC R$ {m.preco_maximo_consumidor.toFixed(2)}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="text-xs font-bold text-slate-100 leading-snug">{m.nome_produto}</div>
+                    <div className="text-[11px] text-teal-300/90 font-medium mb-1">{m.substancia}</div>
+                    <div className="text-[10px] text-slate-400 line-clamp-1">{m.apresentacao}</div>
+                    <div className="text-[9px] text-slate-500 mt-1 flex justify-between items-center">
+                      <span>{m.laboratorio}</span>
+                      <span className="font-mono">Reg. {m.numero_registro}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Painel da Receita Médica do Remédio */}
+            <div className="lg:col-span-6 bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-6">
+              {cmedSelecionado ? (
+                <>
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-4 border-b border-slate-800">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-xs bg-teal-900/60 text-teal-300 border border-teal-700/60 px-2 py-0.5 rounded font-mono font-bold">
+                          {cmedSelecionado.tipo_produto}
+                        </span>
+                        <span className="text-xs bg-slate-800 text-slate-300 px-2 py-0.5 rounded font-mono">
+                          {cmedSelecionado.tarja}
+                        </span>
+                      </div>
+                      <h3 className="text-lg font-bold text-slate-100 leading-tight">
+                        {cmedSelecionado.nome_produto}
+                      </h3>
+                      <p className="text-xs text-teal-400 font-medium mt-0.5">{cmedSelecionado.substancia}</p>
+                    </div>
+
+                    <button
+                      onClick={() => copiarPrescricaoCmed(cmedSelecionado)}
+                      className="flex items-center gap-2 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white px-4 py-2.5 rounded-xl text-xs font-bold shadow-lg shadow-teal-950/50 transition-all flex-shrink-0"
+                    >
+                      {copiadoCmed ? <Check className="w-4 h-4 text-white" /> : <Copy className="w-4 h-4" />}
+                      <span>{copiadoCmed ? 'Receita Copiada!' : 'Copiar Receita do Remédio'}</span>
+                    </button>
+                  </div>
+
+                  {/* Informações Regulatórias da Apresentação */}
+                  <div className="grid grid-cols-2 gap-3 text-xs">
+                    <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 space-y-1">
+                      <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Apresentação</span>
+                      <p className="text-slate-200 font-medium">{cmedSelecionado.apresentacao}</p>
+                    </div>
+                    <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 space-y-1">
+                      <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Fabricante</span>
+                      <p className="text-slate-200 font-medium">{cmedSelecionado.laboratorio}</p>
+                    </div>
+                    <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 space-y-1">
+                      <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Registro ANVISA</span>
+                      <p className="text-slate-200 font-mono font-medium">{cmedSelecionado.numero_registro}</p>
+                    </div>
+                    <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 space-y-1">
+                      <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Preço Teto Consumidor (PMC)</span>
+                      <p className="text-emerald-400 font-mono font-bold text-sm">R$ {cmedSelecionado.preco_maximo_consumidor.toFixed(2)}</p>
+                    </div>
+                  </div>
+
+                  {/* Bloco de Receituário Copiável */}
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                        <FileCheck className="w-4 h-4 text-teal-400" /> Prescrição Médica Pronta para Prontuário
+                      </span>
+                      <span className="text-[10px] text-slate-500 font-mono">PEC e-SUS / MV / Tasy</span>
+                    </div>
+                    <pre className="p-4 bg-slate-950 border border-slate-800 rounded-xl text-xs text-teal-300 font-mono whitespace-pre-wrap leading-relaxed overflow-x-auto selection:bg-teal-700 selection:text-white">
+                      {cmedSelecionado.receita_padrao_copiavel}
+                    </pre>
+                  </div>
+                </>
+              ) : (
+                <div className="py-12 text-center text-slate-400 text-xs">
+                  Selecione um medicamento da lista para visualizar a apresentação e receita.
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ABA 2: PCDT MINISTÉRIO DA SAÚDE */}
       {abaAtiva === 'pcdt' && (
         <div className="space-y-6">
-          {/* Barra de Filtros e Busca PCDT */}
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl flex flex-col md:flex-row gap-4 justify-between items-center">
             <div className="relative w-full md:w-96">
               <Search className="w-4 h-4 text-teal-400 absolute left-3 top-2.5" />
@@ -181,9 +386,7 @@ export const PublicDatabasesView: React.FC = () => {
             </div>
           </div>
 
-          {/* Grid Principal: Lista e Detalhes do PCDT */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-            {/* Lista Lateral de Protocolos */}
             <div className="lg:col-span-5 bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl space-y-2.5 max-h-[720px] overflow-y-auto">
               <div className="flex justify-between items-center text-xs pb-2 border-b border-slate-800 text-slate-300 font-bold uppercase tracking-wider">
                 <span>Protocolos Encontrados ({pcdtsFiltrados.length})</span>
@@ -237,7 +440,6 @@ export const PublicDatabasesView: React.FC = () => {
               })}
             </div>
 
-            {/* Painel de Visualização do PCDT Selecionado */}
             <div className="lg:col-span-7 bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-6">
               {pcdtSelecionado && (
                 <>
@@ -257,7 +459,7 @@ export const PublicDatabasesView: React.FC = () => {
                     </div>
 
                     <button
-                      onClick={copiarPrescricao}
+                      onClick={copiarPrescricaoPcdt}
                       className="flex items-center gap-2 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-lg shadow-teal-950/50 transition-all flex-shrink-0"
                     >
                       {copiadoPcdt ? <Check className="w-4 h-4 text-white" /> : <Copy className="w-4 h-4" />}
@@ -265,7 +467,6 @@ export const PublicDatabasesView: React.FC = () => {
                     </button>
                   </div>
 
-                  {/* CIDs Cobertos */}
                   <div className="space-y-1.5">
                     <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">CIDs Cobertos no SUS:</span>
                     <div className="flex flex-wrap gap-1.5">
@@ -277,9 +478,8 @@ export const PublicDatabasesView: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Fármacos Padronizados pela CONITEC */}
                   <div className="space-y-1.5">
-                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Fármacos Padronizados / Incorporados:</span>
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Fármacos Incorporados:</span>
                     <div className="flex flex-wrap gap-1.5">
                       {pcdtSelecionado.farmacos_principais.map((farmaco, i) => (
                         <span key={i} className="bg-slate-800 text-slate-200 border border-slate-700/80 px-2.5 py-1 rounded-lg text-xs font-medium flex items-center gap-1.5">
@@ -290,7 +490,6 @@ export const PublicDatabasesView: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Conduta Clínica Oficial */}
                   <div className="space-y-2">
                     <span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
                       <BookOpen className="w-4 h-4 text-teal-400" /> Diretrizes Clínicas & Critérios de Inclusão
@@ -300,7 +499,6 @@ export const PublicDatabasesView: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Bloco de Prescrição Copiável */}
                   <div className="space-y-2">
                     <div className="flex justify-between items-center">
                       <span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
@@ -319,7 +517,7 @@ export const PublicDatabasesView: React.FC = () => {
         </div>
       )}
 
-      {/* ABA 2: MEDICAMENTOS ANVISA OFICIAL */}
+      {/* ABA 3: MEDICAMENTOS ANVISA OFICIAL */}
       {abaAtiva === 'anvisa' && (
         <div className="space-y-6">
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl flex flex-col md:flex-row gap-4 justify-between items-center">

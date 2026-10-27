@@ -1,2 +1,0 @@
-cargo:rustc-link-search=native=E:\source\OpenMedical\openclinical\core_rust\target\debug\build\webview2-com-sys-c7379f0c537f8f8f\out\x64
-cargo:rustc-link-lib=advapi32
