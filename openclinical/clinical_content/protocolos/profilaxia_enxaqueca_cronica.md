@@ -6,6 +6,7 @@ ciaps_relacionados: ["N89"]
 nivel_atencao: "Atencao_Primaria_e_Neurologia"
 diretrizes_referencia: "Sociedade Brasileira de Cefaleia (SBCe), AAN"
 data_revisao: "2026-10-26"
+status_revisao_clinica: "pendente_revisao_por_profissional_habilitado"
 ---
 
 # Diretrizes Clínicas: Profilaxia de Enxaqueca

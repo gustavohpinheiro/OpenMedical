@@ -121,7 +121,7 @@ def obter_lista_medicamentos_comerciais() -> List[MedicamentoComercialSchema]:
             apresentacao_comercial="Cápsula dura 500 mg - Embalagem com 21 cápsulas",
             concentracao_valor=500.0,
             concentracao_unidade="mg",
-            forma_farmaceutica="comprimido",
+            forma_farmaceutica="capsula",
             tipo_receituario="antimicrobiano",
             preco_maximo_consumidor=35.50,
         ),
@@ -258,7 +258,7 @@ def obter_lista_medicamentos_comerciais() -> List[MedicamentoComercialSchema]:
             apresentacao_comercial="Frasco-ampola com pó liofilizado de 1000 mg para infusão IV",
             concentracao_valor=1000.0,
             concentracao_unidade="mg",
-            forma_farmaceutica="solucao_injetavel",
+            forma_farmaceutica="po_para_solucao_injetavel",
             tipo_receituario="antimicrobiano",
             preco_maximo_consumidor=89.00,
         ),
@@ -490,16 +490,16 @@ def obter_lista_matriz_interacoes() -> List[MatrizInteracaoSchema]:
             id_principio_ativo_b=4,
             gravidade_interacao="Contraindicada",
             efeito_clinico="Duplo bloqueio simultâneo do sistema renina-angiotensina-aldosterona (SRAA). Aumento estatisticamente demonstrado de hipercalemia grave refratária, hipotensão arterial precipitante e deterioração aguda e acelerada da taxa de filtração glomerular sem benefícios cardiovasculares adicionais.",
-            conduta_recomendada="Associação formalmente contraindicada. Selecionar exclusivamente uma das classes (IECA ou BRA) e, caso metas de controle pressórico não sejam atingidas, associar com bloqueador dos canais de cálcio (anlodipino) ou diurético tiazídico (hidroclorotiazida).",
+            conduta_recomendada="Diretrizes (SBC 2020, KDIGO) recomendam não associar IECA e BRA (ONTARGET, VA NEPHRON-D). Manter apenas uma das classes e, se a meta pressórica não for atingida, associar bloqueador dos canais de cálcio (anlodipino) ou diurético tiazídico.",
         ),
-        # 2. Sinvastatina (10) + Azitromicina (6): Inibição metabólica CYP3A4
+        # 2. Sinvastatina (10) + Azitromicina (6): azitromicina é inibidora fraca do CYP3A4 (diferente de claritromicina/eritromicina)
         MatrizInteracaoSchema(
             id_interacao=2,
             id_principio_ativo_a=10,
             id_principio_ativo_b=6,
-            gravidade_interacao="Grave",
-            efeito_clinico="A azitromicina inibe moderadamente vias de metabolização e efluxo de estatinas lipofílicas, promovendo elevação plasmática expressiva de sinvastatina, potencializando drasticamente o risco de toxicidade muscular esquelética, miopatia severa e rabdomiólise aguda potencialmente fatal.",
-            conduta_recomendada="Suspender temporariamente o uso da sinvastatina durante o curso do tratamento antimicrobiano com azitromicina e restabelecer 3 dias após a última dose do antibiótico, ou substituir temporariamente por pravastatina ou rosuvastatina.",
+            gravidade_interacao="Leve",
+            efeito_clinico="Azitromicina, ao contrário de claritromicina e eritromicina, é inibidora fraca do CYP3A4; há relatos isolados de miopatia/rabdomiólise com sinvastatina, sem aumento relevante e consistente dos níveis séricos.",
+            conduta_recomendada="Pode-se manter a sinvastatina, orientando suspensão e procura de atendimento se houver dor ou fraqueza muscular. Se o macrolídeo for claritromicina ou eritromicina, suspender a sinvastatina durante o curso.",
         ),
         # 3. Enalapril (4) + Dipirona (2): Inibição de prostaglandinas vasodilatadoras renais
         MatrizInteracaoSchema(
@@ -525,7 +525,7 @@ def obter_lista_matriz_interacoes() -> List[MatrizInteracaoSchema]:
             id_principio_ativo_a=7,
             id_principio_ativo_b=4,
             gravidade_interacao="Grave",
-            efeito_clinico="Em situações de choque que exigem infusão contínua de noradrenalina, a presença circulante de inibidores da ECA impede o tônus compensatório da arteríola eferente glomerular mediado por angiotensina II, exacerbando a isquemia e a necrose tubular aguda renal.",
+            efeito_clinico="No choque, o IECA reduz a angiotensina II que sustenta a pressão arterial e a vasoconstrição da arteríola eferente: agrava a hipotensão, aumenta a necessidade de vasopressor e reduz a TFG (risco de lesão renal aguda).",
             conduta_recomendada="Suspender imediatamente qualquer anti-hipertensivo ou IECA na presença de hipotensão que demande vasopressores. Manter monitorização invasiva contínua de débito cardíaco, PAM e débito urinário horário.",
         ),
     ]

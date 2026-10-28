@@ -1,15 +1,37 @@
 use crate::errors::ClinicalError;
 use crate::models::{
     BulaEstruturada, DetalheMedicamentoCompleto, ItemBuscaFts, MatrizInteracao, MedicamentoComercial,
-    PrincipioAtivo,
+    MedicamentoComercialCmed, PrincipioAtivo,
 };
 
 #[cfg(not(target_arch = "wasm32"))]
-use rusqlite::{params, Connection, OpenFlags};
+use rusqlite::{params, Connection, OpenFlags, OptionalExtension};
 
 #[cfg(not(target_arch = "wasm32"))]
 pub struct BancoDadosClinico {
     conexao: Connection,
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn valor_sqlite_para_json(valor: rusqlite::types::Value) -> serde_json::Value {
+    use rusqlite::types::Value;
+    match valor {
+        Value::Integer(n) => serde_json::Value::from(n),
+        Value::Real(f) => serde_json::Value::from(f),
+        Value::Text(t) => serde_json::Value::from(t),
+        Value::Null | Value::Blob(_) => serde_json::Value::Null,
+    }
+}
+
+/// Distingue "registro inexistente" de falhas reais de consulta, que não podem ser mascaradas.
+#[cfg(not(target_arch = "wasm32"))]
+fn erro_consulta(erro: rusqlite::Error, identificador: String) -> ClinicalError {
+    match erro {
+        rusqlite::Error::QueryReturnedNoRows => ClinicalError::NaoEncontrado { identificador },
+        outro => ClinicalError::ErroBancoDados {
+            mensagem: format!("Erro ao consultar {identificador}: {outro}"),
+        },
+    }
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -61,9 +83,15 @@ impl BancoDadosClinico {
                     .chars()
                     .filter(|c| c.is_alphanumeric() || *c == '-' || *c == '.')
                     .collect();
-                format!("\"{}\"*", token_sanitizado)
+                token_sanitizado
             })
+            .filter(|tok| !tok.is_empty())
+            .map(|tok| format!("\"{}\"*", tok))
             .collect();
+
+        if tokens.is_empty() {
+            return Ok(Vec::new());
+        }
 
         let consulta_fts = tokens.join(" ");
 
@@ -72,7 +100,7 @@ impl BancoDadosClinico {
             FROM indice_busca_fts
             WHERE indice_busca_fts MATCH ?1
             ORDER BY score ASC
-            LIMIT ?2;
+            LIMIT ?2
         "#;
 
         let mut stmt = self
@@ -86,7 +114,7 @@ impl BancoDadosClinico {
             .query_map(params![consulta_fts, limite as i64], |row| {
                 Ok(ItemBuscaFts {
                     tipo_registro: row.get(0)?,
-                    id_referencia: row.get(1)?,
+                    id_referencia: valor_sqlite_para_json(row.get::<_, rusqlite::types::Value>(1)?),
                     titulo_primario: row.get(2)?,
                     subtitulo: row.get(3)?,
                     score_relevancia: row.get(4)?,
@@ -98,9 +126,10 @@ impl BancoDadosClinico {
 
         let mut resultados = Vec::new();
         for item in linhas {
-            if let Ok(reg) = item {
-                resultados.push(reg);
-            }
+            let registro = item.map_err(|e| ClinicalError::ErroBancoDados {
+                mensagem: format!("Erro ao ler resultado da busca FTS5: {e}"),
+            })?;
+            resultados.push(registro);
         }
 
         Ok(resultados)
@@ -116,7 +145,7 @@ impl BancoDadosClinico {
                    laboratorio_fabricante, apresentacao_comercial, concentracao_valor,
                    concentracao_unidade, forma_farmaceutica, tipo_receituario, preco_maximo_consumidor
             FROM medicamentos_comerciais
-            WHERE id_medicamento = ?1;
+            WHERE id_medicamento = ?1
         "#;
 
         let medicamento = self
@@ -136,15 +165,13 @@ impl BancoDadosClinico {
                     preco_maximo_consumidor: row.get(10)?,
                 })
             })
-            .map_err(|_| ClinicalError::NaoEncontrado {
-                identificador: format!("Medicamento comercial ID {id_medicamento}"),
-            })?;
+            .map_err(|e| erro_consulta(e, format!("Medicamento comercial ID {id_medicamento}")))?;
 
         let sql_pa = r#"
             SELECT id_principio_ativo, nome_dcb, classe_terapeutica, categoria_risco_gestacao,
                    compatibilidade_aleitamento, disponivel_rename_sus, componente_sus
             FROM principios_ativos
-            WHERE id_principio_ativo = ?1;
+            WHERE id_principio_ativo = ?1
         "#;
 
         let principio_ativo = self
@@ -160,9 +187,7 @@ impl BancoDadosClinico {
                     componente_sus: row.get(6)?,
                 })
             })
-            .map_err(|_| ClinicalError::NaoEncontrado {
-                identificador: format!("Princípio ativo ID {}", medicamento.id_principio_ativo),
-            })?;
+            .map_err(|e| erro_consulta(e, format!("Princípio ativo ID {}", medicamento.id_principio_ativo)))?;
 
         let sql_bula = r#"
             SELECT id_bula, id_principio_ativo, indicacoes_clinicas, posologia_adulto_padrao,
@@ -171,7 +196,7 @@ impl BancoDadosClinico {
                    ajuste_funcao_renal_json, ajuste_funcao_hepatica, contraindicacoes,
                    eventos_adversos_comuns, guia_diluicao_injetavel_json
             FROM bulas_estruturadas
-            WHERE id_principio_ativo = ?1;
+            WHERE id_principio_ativo = ?1
         "#;
 
         let bula = self
@@ -193,13 +218,47 @@ impl BancoDadosClinico {
                     guia_diluicao_injetavel_json: row.get(12)?,
                 })
             })
-            .ok();
+            .optional()
+            .map_err(|e| ClinicalError::ErroBancoDados {
+                mensagem: format!("Erro ao consultar bula estruturada: {e}"),
+            })?;
 
         Ok(DetalheMedicamentoCompleto {
             medicamento,
             principio_ativo,
             bula,
         })
+    }
+
+    /// Obtém uma apresentação comercial do catálogo CMED (preço máximo e modelo de receita sem posologia).
+    pub fn obter_registro_cmed(&self, id_cmed: i64) -> Result<MedicamentoComercialCmed, ClinicalError> {
+        let sql = r#"
+            SELECT id_cmed, substancia, nome_produto, apresentacao,
+                   COALESCE(classe_terapeutica, ''), COALESCE(tipo_produto, ''), COALESCE(laboratorio, ''),
+                   COALESCE(numero_registro, ''), COALESCE(codigo_ean, ''), COALESCE(tarja, ''),
+                   COALESCE(preco_maximo_consumidor, 0.0), COALESCE(receita_padrao_copiavel, '')
+            FROM catalogo_nacional_medicamentos_cmed
+            WHERE id_cmed = ?1
+        "#;
+
+        self.conexao
+            .query_row(sql, params![id_cmed], |row| {
+                Ok(MedicamentoComercialCmed {
+                    id_cmed: row.get(0)?,
+                    substancia: row.get(1)?,
+                    nome_produto: row.get(2)?,
+                    apresentacao: row.get(3)?,
+                    classe_terapeutica: row.get(4)?,
+                    tipo_produto: row.get(5)?,
+                    laboratorio: row.get(6)?,
+                    numero_registro: row.get(7)?,
+                    codigo_ean: row.get(8)?,
+                    tarja: row.get(9)?,
+                    preco_maximo_consumidor: row.get(10)?,
+                    receita_padrao_copiavel: row.get(11)?,
+                })
+            })
+            .map_err(|e| erro_consulta(e, format!("Apresentação CMED ID {id_cmed}")))
     }
 
     /// Verifica e ranqueia interações medicamentosas para N princípios ativos.
@@ -222,7 +281,7 @@ impl BancoDadosClinico {
             JOIN principios_ativos pa ON m.id_principio_ativo_a = pa.id_principio_ativo
             JOIN principios_ativos pb ON m.id_principio_ativo_b = pb.id_principio_ativo
             WHERE (m.id_principio_ativo_a = ?1 AND m.id_principio_ativo_b = ?2)
-               OR (m.id_principio_ativo_a = ?2 AND m.id_principio_ativo_b = ?1);
+               OR (m.id_principio_ativo_a = ?2 AND m.id_principio_ativo_b = ?1)
         "#;
 
         let mut stmt = self

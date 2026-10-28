@@ -6,6 +6,7 @@ ciaps_relacionados: ["R75"]
 nivel_atencao: "Atencao_Primaria"
 diretrizes_referencia: "Associação Brasileira de Otorrinolaringologia (ABORL-CCF), IDSA"
 data_revisao: "2026-10-26"
+status_revisao_clinica: "pendente_revisao_por_profissional_habilitado"
 ---
 
 # Diretrizes Clínicas: Rinossinusite Aguda

@@ -6,6 +6,7 @@ ciaps_relacionados: ["D12"]
 nivel_atencao: "Atencao_Primaria"
 diretrizes_referencia: "Federação Brasileira de Gastroenterologia (FBG), WGO"
 data_revisao: "2026-10-26"
+status_revisao_clinica: "pendente_revisao_por_profissional_habilitado"
 ---
 
 # Diretrizes Clínicas: Constipação Crônica

@@ -6,6 +6,7 @@ ciaps_relacionados: ["S84"]
 nivel_atencao: "Atencao_Primaria"
 diretrizes_referencia: "Sociedade Brasileira de Dermatologia (SBD), SBP"
 data_revisao: "2026-10-26"
+status_revisao_clinica: "pendente_revisao_por_profissional_habilitado"
 ---
 
 # Diretrizes Clínicas: Impetigo
@@ -30,7 +31,7 @@ USO TÓPICO:
 
 USO ORAL (Se lesões extensas):
 2. Cefalexina 500mg comprimido (ou suspensão 250mg/5mL) -- 1 caixa
-   Tomar conforme prescrição médica a cada 6 horas por 7 dias.
+   Adultos: 500 mg por via oral a cada 6 horas por 7 dias. Crianças: 25 a 50 mg/kg/dia da suspensão 250mg/5mL, divididos a cada 6 horas, por 7 dias.
 
 Orientações:
 - Uso estritamente individual de toalhas de banho e roupas de cama para evitar disseminação intrafamiliar.

@@ -77,8 +77,8 @@ export interface CodigoDiagnostico {
 }
 
 export interface ItemBuscaFts {
-  tipo_registro: 'medicamento' | 'diagnostico' | 'protocolo';
-  id_referencia: number;
+  tipo_registro: 'medicamento' | 'diagnostico' | 'protocolo' | 'pcdt_governo' | 'cmed_comercial' | 'ftn_monografia';
+  id_referencia: number | string;
   titulo_primario: string;
   subtitulo: string;
   score_relevancia: number;
@@ -125,6 +125,33 @@ export interface ProtocoloClinico {
   ciaps_relacionados: string[];
   nivel_atencao: string;
   data_revisao: string;
+  status_revisao_clinica?: string;
   conteudo_markdown: string;
   bloco_prescricao_copiavel: string;
+}
+
+export interface CotacaoFarmacia {
+  nome_farmacia: string;
+  tipo_rede: string;
+  preco_estimado: number;
+  desconto_percentual: number;
+  link_busca: string;
+  disponibilidade: string;
+}
+
+export interface AnalisePrecoMedicamento {
+  nome_comercial: string;
+  substancia: string;
+  tipo_produto: string;
+  apresentacao: string;
+  codigo_ean: string;
+  preco_pmc_teto: number;
+  menor_preco_estimado: number;
+  maior_preco_estimado: number;
+  preco_medio: number;
+  preco_por_unidade?: number | null;
+  quantidade_unidades?: number | null;
+  elegivel_farmacia_popular: boolean;
+  faixa_farmacia_popular?: string | null;
+  cotacoes: CotacaoFarmacia[];
 }

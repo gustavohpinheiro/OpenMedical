@@ -6,6 +6,7 @@ ciaps_relacionados: ["H71"]
 nivel_atencao: "Atencao_Primaria_e_Pediatria"
 diretrizes_referencia: "Sociedade Brasileira de Pediatria (SBP), Academia Americana de Pediatria (AAP)"
 data_revisao: "2026-10-26"
+status_revisao_clinica: "pendente_revisao_por_profissional_habilitado"
 ---
 
 # Diretrizes Clínicas: Otite Média Aguda Pediátrica

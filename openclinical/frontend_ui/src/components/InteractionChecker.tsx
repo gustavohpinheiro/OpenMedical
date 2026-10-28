@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldAlert, AlertOctagon, AlertTriangle, Info, CheckCircle2, Plus, X } from 'lucide-react';
+import { ShieldAlert, AlertOctagon, AlertTriangle, Info, Plus, X } from 'lucide-react';
 import { MatrizInteracao } from '../types';
 import { verificarInteracoes } from '../api';
+import { FtnInteractionChecker } from './FtnInteractionChecker';
 
 const LISTA_FARMACOS = [
   { id: 1, nome: 'Amoxicilina' },
@@ -17,15 +18,21 @@ const LISTA_FARMACOS = [
 ];
 
 export const InteractionChecker: React.FC = () => {
-  const [selecionados, setSelecionados] = useState<number[]>([3, 4]); // Padrão: Losartana + Enalapril (Contraindicada)
+  const [selecionados, setSelecionados] = useState<number[]>([3, 4]); // Padrão: Losartana + Enalapril (duplo bloqueio SRAA)
   const [interacoes, setInteracoes] = useState<MatrizInteracao[]>([]);
   const [carregando, setCarregando] = useState(false);
+  const [erroConsulta, setErroConsulta] = useState<string | null>(null);
 
   useEffect(() => {
     if (selecionados.length >= 2) {
       setCarregando(true);
+      setErroConsulta(null);
       verificarInteracoes(selecionados)
         .then(setInteracoes)
+        .catch((e) => {
+          setInteracoes([]);
+          setErroConsulta(e instanceof Error ? e.message : String(e));
+        })
         .finally(() => setCarregando(false));
     } else {
       setInteracoes([]);
@@ -39,15 +46,20 @@ export const InteractionChecker: React.FC = () => {
   };
 
   return (
+    <div className="space-y-6">
+    <FtnInteractionChecker />
     <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
-      <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-4">
         <div className="flex items-center space-x-3">
           <div className="p-2.5 bg-rose-500/10 text-rose-400 rounded-xl">
             <ShieldAlert className="w-6 h-6" />
           </div>
           <div>
-            <h3 className="text-base font-bold text-slate-100">Verificador Combinatório de Interações Medicamentosas</h3>
-            <p className="text-xs text-slate-400">Análise simultânea de múltiplos princípios ativos com ranqueamento por gravidade clínica</p>
+            <h3 className="text-base font-bold text-slate-100">Interações com gravidade classificada (base local)</h3>
+            <p className="text-xs text-slate-400">
+              Todos os pares dos fármacos selecionados, ordenados por gravidade. Base de demonstração: 10 princípios ativos e
+              5 interações cadastradas.
+            </p>
           </div>
         </div>
         <div className="text-xs text-slate-400 font-mono">
@@ -89,12 +101,19 @@ export const InteractionChecker: React.FC = () => {
         </div>
       )}
 
-      {selecionados.length >= 2 && !carregando && interacoes.length === 0 && (
-        <div className="bg-emerald-950/40 border border-emerald-600/50 rounded-xl p-5 flex items-center space-x-3 text-emerald-200">
-          <CheckCircle2 className="w-6 h-6 text-emerald-400 flex-shrink-0" />
+      {erroConsulta && (
+        <div className="bg-red-950/50 border border-red-600/60 rounded-xl p-4 text-xs text-red-200">
+          <p className="font-bold text-red-300">Não foi possível verificar as interações.</p>
+          <p className="mt-0.5">{erroConsulta}</p>
+        </div>
+      )}
+
+      {selecionados.length >= 2 && !carregando && !erroConsulta && interacoes.length === 0 && (
+        <div className="bg-slate-950/60 border border-slate-700 rounded-xl p-5 flex items-center space-x-3 text-slate-200">
+          <Info className="w-6 h-6 text-sky-400 flex-shrink-0" />
           <div className="text-xs">
-            <p className="font-bold text-emerald-300 text-sm">Nenhuma interação grave ou contraindicada detectada!</p>
-            <p className="text-slate-300 mt-0.5">A combinação dos fármacos selecionados não possui incompatibilidades críticas catalogadas na base RENAME/ANVISA.</p>
+            <p className="font-bold text-slate-100 text-sm">Nenhuma interação cadastrada para esta combinação</p>
+            <p className="text-slate-300 mt-0.5">A base atual cataloga apenas um conjunto reduzido de interações (curadoria inicial, sem revisão clínica formal). A ausência de alerta NÃO descarta interação: confirme em fonte de referência.</p>
           </div>
         </div>
       )}
@@ -170,6 +189,7 @@ export const InteractionChecker: React.FC = () => {
           </div>
         </div>
       )}
+    </div>
     </div>
   );
 };

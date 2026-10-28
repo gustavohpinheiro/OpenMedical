@@ -28,16 +28,20 @@ def limpar_preco(valor_str: str) -> float:
         return 0.0
 
 
-def gerar_receita_prescricao(produto: str, substancia: str, apresentacao: str, laboratorio: str, tarja: str) -> str:
+def gerar_receita_prescricao(produto: str, substancia: str, apresentacao: str, laboratorio: str, tarja: str, classe: str = "") -> str:
     tipo_uso = "USO TÓPICO / DERMATOLÓGICO" if any(x in apresentacao.upper() for x in ["CREM", "POM", "GEL", "SOL TOP"]) else \
                "USO INALATÓRIO" if any(x in apresentacao.upper() for x in ["AER", "SPRAY", "INAL"]) else \
                "USO OFTÁLMICO" if "COL" in apresentacao.upper() else \
                "USO INJETÁVEL (IM/IV/SC)" if any(x in apresentacao.upper() for x in ["INJ", "AMP", "FA "]) else \
                "USO ORAL"
 
-    tipo_receituario = "RECEITUÁRIO DE CONTROLE ESPECIAL (BRANCO EM 2 VIAS)" if "PRETA" in tarja.upper() or "C1" in tarja.upper() else \
-                       "RECEITUÁRIO ANTIMICROBIANO (EM 2 VIAS)" if any(x in substancia.upper() for x in ["CILLIN", "AMOX", "CEFA", "CIPRO", "AZITRO", "CLARI", "DOXI", "LEVOFLOX"]) else \
-                       "RECEITUÁRIO MÉDICO SIMPLES"
+    classe_atc = classe.upper().strip()
+    if "PRETA" in tarja.upper():
+        tipo_receituario = "MEDICAMENTO DE TARJA PRETA (verificar lista da Portaria SVS/MS 344/98: Notificação de Receita ou Receita de Controle Especial)"
+    elif classe_atc.startswith("J01"):
+        tipo_receituario = "ANTIMICROBIANO SISTÊMICO (receita em 2 vias, 1ª via retida na farmácia - RDC 20/2011)"
+    else:
+        tipo_receituario = "RECEITUÁRIO MÉDICO"
 
     return (
         f"{tipo_receituario}\n"
@@ -47,10 +51,9 @@ def gerar_receita_prescricao(produto: str, substancia: str, apresentacao: str, l
         f"Fabricante: {laboratorio}\n\n"
         f"{tipo_uso}:\n"
         f"1. {produto.upper()} ({apresentacao}) -------------------- 1 embalagem original\n"
-        f"   Tomar/Aplicar conforme orientação médica e posologia descrita na bula regulatória aprovada pela ANVISA.\n\n"
+        f"   Posologia: [PREENCHER dose, via, intervalo e duração - modelo sem posologia, não é prescrição pronta]\n\n"
         f"Orientações ao Paciente:\n"
-        f"- Não interromper ou alterar o tratamento sem orientação do profissional de saúde.\n"
-        f"- Conservar em temperatura ambiente (15 a 30 ºC) protegido da luz e umidade."
+        f"- [PREENCHER orientações específicas ao paciente]"
     )
 
 
@@ -94,21 +97,24 @@ def compilar_cmed_sqlite() -> int:
     total_lidos = 0
     total_inseridos = 0
 
-    with open(CAMINHO_CMED, "r", encoding="latin1") as f:
+    with open(CAMINHO_CMED, "r", encoding="utf-8-sig", newline="") as f:
         leitor = csv.reader(f, delimiter=";")
         cabecalho = next(leitor)
         
-        # Encontra índices das colunas
-        idx_substancia = 0
-        idx_laboratorio = 2
-        idx_registro = 4
-        idx_ean = 5
-        idx_produto = 8
-        idx_apresentacao = 9
-        idx_classe = 10
-        idx_tipo = 11
-        idx_pmc18 = 47 # PMC 18% padrão nacional
-        idx_tarja = 72
+        indices = {nome.strip().upper(): i for i, nome in enumerate(cabecalho)}
+        try:
+            idx_substancia = indices["SUBSTÂNCIA"]
+            idx_laboratorio = indices["LABORATÓRIO"]
+            idx_registro = indices["REGISTRO"]
+            idx_ean = indices["EAN 1"]
+            idx_produto = indices["PRODUTO"]
+            idx_apresentacao = indices["APRESENTAÇÃO"]
+            idx_classe = indices["CLASSE TERAPÊUTICA"]
+            idx_tipo = indices["TIPO DE PRODUTO (STATUS DO PRODUTO)"]
+            idx_pmc18 = indices["PMC 18 %"]  # PMC com ICMS 18%
+            idx_tarja = indices["TARJA"]
+        except KeyError as erro:
+            raise RuntimeError(f"Coluna esperada ausente no CSV da CMED: {erro}") from erro
 
         for linha in leitor:
             if not linha or len(linha) < 15:
@@ -129,7 +135,7 @@ def compilar_cmed_sqlite() -> int:
             if not produto:
                 continue
 
-            receita = gerar_receita_prescricao(produto, substancia, apresentacao, laboratorio, tarja)
+            receita = gerar_receita_prescricao(produto, substancia, apresentacao, laboratorio, tarja, classe)
 
             lote.append((
                 substancia, produto, apresentacao, classe, tipo,

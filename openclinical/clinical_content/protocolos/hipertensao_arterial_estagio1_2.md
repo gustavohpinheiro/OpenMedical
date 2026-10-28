@@ -6,12 +6,14 @@ ciaps_relacionados: ["K86"]
 nivel_atencao: "Atencao_Primaria"
 diretrizes_referencia: "Sociedade Brasileira de Cardiologia (SBC 2020), ESH/ESC, AHA"
 data_revisao: "2026-10-26"
+status_revisao_clinica: "pendente_revisao_por_profissional_habilitado"
 ---
 
 # Diretrizes Clínicas: Tratamento Farmacológico da Hipertensão
 
 ## 1. Estratégia de Combinação Dupla Precoce
-* Para hipertensos estágio 2 (PA >= 140/90 mmHg com alto risco cardiovascular ou PA >= 160/100 mmHg), iniciar preferencialmente associação de duas classes em doses baixas.
+* Para hipertensos estágio 2 (PA >= 160/100 mmHg) ou estágio 1 (140-159/90-99 mmHg) com alto risco cardiovascular, iniciar preferencialmente associação de duas classes em doses baixas.
+* **Mulheres em idade fértil:** BRA e IECA são contraindicados na gestação (toxicidade fetal); exigir contracepção eficaz ou optar por outra classe.
 * Classes preferenciais: BRA (Losartana) ou IECA (Enalapril) + Bloqueador dos Canais de Cálcio (Anlodipino) ou Tiazídico.
 
 ```receita

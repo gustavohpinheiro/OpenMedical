@@ -11,13 +11,15 @@ import {
   Building2,
   FileText,
   AlertTriangle,
+  Store,
 } from 'lucide-react';
 import { DetalheMedicamentoCompleto, FaixaAjusteRenal, GuiaDiluicao } from '../types';
 
 interface DrugDetailProps {
   detalhe: DetalheMedicamentoCompleto;
-  onAbrirCalculadoraPediatrica: (nome: string, doseMin?: number, conc?: number, teto?: number) => void;
+  onAbrirCalculadoraPediatrica: (nome: string, doseMin: number | undefined, conc: number | null, teto: number | null) => void;
   onSelecionarMedicamento?: (id: number) => void;
+  onCompararPrecos?: (nome: string) => void;
 }
 
 const FARMACOS_DISPONIVEIS = [
@@ -35,10 +37,18 @@ const FARMACOS_DISPONIVEIS = [
   { id: 13, nome: 'Zocor 20mg (Sinvastatina)', tag: 'Estatina' },
 ];
 
+const ROTULO_COMPONENTE_SUS: Record<string, string> = {
+  Basico: 'Básico',
+  Estrategico: 'Estratégico',
+  Especializado: 'Especializado',
+  Nao_Padronizado: 'Não padronizado',
+};
+
 export const DrugDetail: React.FC<DrugDetailProps> = ({
   detalhe,
   onAbrirCalculadoraPediatrica,
   onSelecionarMedicamento,
+  onCompararPrecos,
 }) => {
   const [abaAtiva, setAbaAtiva] = useState<'posologia' | 'apresentacoes' | 'renal_gestacao' | 'diluicao'>('posologia');
   const [copiado, setCopiado] = useState(false);
@@ -70,9 +80,13 @@ ${medicamento.nome_comercial} (${principio_ativo.nome_dcb}) - ${medicamento.apre
 Posologia: ${bula?.posologia_adulto_padrao || 'Conforme orientação médica.'}
 Receituário: ${medicamento.tipo_receituario.toUpperCase()}`;
 
-    navigator.clipboard.writeText(texto);
-    setCopiado(true);
-    setTimeout(() => setCopiado(false), 2000);
+    navigator.clipboard
+      .writeText(texto)
+      .then(() => {
+        setCopiado(true);
+        setTimeout(() => setCopiado(false), 2000);
+      })
+      .catch(() => window.alert('Não foi possível acessar a área de transferência. Selecione o texto e copie manualmente.'));
   };
 
   const getCorGestacao = (cat: string) => {
@@ -131,6 +145,16 @@ Receituário: ${medicamento.tipo_receituario.toUpperCase()}`;
           </div>
 
           <div className="flex items-center gap-2">
+            {onCompararPrecos && (
+              <button
+                onClick={() => onCompararPrecos(medicamento.nome_comercial)}
+                className="flex items-center space-x-1.5 px-3 py-1.5 bg-emerald-950/70 hover:bg-emerald-900/80 text-emerald-300 border border-emerald-600/50 rounded-xl text-xs font-semibold transition-all shadow"
+                title="Buscar cotações deste medicamento nas farmácias e Farmácia Popular"
+              >
+                <Store className="w-4 h-4 text-emerald-400" />
+                <span>Preços em Farmácias</span>
+              </button>
+            )}
             <button
               onClick={copiarPrescricaoAdulto}
               className="flex items-center space-x-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-750 text-slate-200 border border-slate-700 rounded-xl text-xs font-semibold transition-all shadow"
@@ -154,7 +178,7 @@ Receituário: ${medicamento.tipo_receituario.toUpperCase()}`;
           {principio_ativo.disponivel_rename_sus === 1 && (
             <span className="text-[11px] font-semibold bg-emerald-950/80 text-emerald-300 px-2.5 py-0.5 rounded-full border border-emerald-700/60 flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-              RENAME SUS ({principio_ativo.componente_sus})
+              RENAME SUS ({ROTULO_COMPONENTE_SUS[principio_ativo.componente_sus] ?? principio_ativo.componente_sus})
             </span>
           )}
 
@@ -182,7 +206,7 @@ Receituário: ${medicamento.tipo_receituario.toUpperCase()}`;
             <button
               key={aba.id}
               onClick={() => setAbaAtiva(aba.id as any)}
-              className={`flex items-center space-x-2 py-3 px-4 text-xs font-semibold border-b-2 transition-all ${
+              className={`flex items-center space-x-2 py-3 px-4 text-xs font-semibold whitespace-nowrap flex-shrink-0 border-b-2 transition-all ${
                 ativa
                   ? 'border-teal-500 text-teal-400 bg-slate-850/50'
                   : 'border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-700'
@@ -240,14 +264,17 @@ Receituário: ${medicamento.tipo_receituario.toUpperCase()}`;
 
                 {bula?.dose_pediatrica_mg_kg_dia_min && (
                   <button
-                    onClick={() =>
+                    onClick={() => {
+                      // Só formas líquidas têm concentração em mg/mL; para comprimidos/cápsulas o usuário
+                      // precisa informar a concentração da formulação líquida que vai prescrever.
+                      const formaLiquida = medicamento.concentracao_unidade === 'mg/mL';
                       onAbrirCalculadoraPediatrica(
-                        medicamento.nome_comercial,
-                        bula.dose_pediatrica_mg_kg_dia_min ?? 50,
-                        medicamento.concentracao_valor,
-                        bula.dose_maxima_diaria_mg ?? 3000
-                      )
-                    }
+                        formaLiquida ? medicamento.nome_comercial : `${principio_ativo.nome_dcb} (formulação líquida)`,
+                        bula.dose_pediatrica_mg_kg_dia_min ?? undefined,
+                        formaLiquida ? medicamento.concentracao_valor : null,
+                        bula.dose_maxima_diaria_mg ?? null
+                      );
+                    }}
                     className="w-full mt-3 py-2 bg-teal-600/90 hover:bg-teal-500 text-white rounded-lg text-xs font-semibold transition-all shadow"
                   >
                     Abrir Calculadora Pediátrica
@@ -292,6 +319,26 @@ Receituário: ${medicamento.tipo_receituario.toUpperCase()}`;
                 <span>Forma: <strong className="text-slate-200">{medicamento.forma_farmaceutica}</strong></span>
               </div>
             </div>
+
+            {onCompararPrecos && (
+              <div className="bg-gradient-to-r from-emerald-950/40 via-teal-950/30 to-slate-900 border border-emerald-500/30 rounded-xl p-4 flex items-center justify-between gap-4">
+                <div className="space-y-0.5">
+                  <div className="text-xs font-bold text-emerald-300 flex items-center gap-1.5">
+                    <Store className="w-4 h-4 text-emerald-400" />
+                    Cotação em Tempo Real nas Farmácias
+                  </div>
+                  <p className="text-[11px] text-slate-400">
+                    Veja o preço de {medicamento.nome_comercial} na Drogasil, Raia, DPSP, Pague Menos, Panvel, Ultrafarma e se tem no Farmácia Popular (SUS).
+                  </p>
+                </div>
+                <button
+                  onClick={() => onCompararPrecos(medicamento.nome_comercial)}
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold whitespace-nowrap transition-all shadow-md flex items-center space-x-1.5"
+                >
+                  <span>Comparar Preços</span>
+                </button>
+              </div>
+            )}
           </div>
         )}
 

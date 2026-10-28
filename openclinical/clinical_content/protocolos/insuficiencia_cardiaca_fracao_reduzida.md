@@ -6,6 +6,7 @@ ciaps_relacionados: ["K77"]
 nivel_atencao: "Atencao_Primaria_e_Cardiologia"
 diretrizes_referencia: "Diretriz Brasileira de Insuficiência Cardíaca (SBC 2023), ESC, AHA/ACC"
 data_revisao: "2026-10-26"
+status_revisao_clinica: "pendente_revisao_por_profissional_habilitado"
 ---
 
 # Diretrizes Clínicas: Terapia Modificadora de Prognóstico na IC-FEr
@@ -25,8 +26,8 @@ USO ORAL:
 1. Succinato de Metoprolol 25mg comprimido lib. prolongada - 1 caixa (30 comprimidos)
    Tomar 1 comprimido por via oral pela manhã (titular dose a cada 2 a 4 semanas até 100-200 mg/dia).
 
-2. Maleato de Enalapril 10mg comprimido ----------------- 1 caixa (60 comprimidos)
-   Tomar 1 comprimido por via oral de 12 em 12 horas.
+2. Maleato de Enalapril 5mg comprimido ------------------ 1 caixa (60 comprimidos)
+   Tomar 1/2 comprimido (2.5 mg) por via oral de 12 em 12 horas na 1ª semana; titular a cada 2 semanas até a dose-alvo de 10 a 20 mg de 12 em 12 horas conforme PA, potássio e creatinina.
 
 3. Espironolactona 25mg comprimido --------------------- 1 caixa (30 comprimidos)
    Tomar 1 comprimido por via oral pela manhã (monitorar potássio e creatinina séricos).

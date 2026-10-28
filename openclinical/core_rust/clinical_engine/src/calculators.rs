@@ -105,7 +105,7 @@ pub fn avaliar_estagio_drc(tfg: f64) -> ResultadoTfg {
     } else if tfg >= 45.0 {
         ("G3a - Leve a moderadamente diminuída", "Atenção a medicamentos nefrotóxicos e ajuste inicial de posologia.")
     } else if tfg >= 30.0 {
-        ("G3b - Moderada a gravemente diminuída", "Ajuste obrigatório de doses (ex: metformina máx 500mg). Encaminhar ao nefrologista.")
+        ("G3b - Moderada a gravemente diminuída", "Ajuste obrigatório de doses (ex: metformina limitada a 1000 mg/dia e sem iniciar tratamento novo). Encaminhar ao nefrologista.")
     } else if tfg >= 15.0 {
         ("G4 - Gravemente diminuída", "Contraindicação de diversos fármacos (metformina, IECA/BRA em hipercalemia). Preparo para terapia renal substitutiva.")
     } else {
@@ -223,19 +223,19 @@ pub fn calcular_escore_wells_tep(
     let (categoria, percentual, conduta) = if pontos < 2.0 {
         (
             "Baixa probabilidade clínica",
-            "< 10%",
+            "~1% a 4% (derivação de Wells 2000: 1,3%)",
             "Aplicar critérios PERC se disponíveis ou solicitar D-Dímero de alta sensibilidade para descarte.",
         )
     } else if pontos <= 6.0 {
         (
             "Moderada probabilidade clínica",
-            "20% a 40%",
+            "~16% a 20% (derivação de Wells 2000: 16,2%)",
             "Solicitar D-Dímero. Se positivo, realizar Angiotomografia de Artérias Pulmonares (Angio-TC).",
         )
     } else {
         (
             "Alta probabilidade clínica",
-            "> 65%",
+            "~40% a 65% (derivação de Wells 2000: 40,6%)",
             "Indicação formal de Angiotomografia Computadorizada de Tórax imediata. Iniciar anticoagulação empírica se não houver contraindicação.",
         )
     };

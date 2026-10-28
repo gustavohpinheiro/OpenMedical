@@ -67,7 +67,8 @@ pub struct CodigoDiagnostico {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct ItemBuscaFts {
     pub tipo_registro: String,
-    pub id_referencia: i64,
+    /// Inteiro (medicamentos, diagnósticos) ou texto (identificador de protocolo).
+    pub id_referencia: serde_json::Value,
     pub titulo_primario: String,
     pub subtitulo: String,
     pub score_relevancia: f64,
@@ -126,6 +127,24 @@ pub struct ProtocoloClinico {
     pub ciaps_relacionados: Vec<String>,
     pub nivel_atencao: String,
     pub data_revisao: String,
+    #[serde(default)]
+    pub status_revisao_clinica: Option<String>,
     pub conteudo_markdown: String,
     pub bloco_prescricao_copiavel: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct MedicamentoComercialCmed {
+    pub id_cmed: i64,
+    pub substancia: String,
+    pub nome_produto: String,
+    pub apresentacao: String,
+    pub classe_terapeutica: String,
+    pub tipo_produto: String,
+    pub laboratorio: String,
+    pub numero_registro: String,
+    pub codigo_ean: String,
+    pub tarja: String,
+    pub preco_maximo_consumidor: f64,
+    pub receita_padrao_copiavel: String,
 }

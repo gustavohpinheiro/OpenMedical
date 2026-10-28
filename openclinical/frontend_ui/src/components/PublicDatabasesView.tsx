@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Database,
   Search,
@@ -13,12 +13,28 @@ import {
   Tag,
   ShieldCheck,
   Barcode,
+  Store,
 } from 'lucide-react';
 import { LISTA_PCDT_OFICIAL_MS, ProtocoloPCDTOficial } from '../data/pcdt_oficial_ms';
 import { LISTA_MEDICAMENTOS_ANVISA_OFICIAL, MedicamentoAnvisaOficial } from '../data/anvisa_medicamentos_publicos';
 import { CATALOGO_CMED_NACIONAL, MedicamentoComercialCMED } from '../data/catalogo_cmed_nacional';
+import { normalizarTexto, obterRegistroCmed } from '../api';
 
-export const PublicDatabasesView: React.FC = () => {
+/** Registro aberto a partir da busca global; `versao` muda a cada clique para reabrir o mesmo item. */
+export interface SelecaoBasePublica {
+  tipo: 'cmed' | 'pcdt';
+  id: number;
+  versao: number;
+}
+
+interface PublicDatabasesViewProps {
+  selecao?: SelecaoBasePublica | null;
+  onCompararPrecos?: (termo: string) => void;
+}
+
+const LIMITE_ITENS_LISTA = 150;
+
+export const PublicDatabasesView: React.FC<PublicDatabasesViewProps> = ({ selecao, onCompararPrecos }) => {
   const [abaAtiva, setAbaAtiva] = useState<'cmed' | 'pcdt' | 'anvisa'>('cmed');
 
   // Estado CMED (Remédios Registrados no Brasil)
@@ -26,6 +42,7 @@ export const PublicDatabasesView: React.FC = () => {
   const [filtroTipoCmed, setFiltroTipoCmed] = useState<string>('todos');
   const [cmedSelecionado, setCmedSelecionado] = useState<MedicamentoComercialCMED | null>(CATALOGO_CMED_NACIONAL[0] || null);
   const [copiadoCmed, setCopiadoCmed] = useState(false);
+  const [erroCmed, setErroCmed] = useState<string | null>(null);
 
   // Estado PCDT
   const [termoPcdt, setTermoPcdt] = useState('');
@@ -37,29 +54,63 @@ export const PublicDatabasesView: React.FC = () => {
   const [termoAnvisa, setTermoAnvisa] = useState('');
   const [filtroClasse, setFiltroClasse] = useState<string>('todas');
 
+  useEffect(() => {
+    if (!selecao) return;
+    if (selecao.tipo === 'pcdt') {
+      const encontrado = LISTA_PCDT_OFICIAL_MS.find((p) => p.id_pcdt === selecao.id);
+      setAbaAtiva('pcdt');
+      if (encontrado) {
+        setTermoPcdt('');
+        setFiltroStatus('todos');
+        setPcdtSelecionado(encontrado);
+      }
+      return;
+    }
+
+    setAbaAtiva('cmed');
+    setErroCmed(null);
+    let cancelado = false;
+    obterRegistroCmed(selecao.id)
+      .then((registro) => {
+        if (!cancelado) setCmedSelecionado(registro);
+      })
+      .catch((erro) => {
+        if (!cancelado) setErroCmed(erro instanceof Error ? erro.message : String(erro));
+      });
+    return () => {
+      cancelado = true;
+    };
+  }, [selecao]);
+
+  const copiarTexto = (texto: string, marcarCopiado: (valor: boolean) => void) => {
+    navigator.clipboard
+      .writeText(texto)
+      .then(() => {
+        marcarCopiado(true);
+        setTimeout(() => marcarCopiado(false), 2000);
+      })
+      .catch(() => window.alert('Não foi possível acessar a área de transferência. Selecione o texto e copie manualmente.'));
+  };
+
   const copiarPrescricaoPcdt = () => {
-    if (!pcdtSelecionado) return;
-    navigator.clipboard.writeText(pcdtSelecionado.bloco_prescricao_copiavel);
-    setCopiadoPcdt(true);
-    setTimeout(() => setCopiadoPcdt(false), 2000);
+    if (!pcdtSelecionado?.bloco_prescricao_copiavel) return;
+    copiarTexto(pcdtSelecionado.bloco_prescricao_copiavel, setCopiadoPcdt);
   };
 
   const copiarPrescricaoCmed = (med: MedicamentoComercialCMED) => {
-    navigator.clipboard.writeText(med.receita_padrao_copiavel);
-    setCopiadoCmed(true);
-    setTimeout(() => setCopiadoCmed(false), 2000);
+    copiarTexto(med.receita_padrao_copiavel, setCopiadoCmed);
   };
 
-  // Filtragem CMED (26.635 Apresentações Comerciais)
+  // Filtragem CMED (amostra offline; o catálogo completo de 26.635 apresentações está no app nativo)
   const cmedFiltrados = useMemo(() => {
-    const t = termoCmed.toLowerCase().trim();
+    const t = normalizarTexto(termoCmed);
     return CATALOGO_CMED_NACIONAL.filter((m) => {
       const matchTexto =
         !t ||
-        m.nome_produto.toLowerCase().includes(t) ||
-        m.substancia.toLowerCase().includes(t) ||
-        m.apresentacao.toLowerCase().includes(t) ||
-        m.laboratorio.toLowerCase().includes(t) ||
+        normalizarTexto(m.nome_produto).includes(t) ||
+        normalizarTexto(m.substancia).includes(t) ||
+        normalizarTexto(m.apresentacao).includes(t) ||
+        normalizarTexto(m.laboratorio).includes(t) ||
         m.numero_registro.includes(t) ||
         m.codigo_ean.includes(t);
 
@@ -84,15 +135,15 @@ export const PublicDatabasesView: React.FC = () => {
 
   // Filtragem PCDT
   const pcdtsFiltrados = useMemo(() => {
-    const t = termoPcdt.toLowerCase().trim();
+    const t = normalizarTexto(termoPcdt);
     return LISTA_PCDT_OFICIAL_MS.filter((p) => {
       const matchTexto =
         !t ||
-        p.nome_protocolo.toLowerCase().includes(t) ||
-        p.id_protocolo.toLowerCase().includes(t) ||
-        p.tipo_protocolo.toLowerCase().includes(t) ||
-        p.cids_relacionados.join(' ').toLowerCase().includes(t) ||
-        p.farmacos_principais.join(' ').toLowerCase().includes(t);
+        normalizarTexto(p.nome_protocolo).includes(t) ||
+        normalizarTexto(p.id_protocolo).includes(t) ||
+        normalizarTexto(p.tipo_protocolo).includes(t) ||
+        normalizarTexto(p.cids_relacionados.join(' ')).includes(t) ||
+        normalizarTexto(p.farmacos_principais.join(' ')).includes(t);
 
       if (!matchTexto) return false;
 
@@ -107,14 +158,14 @@ export const PublicDatabasesView: React.FC = () => {
 
   // Filtragem ANVISA Geral
   const anvisaFiltrados = useMemo(() => {
-    const t = termoAnvisa.toLowerCase().trim();
+    const t = normalizarTexto(termoAnvisa);
     return LISTA_MEDICAMENTOS_ANVISA_OFICIAL.filter((m) => {
       const matchTexto =
         !t ||
-        m.nome_produto.toLowerCase().includes(t) ||
-        m.principio_ativo.toLowerCase().includes(t) ||
-        m.classe_terapeutica.toLowerCase().includes(t) ||
-        m.laboratorio_fabricante.toLowerCase().includes(t) ||
+        normalizarTexto(m.nome_produto).includes(t) ||
+        normalizarTexto(m.principio_ativo).includes(t) ||
+        normalizarTexto(m.classe_terapeutica).includes(t) ||
+        normalizarTexto(m.laboratorio_fabricante).includes(t) ||
         m.numero_registro_anvisa.includes(t);
 
       if (!matchTexto) return false;
@@ -127,20 +178,21 @@ export const PublicDatabasesView: React.FC = () => {
     <div className="space-y-6">
       {/* Cabeçalho de Identificação da Fonte Pública */}
       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
-        <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+        <div className="flex flex-col xl:flex-row gap-4 xl:items-center justify-between">
           <div className="flex items-center space-x-3">
             <div className="p-3 bg-indigo-500/10 text-indigo-400 rounded-2xl border border-indigo-500/20">
               <Database className="w-6 h-6" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <h2 className="text-lg font-bold text-slate-100">Bases Públicas Oficiais do Brasil (ANVISA / CMED / MS)</h2>
                 <span className="text-[10px] bg-emerald-900/60 text-emerald-300 border border-emerald-700/60 px-2.5 py-0.5 rounded-full font-mono font-semibold">
-                  26.635 Apresentações Registradas
+                  {CATALOGO_CMED_NACIONAL.length.toLocaleString('pt-BR')} de 26.635 apresentações offline
                 </span>
               </div>
               <p className="text-xs text-slate-400">
-                Consulta direta a todos os remédios, substâncias DCB, preços máximos (PMC) e receitas oficiais registradas no Brasil
+                Identificação, registro e preço máximo (PMC) das apresentações CMED, lista de PCDT do MS e registros ANVISA.
+                Aqui fica uma amostra offline; o catálogo completo é pesquisável pela busca global (Ctrl+K) no app desktop.
               </p>
             </div>
           </div>
@@ -149,7 +201,7 @@ export const PublicDatabasesView: React.FC = () => {
           <div className="flex bg-slate-950 p-1 rounded-xl border border-slate-800 overflow-x-auto scrollbar-none">
             <button
               onClick={() => setAbaAtiva('cmed')}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-all ${
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold whitespace-nowrap transition-all ${
                 abaAtiva === 'cmed'
                   ? 'bg-gradient-to-r from-teal-600 to-emerald-600 text-white shadow-md'
                   : 'text-slate-400 hover:text-white'
@@ -160,7 +212,7 @@ export const PublicDatabasesView: React.FC = () => {
             </button>
             <button
               onClick={() => setAbaAtiva('pcdt')}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-all ${
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold whitespace-nowrap transition-all ${
                 abaAtiva === 'pcdt'
                   ? 'bg-gradient-to-r from-teal-600 to-emerald-600 text-white shadow-md'
                   : 'text-slate-400 hover:text-white'
@@ -171,7 +223,7 @@ export const PublicDatabasesView: React.FC = () => {
             </button>
             <button
               onClick={() => setAbaAtiva('anvisa')}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-all ${
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold whitespace-nowrap transition-all ${
                 abaAtiva === 'anvisa'
                   ? 'bg-gradient-to-r from-teal-600 to-emerald-600 text-white shadow-md'
                   : 'text-slate-400 hover:text-white'
@@ -239,7 +291,13 @@ export const PublicDatabasesView: React.FC = () => {
                 )}
               </div>
 
-              {cmedFiltrados.map((m) => {
+              {cmedFiltrados.length === 0 && (
+                <div className="py-8 text-center text-xs text-slate-400">
+                  Nenhuma apresentação da amostra offline corresponde ao filtro.
+                </div>
+              )}
+
+              {cmedFiltrados.slice(0, LIMITE_ITENS_LISTA).map((m) => {
                 const ativo = cmedSelecionado?.id_cmed === m.id_cmed;
                 return (
                   <div
@@ -272,10 +330,21 @@ export const PublicDatabasesView: React.FC = () => {
                   </div>
                 );
               })}
+
+              {cmedFiltrados.length > LIMITE_ITENS_LISTA && (
+                <div className="pt-2 text-center text-[11px] text-slate-400">
+                  Mostrando {LIMITE_ITENS_LISTA} de {cmedFiltrados.length}. Refine a busca para ver os demais.
+                </div>
+              )}
             </div>
 
             {/* Painel da Receita Médica do Remédio */}
             <div className="lg:col-span-6 bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-6">
+              {erroCmed && (
+                <div role="alert" className="p-3 bg-rose-950/50 border border-rose-700/60 rounded-xl text-xs text-rose-200">
+                  {erroCmed}
+                </div>
+              )}
               {cmedSelecionado ? (
                 <>
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-4 border-b border-slate-800">
@@ -294,13 +363,25 @@ export const PublicDatabasesView: React.FC = () => {
                       <p className="text-xs text-teal-400 font-medium mt-0.5">{cmedSelecionado.substancia}</p>
                     </div>
 
-                    <button
-                      onClick={() => copiarPrescricaoCmed(cmedSelecionado)}
-                      className="flex items-center gap-2 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white px-4 py-2.5 rounded-xl text-xs font-bold shadow-lg shadow-teal-950/50 transition-all flex-shrink-0"
-                    >
-                      {copiadoCmed ? <Check className="w-4 h-4 text-white" /> : <Copy className="w-4 h-4" />}
-                      <span>{copiadoCmed ? 'Receita Copiada!' : 'Copiar Receita do Remédio'}</span>
-                    </button>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {onCompararPrecos && (
+                        <button
+                          onClick={() => onCompararPrecos(cmedSelecionado.nome_produto)}
+                          className="flex items-center gap-2 bg-emerald-950/70 hover:bg-emerald-900 border border-emerald-600/50 text-emerald-300 hover:text-white px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all shadow-md flex-shrink-0"
+                          title="Localizar preços desta apresentação nas farmácias e Farmácia Popular"
+                        >
+                          <Store className="w-4 h-4 text-emerald-400" />
+                          <span>Cotar em Farmácias</span>
+                        </button>
+                      )}
+                      <button
+                        onClick={() => copiarPrescricaoCmed(cmedSelecionado)}
+                        className="flex items-center gap-2 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white px-4 py-2.5 rounded-xl text-xs font-bold shadow-lg shadow-teal-950/50 transition-all flex-shrink-0"
+                      >
+                        {copiadoCmed ? <Check className="w-4 h-4 text-white" /> : <Copy className="w-4 h-4" />}
+                        <span>{copiadoCmed ? 'Modelo Copiado!' : 'Copiar Modelo de Receita'}</span>
+                      </button>
+                    </div>
                   </div>
 
                   {/* Informações Regulatórias da Apresentação */}
@@ -327,10 +408,13 @@ export const PublicDatabasesView: React.FC = () => {
                   <div className="space-y-2">
                     <div className="flex justify-between items-center">
                       <span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                        <FileCheck className="w-4 h-4 text-teal-400" /> Prescrição Médica Pronta para Prontuário
+                        <FileCheck className="w-4 h-4 text-teal-400" /> Modelo de Receita (sem posologia)
                       </span>
                       <span className="text-[10px] text-slate-500 font-mono">PEC e-SUS / MV / Tasy</span>
                     </div>
+                    <p className="text-[11px] text-amber-300/90">
+                      A base CMED não traz posologia: preencha os campos [PREENCHER] antes de usar.
+                    </p>
                     <pre className="p-4 bg-slate-950 border border-slate-800 rounded-xl text-xs text-teal-300 font-mono whitespace-pre-wrap leading-relaxed overflow-x-auto selection:bg-teal-700 selection:text-white">
                       {cmedSelecionado.receita_padrao_copiavel}
                     </pre>
@@ -427,7 +511,7 @@ export const PublicDatabasesView: React.FC = () => {
 
                     <div className="flex flex-wrap gap-1">
                       {p.cids_relacionados.slice(0, 3).map((cid) => (
-                        <span key={cid} className="text-[9px] bg-slate-800 text-slate-300 px-1.5 py-0.2 rounded font-mono">
+                        <span key={cid} className="text-[9px] bg-slate-800 text-slate-300 px-1.5 py-px rounded font-mono">
                           {cid}
                         </span>
                       ))}
@@ -447,9 +531,15 @@ export const PublicDatabasesView: React.FC = () => {
                     <div>
                       <div className="flex items-center gap-2 mb-1">
                         <span className="text-xs bg-indigo-900/60 text-indigo-300 border border-indigo-700/60 px-2 py-0.5 rounded font-mono font-bold">
-                          {pcdtSelecionado.tipo_protocolo} Oficial
+                          {pcdtSelecionado.tipo_protocolo}
                         </span>
-                        <span className="text-xs bg-emerald-900/60 text-emerald-300 border border-emerald-700/60 px-2 py-0.5 rounded font-mono font-bold">
+                        <span
+                          className={`text-xs px-2 py-0.5 rounded font-mono font-bold border ${
+                            pcdtSelecionado.status_conitec.toLowerCase().includes('aprovado')
+                              ? 'bg-emerald-900/60 text-emerald-300 border-emerald-700/60'
+                              : 'bg-amber-900/60 text-amber-300 border-amber-700/60'
+                          }`}
+                        >
                           CONITEC: {pcdtSelecionado.status_conitec}
                         </span>
                       </div>
@@ -458,13 +548,29 @@ export const PublicDatabasesView: React.FC = () => {
                       </h3>
                     </div>
 
-                    <button
-                      onClick={copiarPrescricaoPcdt}
-                      className="flex items-center gap-2 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-lg shadow-teal-950/50 transition-all flex-shrink-0"
-                    >
-                      {copiadoPcdt ? <Check className="w-4 h-4 text-white" /> : <Copy className="w-4 h-4" />}
-                      <span>{copiadoPcdt ? 'Copiado!' : 'Copiar Prescrição PCDT'}</span>
-                    </button>
+                    {pcdtSelecionado.conteudo_curado && pcdtSelecionado.bloco_prescricao_copiavel && (
+                      <button
+                        onClick={copiarPrescricaoPcdt}
+                        className="flex items-center gap-2 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-lg shadow-teal-950/50 transition-all flex-shrink-0"
+                      >
+                        {copiadoPcdt ? <Check className="w-4 h-4 text-white" /> : <Copy className="w-4 h-4" />}
+                        <span>{copiadoPcdt ? 'Copiado!' : 'Copiar Modelo de Prescrição'}</span>
+                      </button>
+                    )}
+                  </div>
+
+                  {!pcdtSelecionado.conteudo_curado && (
+                    <div className="p-4 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-300 leading-relaxed">
+                      A base pública do Ministério da Saúde traz apenas nome, tipo e status deste documento. CIDs, fármacos e
+                      conduta não foram resumidos pelo projeto: consulte o texto oficial no portal da CONITEC (gov.br/conitec).
+                    </div>
+                  )}
+
+                  {pcdtSelecionado.conteudo_curado && (
+                  <>
+                  <div className="p-3 bg-amber-950/40 border border-amber-700/50 rounded-xl text-[11px] text-amber-200 leading-relaxed">
+                    Resumo redigido pelo projeto OpenClinical, pendente de revisão clínica. Não substitui o texto oficial do PCDT
+                    (gov.br/conitec).
                   </div>
 
                   <div className="space-y-1.5">
@@ -492,7 +598,7 @@ export const PublicDatabasesView: React.FC = () => {
 
                   <div className="space-y-2">
                     <span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                      <BookOpen className="w-4 h-4 text-teal-400" /> Diretrizes Clínicas & Critérios de Inclusão
+                      <BookOpen className="w-4 h-4 text-teal-400" /> Resumo da Conduta
                     </span>
                     <div className="p-4 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-300 leading-relaxed">
                       {pcdtSelecionado.conduta_clinica}
@@ -504,12 +610,14 @@ export const PublicDatabasesView: React.FC = () => {
                       <span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
                         <FileCheck className="w-4 h-4 text-emerald-400" /> Modelo de Prescrição & Dispensação SUS
                       </span>
-                      <span className="text-[10px] text-slate-500 font-mono">Pronto para prontuário (PEC / Tasy / MV)</span>
+                      <span className="text-[10px] text-slate-500 font-mono">PEC / Tasy / MV</span>
                     </div>
                     <pre className="p-4 bg-slate-950 border border-slate-800 rounded-xl text-xs text-teal-300 font-mono whitespace-pre-wrap leading-relaxed overflow-x-auto selection:bg-teal-700 selection:text-white">
                       {pcdtSelecionado.bloco_prescricao_copiavel}
                     </pre>
                   </div>
+                  </>
+                  )}
                 </>
               )}
             </div>
@@ -532,7 +640,7 @@ export const PublicDatabasesView: React.FC = () => {
               />
             </div>
             <div className="text-xs text-slate-400 font-mono">
-              Registros da ANVISA carregados: <span className="text-teal-400 font-bold">{anvisaFiltrados.length}</span>
+              Amostra offline de registros ativos: <span className="text-teal-400 font-bold">{anvisaFiltrados.length}</span>
             </div>
           </div>
 

@@ -6,6 +6,7 @@ ciaps_relacionados: ["K78"]
 nivel_atencao: "Atencao_Primaria_e_Cardiologia"
 diretrizes_referencia: "Sociedade Brasileira de Cardiologia (SBC), ESC, AHA/ACC"
 data_revisao: "2026-10-26"
+status_revisao_clinica: "pendente_revisao_por_profissional_habilitado"
 ---
 
 # Diretrizes Clínicas: Anticoagulação na Fibrilação Atrial
@@ -13,6 +14,7 @@ data_revisao: "2026-10-26"
 ## 1. Estratificação de Risco Embólico pelo Escore CHA2DS2-VASc
 * Insuficiência Cardíaca (+1), Hipertensão (+1), Idade >= 75 anos (+2), Diabetes (+1), AVC/AIT prévio (+2), Doença Vascular (+1), Idade 65-74 (+1), Sexo Feminino (+1).
 * **Indicação de Anticoagulação:** Homens com escore >= 2 e Mulheres com escore >= 3 têm indicação formal de DOAC (Anticoagulante Oral Direto) ou Varfarina.
+* **Exceção:** FA com estenose mitral moderada a grave ou prótese valvar mecânica não deve receber DOAC; usar Varfarina (INR 2-3).
 
 ```receita
 RECEITUÁRIO MÉDICO - FIBRILAÇÃO ATRIAL (ANTICOAGULAÇÃO ORAL)

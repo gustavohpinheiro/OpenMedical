@@ -2,7 +2,6 @@
 target/
 openclinical/core_rust/target/
 **/*.rs.bk
-Cargo.lock
 
 # Node / Frontend
 node_modules/
@@ -16,6 +15,8 @@ __pycache__/
 *.pyc
 *.pyo
 .pytest_cache/
+# Banco gerado pelo ETL (a cópia empacotada pelo app fica em core_rust/openclinical_desktop)
+openclinical/etl_pipeline/openclinical_core.sqlite
 *.sqlite-wal
 *.sqlite-shm
 
@@ -24,3 +25,4 @@ __pycache__/
 Thumbs.db
 .vscode/
 .idea/
+.claude/

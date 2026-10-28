@@ -6,6 +6,7 @@ ciaps_relacionados: ["U99"]
 nivel_atencao: "Atencao_Primaria_e_Nefrologia"
 diretrizes_referencia: "Diretrizes KDIGO (2024), Sociedade Brasileira de Nefrologia (SBN)"
 data_revisao: "2026-10-26"
+status_revisao_clinica: "pendente_revisao_por_profissional_habilitado"
 ---
 
 # Diretrizes Clínicas: Nefroproteção na DRC (KDIGO 2024)

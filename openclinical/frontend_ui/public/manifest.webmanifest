@@ -13,13 +13,34 @@
       "src": "/icons/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "/icons/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Calculadora de dose pediátrica",
+      "short_name": "Dose infantil",
+      "description": "Volume por tomada com teto diário de segurança",
+      "url": "/?secao=pediatria",
+      "icons": [{ "src": "/icons/atalho-dose-pediatrica-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Medicamentos e receitas (Formulário Terapêutico Nacional)",
+      "short_name": "Receitas",
+      "url": "/?secao=formulario",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
     }
   ],
   "categories": ["medical", "health", "productivity"]

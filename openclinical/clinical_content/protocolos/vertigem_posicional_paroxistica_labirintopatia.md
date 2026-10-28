@@ -6,6 +6,7 @@ ciaps_relacionados: ["H82"]
 nivel_atencao: "Atencao_Primaria_e_Pronto_Atendimento"
 diretrizes_referencia: "Academia Americana de Otorrinolaringologia (AAO-HNS), ABORL-CCF"
 data_revisao: "2026-10-26"
+status_revisao_clinica: "pendente_revisao_por_profissional_habilitado"
 ---
 
 # Diretrizes Clínicas: Vertigem Aguda

@@ -6,6 +6,7 @@ ciaps_relacionados: ["U71"]
 nivel_atencao: "Atencao_Primaria"
 diretrizes_referencia: "Sociedade Brasileira de Urologia (SBU), IDSA, EAU"
 data_revisao: "2026-10-26"
+status_revisao_clinica: "pendente_revisao_por_profissional_habilitado"
 ---
 
 # Diretrizes Clínicas: Cistite Aguda em Mulheres Não Gestantes

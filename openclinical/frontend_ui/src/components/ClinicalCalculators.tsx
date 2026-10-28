@@ -10,6 +10,7 @@ export const ClinicalCalculators: React.FC = () => {
   const [creatinina, setCreatinina] = useState<number>(1.2);
   const [idade, setIdade] = useState<number>(55);
   const [sexoFeminino, setSexoFeminino] = useState<boolean>(false);
+  const [erroCalculo, setErroCalculo] = useState<string | null>(null);
   const [resultadoTfg, setResultadoTfg] = useState<ResultadoTfg | null>(null);
 
   // Estados: Cockcroft
@@ -41,6 +42,7 @@ export const ClinicalCalculators: React.FC = () => {
   const [resultadoVazao, setResultadoVazao] = useState<number | null>(null);
 
   const calcularCkdEpi = async () => {
+    setErroCalculo(null);
     try {
       const res = await executarCalculoClinico<ResultadoTfg>('ckd_epi_2021', {
         creatinina,
@@ -49,11 +51,13 @@ export const ClinicalCalculators: React.FC = () => {
       });
       setResultadoTfg(res);
     } catch (e) {
-      console.error(e);
+      setResultadoTfg(null);
+      setErroCalculo(e instanceof Error ? e.message : String(e));
     }
   };
 
   const calcularCockcroft = async () => {
+    setErroCalculo(null);
     try {
       const res = await executarCalculoClinico<{ clearance_creatinina_ml_min: number }>('cockcroft_gault', {
         creatinina,
@@ -63,11 +67,13 @@ export const ClinicalCalculators: React.FC = () => {
       });
       setResultadoCockcroft(res.clearance_creatinina_ml_min);
     } catch (e) {
-      console.error(e);
+      setResultadoCockcroft(null);
+      setErroCalculo(e instanceof Error ? e.message : String(e));
     }
   };
 
   const calcularCurb = async () => {
+    setErroCalculo(null);
     try {
       const res = await executarCalculoClinico<ResultadoCurb65>('curb65', {
         confusao,
@@ -78,11 +84,13 @@ export const ClinicalCalculators: React.FC = () => {
       });
       setResultadoCurb(res);
     } catch (e) {
-      console.error(e);
+      setResultadoCurb(null);
+      setErroCalculo(e instanceof Error ? e.message : String(e));
     }
   };
 
   const calcularWells = async () => {
+    setErroCalculo(null);
     try {
       const res = await executarCalculoClinico<ResultadoWells>('wells_tep', {
         sinais_clinicos_tvp: wellsTvp,
@@ -95,11 +103,13 @@ export const ClinicalCalculators: React.FC = () => {
       });
       setResultadoWells(res);
     } catch (e) {
-      console.error(e);
+      setResultadoWells(null);
+      setErroCalculo(e instanceof Error ? e.message : String(e));
     }
   };
 
   const calcularInfusao = async () => {
+    setErroCalculo(null);
     try {
       const res = await executarCalculoClinico<{ vazao_ml_h: number }>('vazao_infusao', {
         dose_mcg_kg_min: doseInfusao,
@@ -108,7 +118,8 @@ export const ClinicalCalculators: React.FC = () => {
       });
       setResultadoVazao(res.vazao_ml_h);
     } catch (e) {
-      console.error(e);
+      setResultadoVazao(null);
+      setErroCalculo(e instanceof Error ? e.message : String(e));
     }
   };
 
@@ -123,6 +134,13 @@ export const ClinicalCalculators: React.FC = () => {
           <p className="text-xs text-slate-400">Algoritmos determinísticos auditáveis sem uso de LLMs para suporte imediato ao médico</p>
         </div>
       </div>
+
+      {erroCalculo && (
+        <div className="bg-red-950/50 border border-red-600/60 rounded-xl p-4 text-xs text-red-200">
+          <p className="font-bold text-red-300">Cálculo não realizado</p>
+          <p className="mt-0.5">{erroCalculo}</p>
+        </div>
+      )}
 
       {/* Menu das Calculadoras */}
       <div className="flex flex-wrap gap-2">

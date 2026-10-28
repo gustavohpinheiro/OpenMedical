@@ -1,5 +1,6 @@
 // Base Oficial PCDT do Ministério da Saúde / CONITEC (83 Protocolos)
-// Extraído diretamente dos dados abertos governamentais (ckan.saude.gov.br)
+// Lista (nome/status/tipo) extraída dos dados abertos governamentais (ckan.saude.gov.br).
+// Campos clínicos só existem onde conteudo_curado = true e são resumos escritos pelo projeto, NÃO o texto do PCDT.
 
 export interface ProtocoloPCDTOficial {
   id_pcdt: number;
@@ -11,6 +12,7 @@ export interface ProtocoloPCDTOficial {
   farmacos_principais: string[];
   conduta_clinica: string;
   bloco_prescricao_copiavel: string;
+  conteudo_curado: boolean;
 }
 
 export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
@@ -30,7 +32,8 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
       "Lidocaína 2% sem vasoconstritor"
     ],
     "conduta_clinica": "Classificação da gravidade (Leve: dor e parestesia local; Moderado: náuseas, sudorese, taquicardia; Grave: choque, edema agudo de pulmão). Soroterapia intravenosa rápida nos casos moderados e graves.",
-    "bloco_prescricao_copiavel": "1. Dipirona Monoidratada 500mg/mL gotas: Dar 1 gota a cada 2 kg de peso (máximo 40 gotas) a cada 6 horas para dor.\n2. Bloqueio anestésico local com Lidocaína 2% sem vasoconstritor se dor lancinante refratária."
+    "bloco_prescricao_copiavel": "1. Dipirona Monoidratada 500mg/mL gotas: Dar 1 gota a cada 2 kg de peso (máximo 40 gotas) a cada 6 horas para dor.\n2. Bloqueio anestésico local com Lidocaína 2% sem vasoconstritor se dor lancinante refratária.",
+    "conteudo_curado": true
   },
   {
     "id_pcdt": 2,
@@ -48,7 +51,8 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
       "Dipirona 500mg"
     ],
     "conduta_clinica": "Identificação do gênero da serpente (Bothrops: dor, edema, necrose, sangramento; Crotalus: fácies miastênica, urina escura, paralisia). Infusão venosa precoce do antiveneno específico.",
-    "bloco_prescricao_copiavel": "1. Soro Antibotrópico pentavalente: Infundir por via intravenosa diluído em SF 0.9% em 30 a 60 minutos (Leve: 2 a 4 ampolas; Moderado: 4 a 8 ampolas; Grave: 12 ampolas).\n2. Dipirona 500mg comprimido: 1 comprimido 6/6h para dor."
+    "bloco_prescricao_copiavel": "1. Soro Antibotrópico pentavalente: Infundir por via intravenosa diluído em SF 0.9% em 30 a 60 minutos (Leve: 2 a 4 ampolas; Moderado: 4 a 8 ampolas; Grave: 12 ampolas).\n2. Dipirona 500mg comprimido: 1 comprimido 6/6h para dor.",
+    "conteudo_curado": true
   },
   {
     "id_pcdt": 3,
@@ -65,7 +69,8 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
       "Pegvisomanto"
     ],
     "conduta_clinica": "Cirurgia transesfenoidal como primeira escolha curativa. Tratamento farmacológico com análogos de somatostatina de longa ação (Octreotida LAR) para controle de GH e IGF-1.",
-    "bloco_prescricao_copiavel": "1. Acetato de Octreotida LAR 20mg: Aplicar por via intramuscular profunda glútea uma vez a cada 4 semanas em serviço de saúde especializado."
+    "bloco_prescricao_copiavel": "1. Acetato de Octreotida LAR 20mg: Aplicar por via intramuscular profunda glútea uma vez a cada 4 semanas em serviço de saúde especializado.",
+    "conteudo_curado": true
   },
   {
     "id_pcdt": 4,
@@ -73,15 +78,11 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
     "nome_protocolo": "Adenocarcinoma de Cólon e Reto",
     "status_conitec": "Aprovado*",
     "tipo_protocolo": "PCDT",
-    "cids_relacionados": [
-      "R69",
-      "Z00.0"
-    ],
-    "farmacos_principais": [
-      "Medicamentos incorporados pela CONITEC / Ministério da Saúde"
-    ],
-    "conduta_clinica": "Protocolo oficial do SUS (PCDT) para Adenocarcinoma de Cólon e Reto. Critérios de inclusão, estratificação diagnóstica e opções farmacológicas aprovadas pela CONITEC/MS.",
-    "bloco_prescricao_copiavel": "PRESCRIÇÃO CONFORME DIRETRIZ PCDT DO SUS (Adenocarcinoma de Cólon e Reto):\n1. Dispensação via Farmácia de Alto Custo / Componente Especializado do SUS mediante LME e laudo médico."
+    "cids_relacionados": [],
+    "farmacos_principais": [],
+    "conduta_clinica": "PCDT listado pela CONITEC/Ministério da Saúde (Aprovado*). O conteúdo clínico do documento oficial não foi importado: consulte o texto vigente no portal da CONITEC.",
+    "bloco_prescricao_copiavel": "",
+    "conteudo_curado": false
   },
   {
     "id_pcdt": 5,
@@ -89,15 +90,11 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
     "nome_protocolo": "Adenocarcinoma de Esôfago",
     "status_conitec": "Em atualização",
     "tipo_protocolo": "DDT",
-    "cids_relacionados": [
-      "R69",
-      "Z00.0"
-    ],
-    "farmacos_principais": [
-      "Medicamentos incorporados pela CONITEC / Ministério da Saúde"
-    ],
-    "conduta_clinica": "Protocolo oficial do SUS (DDT) para Adenocarcinoma de Esôfago. Critérios de inclusão, estratificação diagnóstica e opções farmacológicas aprovadas pela CONITEC/MS.",
-    "bloco_prescricao_copiavel": "PRESCRIÇÃO CONFORME DIRETRIZ PCDT DO SUS (Adenocarcinoma de Esôfago):\n1. Dispensação via Farmácia de Alto Custo / Componente Especializado do SUS mediante LME e laudo médico."
+    "cids_relacionados": [],
+    "farmacos_principais": [],
+    "conduta_clinica": "DDT listado pela CONITEC/Ministério da Saúde (Em atualização). O conteúdo clínico do documento oficial não foi importado: consulte o texto vigente no portal da CONITEC.",
+    "bloco_prescricao_copiavel": "",
+    "conteudo_curado": false
   },
   {
     "id_pcdt": 6,
@@ -105,15 +102,11 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
     "nome_protocolo": "Adenocarcinoma de estômago",
     "status_conitec": "Em atualização",
     "tipo_protocolo": "DDT",
-    "cids_relacionados": [
-      "R69",
-      "Z00.0"
-    ],
-    "farmacos_principais": [
-      "Medicamentos incorporados pela CONITEC / Ministério da Saúde"
-    ],
-    "conduta_clinica": "Protocolo oficial do SUS (DDT) para Adenocarcinoma de estômago. Critérios de inclusão, estratificação diagnóstica e opções farmacológicas aprovadas pela CONITEC/MS.",
-    "bloco_prescricao_copiavel": "PRESCRIÇÃO CONFORME DIRETRIZ PCDT DO SUS (Adenocarcinoma de estômago):\n1. Dispensação via Farmácia de Alto Custo / Componente Especializado do SUS mediante LME e laudo médico."
+    "cids_relacionados": [],
+    "farmacos_principais": [],
+    "conduta_clinica": "DDT listado pela CONITEC/Ministério da Saúde (Em atualização). O conteúdo clínico do documento oficial não foi importado: consulte o texto vigente no portal da CONITEC.",
+    "bloco_prescricao_copiavel": "",
+    "conteudo_curado": false
   },
   {
     "id_pcdt": 7,
@@ -121,15 +114,11 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
     "nome_protocolo": "Adenocarcinoma de Próstata",
     "status_conitec": "Em atualização",
     "tipo_protocolo": "DDT",
-    "cids_relacionados": [
-      "R69",
-      "Z00.0"
-    ],
-    "farmacos_principais": [
-      "Medicamentos incorporados pela CONITEC / Ministério da Saúde"
-    ],
-    "conduta_clinica": "Protocolo oficial do SUS (DDT) para Adenocarcinoma de Próstata. Critérios de inclusão, estratificação diagnóstica e opções farmacológicas aprovadas pela CONITEC/MS.",
-    "bloco_prescricao_copiavel": "PRESCRIÇÃO CONFORME DIRETRIZ PCDT DO SUS (Adenocarcinoma de Próstata):\n1. Dispensação via Farmácia de Alto Custo / Componente Especializado do SUS mediante LME e laudo médico."
+    "cids_relacionados": [],
+    "farmacos_principais": [],
+    "conduta_clinica": "DDT listado pela CONITEC/Ministério da Saúde (Em atualização). O conteúdo clínico do documento oficial não foi importado: consulte o texto vigente no portal da CONITEC.",
+    "bloco_prescricao_copiavel": "",
+    "conteudo_curado": false
   },
   {
     "id_pcdt": 8,
@@ -137,15 +126,11 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
     "nome_protocolo": "Alergia à Proteína do Leite de Vaca",
     "status_conitec": "Aprovado*",
     "tipo_protocolo": "PCDT",
-    "cids_relacionados": [
-      "R69",
-      "Z00.0"
-    ],
-    "farmacos_principais": [
-      "Medicamentos incorporados pela CONITEC / Ministério da Saúde"
-    ],
-    "conduta_clinica": "Protocolo oficial do SUS (PCDT) para Alergia à Proteína do Leite de Vaca. Critérios de inclusão, estratificação diagnóstica e opções farmacológicas aprovadas pela CONITEC/MS.",
-    "bloco_prescricao_copiavel": "PRESCRIÇÃO CONFORME DIRETRIZ PCDT DO SUS (Alergia à Proteína do Leite de Vaca):\n1. Dispensação via Farmácia de Alto Custo / Componente Especializado do SUS mediante LME e laudo médico."
+    "cids_relacionados": [],
+    "farmacos_principais": [],
+    "conduta_clinica": "PCDT listado pela CONITEC/Ministério da Saúde (Aprovado*). O conteúdo clínico do documento oficial não foi importado: consulte o texto vigente no portal da CONITEC.",
+    "bloco_prescricao_copiavel": "",
+    "conteudo_curado": false
   },
   {
     "id_pcdt": 9,
@@ -153,15 +138,11 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
     "nome_protocolo": "Amiloidoses associadas à transtirretina",
     "status_conitec": "Aprovado*",
     "tipo_protocolo": "PCDT",
-    "cids_relacionados": [
-      "R69",
-      "Z00.0"
-    ],
-    "farmacos_principais": [
-      "Medicamentos incorporados pela CONITEC / Ministério da Saúde"
-    ],
-    "conduta_clinica": "Protocolo oficial do SUS (PCDT) para Amiloidoses associadas à transtirretina. Critérios de inclusão, estratificação diagnóstica e opções farmacológicas aprovadas pela CONITEC/MS.",
-    "bloco_prescricao_copiavel": "PRESCRIÇÃO CONFORME DIRETRIZ PCDT DO SUS (Amiloidoses associadas à transtirretina):\n1. Dispensação via Farmácia de Alto Custo / Componente Especializado do SUS mediante LME e laudo médico."
+    "cids_relacionados": [],
+    "farmacos_principais": [],
+    "conduta_clinica": "PCDT listado pela CONITEC/Ministério da Saúde (Aprovado*). O conteúdo clínico do documento oficial não foi importado: consulte o texto vigente no portal da CONITEC.",
+    "bloco_prescricao_copiavel": "",
+    "conteudo_curado": false
   },
   {
     "id_pcdt": 10,
@@ -180,7 +161,8 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
       "Sacarato de Hidróxido de Ferro III 100mg/5mL"
     ],
     "conduta_clinica": "Garantir saturação de transferrina > 20% e ferritina > 100 ng/mL antes e durante o tratamento com Agente Estimulador da Eritropoiese (Alfaepoetina). Meta de Hemoglobina: 10 a 11.5 g/dL.",
-    "bloco_prescricao_copiavel": "1. Alfaepoetina 4000 UI frasco-ampola: Aplicar via subcutânea 1 vez por semana conforme dosagem de hemoglobina.\n2. Sacarato de Ferro 100mg ampola: Infusão intravenosa lenta em solução salina a cada 15 dias na unidade de hemodiálise."
+    "bloco_prescricao_copiavel": "1. Alfaepoetina 4000 UI frasco-ampola: Aplicar via subcutânea 1 vez por semana conforme dosagem de hemoglobina.\n2. Sacarato de Ferro 100mg ampola: Infusão intravenosa lenta em solução salina a cada 15 dias na unidade de hemodiálise.",
+    "conteudo_curado": true
   },
   {
     "id_pcdt": 11,
@@ -198,7 +180,8 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
       "Sacarato de Hidróxido de Ferro III injetável"
     ],
     "conduta_clinica": "Reposição oral de ferro elementar (100 a 200 mg/dia) preferencialmente em jejum com suco cítrico. Manter por 3 meses após normalização do hemograma para repor estoques de ferritina.",
-    "bloco_prescricao_copiavel": "1. Sulfato Ferroso 40mg (ferro elementar) comprimido: Tomar 1 comprimido por via oral 2 vezes ao dia, 1 hora antes das principais refeições com água ou suco de laranja."
+    "bloco_prescricao_copiavel": "1. Sulfato Ferroso 40mg (ferro elementar) comprimido: Tomar 1 comprimido por via oral 3 vezes ao dia (120 mg/dia de ferro elementar), 1 hora antes das principais refeições com água ou suco de laranja.",
+    "conteudo_curado": true
   },
   {
     "id_pcdt": 12,
@@ -206,15 +189,11 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
     "nome_protocolo": "Angioedema associado à deficiência de C1 esterase (C1-INH)",
     "status_conitec": "Aprovado*",
     "tipo_protocolo": "PCDT",
-    "cids_relacionados": [
-      "R69",
-      "Z00.0"
-    ],
-    "farmacos_principais": [
-      "Medicamentos incorporados pela CONITEC / Ministério da Saúde"
-    ],
-    "conduta_clinica": "Protocolo oficial do SUS (PCDT) para Angioedema associado à deficiência de C1 esterase (C1-INH). Critérios de inclusão, estratificação diagnóstica e opções farmacológicas aprovadas pela CONITEC/MS.",
-    "bloco_prescricao_copiavel": "PRESCRIÇÃO CONFORME DIRETRIZ PCDT DO SUS (Angioedema associado à deficiência de C1 esterase (C1-INH)):\n1. Dispensação via Farmácia de Alto Custo / Componente Especializado do SUS mediante LME e laudo médico."
+    "cids_relacionados": [],
+    "farmacos_principais": [],
+    "conduta_clinica": "PCDT listado pela CONITEC/Ministério da Saúde (Aprovado*). O conteúdo clínico do documento oficial não foi importado: consulte o texto vigente no portal da CONITEC.",
+    "bloco_prescricao_copiavel": "",
+    "conteudo_curado": false
   },
   {
     "id_pcdt": 13,
@@ -222,15 +201,11 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
     "nome_protocolo": "Artrite Idiopática Juvenil",
     "status_conitec": "Aprovado*",
     "tipo_protocolo": "PCDT",
-    "cids_relacionados": [
-      "R69",
-      "Z00.0"
-    ],
-    "farmacos_principais": [
-      "Medicamentos incorporados pela CONITEC / Ministério da Saúde"
-    ],
-    "conduta_clinica": "Protocolo oficial do SUS (PCDT) para Artrite Idiopática Juvenil. Critérios de inclusão, estratificação diagnóstica e opções farmacológicas aprovadas pela CONITEC/MS.",
-    "bloco_prescricao_copiavel": "PRESCRIÇÃO CONFORME DIRETRIZ PCDT DO SUS (Artrite Idiopática Juvenil):\n1. Dispensação via Farmácia de Alto Custo / Componente Especializado do SUS mediante LME e laudo médico."
+    "cids_relacionados": [],
+    "farmacos_principais": [],
+    "conduta_clinica": "PCDT listado pela CONITEC/Ministério da Saúde (Aprovado*). O conteúdo clínico do documento oficial não foi importado: consulte o texto vigente no portal da CONITEC.",
+    "bloco_prescricao_copiavel": "",
+    "conteudo_curado": false
   },
   {
     "id_pcdt": 14,
@@ -238,15 +213,11 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
     "nome_protocolo": "Artrite Psoriásica",
     "status_conitec": "Aprovado*",
     "tipo_protocolo": "PCDT",
-    "cids_relacionados": [
-      "R69",
-      "Z00.0"
-    ],
-    "farmacos_principais": [
-      "Medicamentos incorporados pela CONITEC / Ministério da Saúde"
-    ],
-    "conduta_clinica": "Protocolo oficial do SUS (PCDT) para Artrite Psoriásica. Critérios de inclusão, estratificação diagnóstica e opções farmacológicas aprovadas pela CONITEC/MS.",
-    "bloco_prescricao_copiavel": "PRESCRIÇÃO CONFORME DIRETRIZ PCDT DO SUS (Artrite Psoriásica):\n1. Dispensação via Farmácia de Alto Custo / Componente Especializado do SUS mediante LME e laudo médico."
+    "cids_relacionados": [],
+    "farmacos_principais": [],
+    "conduta_clinica": "PCDT listado pela CONITEC/Ministério da Saúde (Aprovado*). O conteúdo clínico do documento oficial não foi importado: consulte o texto vigente no portal da CONITEC.",
+    "bloco_prescricao_copiavel": "",
+    "conteudo_curado": false
   },
   {
     "id_pcdt": 15,
@@ -270,7 +241,8 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
       "Adalimumabe 40mg"
     ],
     "conduta_clinica": "Tratamento por metas (Treat to Target). Iniciar precocemente com DMARD sintético convencional (Metotrexato) associado a ácido fólico. Se falha após 3 a 6 meses, associar DMARD biológico (Anti-TNF) ou inibidor de JAK.",
-    "bloco_prescricao_copiavel": "1. Metotrexato 2.5mg comprimido: Tomar 6 comprimidos (15 mg) por via oral uma vez por semana (às segundas-feiras).\n2. Ácido Fólico 5mg comprimido: Tomar 1 comprimido por via oral uma vez por semana (às terças-feiras, 24h após o metotrexato)."
+    "bloco_prescricao_copiavel": "1. Metotrexato 2.5mg comprimido: Tomar 6 comprimidos (15 mg) por via oral uma vez por semana (às segundas-feiras).\n2. Ácido Fólico 5mg comprimido: Tomar 1 comprimido por via oral uma vez por semana (às terças-feiras, 24h após o metotrexato).",
+    "conteudo_curado": true
   },
   {
     "id_pcdt": 16,
@@ -291,7 +263,8 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
       "Fenoterol"
     ],
     "conduta_clinica": "Controle de sintomas e prevenção de exacerbações com Corticoide Inalatório em todos os passos clínicos. Uso preferencial de CI-Formoterol como resgate e manutenção.",
-    "bloco_prescricao_copiavel": "1. Budesonida 200mcg + Formoterol 6mcg pó inalatório: Inalar 1 dose a cada 12 horas diariamente de manutenção e 1 dose extra se falta de ar aguda.\n2. Sulfato de Salbutamol 100mcg spray: Inalar 2 a 4 jatos se crise aguda com espaçador."
+    "bloco_prescricao_copiavel": "1. Budesonida 200mcg + Formoterol 6mcg pó inalatório: Inalar 1 dose a cada 12 horas diariamente de manutenção e 1 dose extra se falta de ar aguda.\n2. Sulfato de Salbutamol 100mcg spray: Inalar 2 a 4 jatos se crise aguda com espaçador.",
+    "conteudo_curado": true
   },
   {
     "id_pcdt": 17,
@@ -299,15 +272,11 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
     "nome_protocolo": "Câncer de Cabeça e Pescoço",
     "status_conitec": "Em atualização",
     "tipo_protocolo": "DDT",
-    "cids_relacionados": [
-      "R69",
-      "Z00.0"
-    ],
-    "farmacos_principais": [
-      "Medicamentos incorporados pela CONITEC / Ministério da Saúde"
-    ],
-    "conduta_clinica": "Protocolo oficial do SUS (DDT) para Câncer de Cabeça e Pescoço. Critérios de inclusão, estratificação diagnóstica e opções farmacológicas aprovadas pela CONITEC/MS.",
-    "bloco_prescricao_copiavel": "PRESCRIÇÃO CONFORME DIRETRIZ PCDT DO SUS (Câncer de Cabeça e Pescoço):\n1. Dispensação via Farmácia de Alto Custo / Componente Especializado do SUS mediante LME e laudo médico."
+    "cids_relacionados": [],
+    "farmacos_principais": [],
+    "conduta_clinica": "DDT listado pela CONITEC/Ministério da Saúde (Em atualização). O conteúdo clínico do documento oficial não foi importado: consulte o texto vigente no portal da CONITEC.",
+    "bloco_prescricao_copiavel": "",
+    "conteudo_curado": false
   },
   {
     "id_pcdt": 18,
@@ -315,15 +284,11 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
     "nome_protocolo": "Câncer de Pulmão",
     "status_conitec": "Em atualização",
     "tipo_protocolo": "DDT",
-    "cids_relacionados": [
-      "R69",
-      "Z00.0"
-    ],
-    "farmacos_principais": [
-      "Medicamentos incorporados pela CONITEC / Ministério da Saúde"
-    ],
-    "conduta_clinica": "Protocolo oficial do SUS (DDT) para Câncer de Pulmão. Critérios de inclusão, estratificação diagnóstica e opções farmacológicas aprovadas pela CONITEC/MS.",
-    "bloco_prescricao_copiavel": "PRESCRIÇÃO CONFORME DIRETRIZ PCDT DO SUS (Câncer de Pulmão):\n1. Dispensação via Farmácia de Alto Custo / Componente Especializado do SUS mediante LME e laudo médico."
+    "cids_relacionados": [],
+    "farmacos_principais": [],
+    "conduta_clinica": "DDT listado pela CONITEC/Ministério da Saúde (Em atualização). O conteúdo clínico do documento oficial não foi importado: consulte o texto vigente no portal da CONITEC.",
+    "bloco_prescricao_copiavel": "",
+    "conteudo_curado": false
   },
   {
     "id_pcdt": 19,
@@ -331,15 +296,11 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
     "nome_protocolo": "Carcinoma Diferenciado de Tireóide",
     "status_conitec": "Em atualização",
     "tipo_protocolo": "PCDT",
-    "cids_relacionados": [
-      "R69",
-      "Z00.0"
-    ],
-    "farmacos_principais": [
-      "Medicamentos incorporados pela CONITEC / Ministério da Saúde"
-    ],
-    "conduta_clinica": "Protocolo oficial do SUS (PCDT) para Carcinoma Diferenciado de Tireóide. Critérios de inclusão, estratificação diagnóstica e opções farmacológicas aprovadas pela CONITEC/MS.",
-    "bloco_prescricao_copiavel": "PRESCRIÇÃO CONFORME DIRETRIZ PCDT DO SUS (Carcinoma Diferenciado de Tireóide):\n1. Dispensação via Farmácia de Alto Custo / Componente Especializado do SUS mediante LME e laudo médico."
+    "cids_relacionados": [],
+    "farmacos_principais": [],
+    "conduta_clinica": "PCDT listado pela CONITEC/Ministério da Saúde (Em atualização). O conteúdo clínico do documento oficial não foi importado: consulte o texto vigente no portal da CONITEC.",
+    "bloco_prescricao_copiavel": "",
+    "conteudo_curado": false
   },
   {
     "id_pcdt": 20,
@@ -347,15 +308,11 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
     "nome_protocolo": "Cardioversor Desfibrilador",
     "status_conitec": "Em atualização",
     "tipo_protocolo": "Protocolo de Uso",
-    "cids_relacionados": [
-      "R69",
-      "Z00.0"
-    ],
-    "farmacos_principais": [
-      "Medicamentos incorporados pela CONITEC / Ministério da Saúde"
-    ],
-    "conduta_clinica": "Protocolo oficial do SUS (Protocolo de Uso) para Cardioversor Desfibrilador. Critérios de inclusão, estratificação diagnóstica e opções farmacológicas aprovadas pela CONITEC/MS.",
-    "bloco_prescricao_copiavel": "PRESCRIÇÃO CONFORME DIRETRIZ PCDT DO SUS (Cardioversor Desfibrilador):\n1. Dispensação via Farmácia de Alto Custo / Componente Especializado do SUS mediante LME e laudo médico."
+    "cids_relacionados": [],
+    "farmacos_principais": [],
+    "conduta_clinica": "Protocolo de Uso listado pela CONITEC/Ministério da Saúde (Em atualização). O conteúdo clínico do documento oficial não foi importado: consulte o texto vigente no portal da CONITEC.",
+    "bloco_prescricao_copiavel": "",
+    "conteudo_curado": false
   },
   {
     "id_pcdt": 21,
@@ -363,15 +320,11 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
     "nome_protocolo": "Cisticercose",
     "status_conitec": "Em elaboração",
     "tipo_protocolo": "PCDT",
-    "cids_relacionados": [
-      "R69",
-      "Z00.0"
-    ],
-    "farmacos_principais": [
-      "Medicamentos incorporados pela CONITEC / Ministério da Saúde"
-    ],
-    "conduta_clinica": "Protocolo oficial do SUS (PCDT) para Cisticercose. Critérios de inclusão, estratificação diagnóstica e opções farmacológicas aprovadas pela CONITEC/MS.",
-    "bloco_prescricao_copiavel": "PRESCRIÇÃO CONFORME DIRETRIZ PCDT DO SUS (Cisticercose):\n1. Dispensação via Farmácia de Alto Custo / Componente Especializado do SUS mediante LME e laudo médico."
+    "cids_relacionados": [],
+    "farmacos_principais": [],
+    "conduta_clinica": "PCDT listado pela CONITEC/Ministério da Saúde (Em elaboração). O conteúdo clínico do documento oficial não foi importado: consulte o texto vigente no portal da CONITEC.",
+    "bloco_prescricao_copiavel": "",
+    "conteudo_curado": false
   },
   {
     "id_pcdt": 22,
@@ -379,15 +332,11 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
     "nome_protocolo": "Colangite Biliar Primária",
     "status_conitec": "Em atualização",
     "tipo_protocolo": "PCDT",
-    "cids_relacionados": [
-      "R69",
-      "Z00.0"
-    ],
-    "farmacos_principais": [
-      "Medicamentos incorporados pela CONITEC / Ministério da Saúde"
-    ],
-    "conduta_clinica": "Protocolo oficial do SUS (PCDT) para Colangite Biliar Primária. Critérios de inclusão, estratificação diagnóstica e opções farmacológicas aprovadas pela CONITEC/MS.",
-    "bloco_prescricao_copiavel": "PRESCRIÇÃO CONFORME DIRETRIZ PCDT DO SUS (Colangite Biliar Primária):\n1. Dispensação via Farmácia de Alto Custo / Componente Especializado do SUS mediante LME e laudo médico."
+    "cids_relacionados": [],
+    "farmacos_principais": [],
+    "conduta_clinica": "PCDT listado pela CONITEC/Ministério da Saúde (Em atualização). O conteúdo clínico do documento oficial não foi importado: consulte o texto vigente no portal da CONITEC.",
+    "bloco_prescricao_copiavel": "",
+    "conteudo_curado": false
   },
   {
     "id_pcdt": 23,
@@ -395,15 +344,11 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
     "nome_protocolo": "Cranioestenoses",
     "status_conitec": "Em elaboração",
     "tipo_protocolo": "Diretrizes Brasileiras",
-    "cids_relacionados": [
-      "R69",
-      "Z00.0"
-    ],
-    "farmacos_principais": [
-      "Medicamentos incorporados pela CONITEC / Ministério da Saúde"
-    ],
-    "conduta_clinica": "Protocolo oficial do SUS (Diretrizes Brasileiras) para Cranioestenoses. Critérios de inclusão, estratificação diagnóstica e opções farmacológicas aprovadas pela CONITEC/MS.",
-    "bloco_prescricao_copiavel": "PRESCRIÇÃO CONFORME DIRETRIZ PCDT DO SUS (Cranioestenoses):\n1. Dispensação via Farmácia de Alto Custo / Componente Especializado do SUS mediante LME e laudo médico."
+    "cids_relacionados": [],
+    "farmacos_principais": [],
+    "conduta_clinica": "Diretrizes Brasileiras listado pela CONITEC/Ministério da Saúde (Em elaboração). O conteúdo clínico do documento oficial não foi importado: consulte o texto vigente no portal da CONITEC.",
+    "bloco_prescricao_copiavel": "",
+    "conteudo_curado": false
   },
   {
     "id_pcdt": 24,
@@ -427,7 +372,8 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
       "Alfaepoetina"
     ],
     "conduta_clinica": "Nefroproteção estrita com bloqueio de SRAA (BRA ou IECA) para controle de proteinúria e pressão arterial, associado a inibidor de SGLT2 (Dapagliflozina).",
-    "bloco_prescricao_copiavel": "1. Losartana 50mg comprimido: Tomar 1 comprimido pela manhã.\n2. Dapagliflozina 10mg comprimido: Tomar 1 comprimido pela manhã.\n3. Bicarbonato de Sódio 500mg cápsula: Tomar 1 cápsula 12/12h se bicarbonato sérico < 22 mEq/L."
+    "bloco_prescricao_copiavel": "1. Losartana 50mg comprimido: Tomar 1 comprimido pela manhã.\n2. Dapagliflozina 10mg comprimido: Tomar 1 comprimido pela manhã.\n3. Bicarbonato de Sódio 500mg cápsula: Tomar 1 cápsula 12/12h se bicarbonato sérico < 22 mEq/L.",
+    "conteudo_curado": true
   },
   {
     "id_pcdt": 25,
@@ -435,15 +381,11 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
     "nome_protocolo": "Deficiência de Biotinidase",
     "status_conitec": "Aprovado*",
     "tipo_protocolo": "PCDT",
-    "cids_relacionados": [
-      "R69",
-      "Z00.0"
-    ],
-    "farmacos_principais": [
-      "Medicamentos incorporados pela CONITEC / Ministério da Saúde"
-    ],
-    "conduta_clinica": "Protocolo oficial do SUS (PCDT) para Deficiência de Biotinidase. Critérios de inclusão, estratificação diagnóstica e opções farmacológicas aprovadas pela CONITEC/MS.",
-    "bloco_prescricao_copiavel": "PRESCRIÇÃO CONFORME DIRETRIZ PCDT DO SUS (Deficiência de Biotinidase):\n1. Dispensação via Farmácia de Alto Custo / Componente Especializado do SUS mediante LME e laudo médico."
+    "cids_relacionados": [],
+    "farmacos_principais": [],
+    "conduta_clinica": "PCDT listado pela CONITEC/Ministério da Saúde (Aprovado*). O conteúdo clínico do documento oficial não foi importado: consulte o texto vigente no portal da CONITEC.",
+    "bloco_prescricao_copiavel": "",
+    "conteudo_curado": false
   },
   {
     "id_pcdt": 26,
@@ -451,15 +393,11 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
     "nome_protocolo": "Deficiência do Hormônio do Crescimento - Hipopituitarismo",
     "status_conitec": "Em atualização",
     "tipo_protocolo": "PCDT",
-    "cids_relacionados": [
-      "R69",
-      "Z00.0"
-    ],
-    "farmacos_principais": [
-      "Medicamentos incorporados pela CONITEC / Ministério da Saúde"
-    ],
-    "conduta_clinica": "Protocolo oficial do SUS (PCDT) para Deficiência do Hormônio do Crescimento - Hipopituitarismo. Critérios de inclusão, estratificação diagnóstica e opções farmacológicas aprovadas pela CONITEC/MS.",
-    "bloco_prescricao_copiavel": "PRESCRIÇÃO CONFORME DIRETRIZ PCDT DO SUS (Deficiência do Hormônio do Crescimento - Hipopituitarismo):\n1. Dispensação via Farmácia de Alto Custo / Componente Especializado do SUS mediante LME e laudo médico."
+    "cids_relacionados": [],
+    "farmacos_principais": [],
+    "conduta_clinica": "PCDT listado pela CONITEC/Ministério da Saúde (Em atualização). O conteúdo clínico do documento oficial não foi importado: consulte o texto vigente no portal da CONITEC.",
+    "bloco_prescricao_copiavel": "",
+    "conteudo_curado": false
   },
   {
     "id_pcdt": 27,
@@ -479,7 +417,8 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
       "Hidratante com Ureia / Ceramidas"
     ],
     "conduta_clinica": "Restauração da barreira cutânea com banhos rápidos mornos e aplicação abundante de emoliente em até 3 minutos pós-banho. Corticoides tópicos em pulsoterapia curta nas crises.",
-    "bloco_prescricao_copiavel": "1. Creme Hidratante Emoliente sem fragrância: Aplicar em todo o corpo 2 a 3 vezes ao dia logo após o banho.\n2. Furoato de Mometasona 0.1% creme: Aplicar fina camada sobre as lesões ativas inflamadas uma vez ao dia à noite por até 7 a 10 dias."
+    "bloco_prescricao_copiavel": "1. Creme Hidratante Emoliente sem fragrância: Aplicar em todo o corpo 2 a 3 vezes ao dia logo após o banho.\n2. Furoato de Mometasona 0.1% creme: Aplicar fina camada sobre as lesões ativas inflamadas uma vez ao dia à noite por até 7 a 10 dias.",
+    "conteudo_curado": true
   },
   {
     "id_pcdt": 28,
@@ -499,7 +438,8 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
       "Insulina Lispro / Asparte"
     ],
     "conduta_clinica": "Esquema basal-bolus intensivo com monitoramento capilar de glicemia de 4 a 6 vezes ao dia. Titulação de insulina conforme contagem de carboidratos.",
-    "bloco_prescricao_copiavel": "1. Insulina NPH Humana 100 UI/mL: Aplicar 16 UI via subcutânea às 07h e 8 UI às 22h.\n2. Insulina Regular 100 UI/mL: Aplicar via SC antes das principais refeições conforme glicemia capilar."
+    "bloco_prescricao_copiavel": "1. Insulina NPH Humana 100 UI/mL: Aplicar 16 UI via subcutânea às 07h e 8 UI às 22h.\n2. Insulina Regular 100 UI/mL: Aplicar via SC antes das principais refeições conforme glicemia capilar.",
+    "conteudo_curado": true
   },
   {
     "id_pcdt": 29,
@@ -519,7 +459,8 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
       "Insulina NPH Humana"
     ],
     "conduta_clinica": "Mudança no estilo de vida associada a Metformina como primeira linha. Adicionar iSGLT2 (Dapagliflozina) em pacientes com DRC ou doença cardiovascular estabelecida.",
-    "bloco_prescricao_copiavel": "1. Metformina 850mg comprimido: Tomar 1 comprimido após o almoço e 1 comprimido após o jantar diariamente.\n2. Dapagliflozina 10mg comprimido: Tomar 1 comprimido pela manhã em jejum."
+    "bloco_prescricao_copiavel": "1. Metformina 850mg comprimido: Tomar 1 comprimido após o almoço e 1 comprimido após o jantar diariamente.\n2. Dapagliflozina 10mg comprimido: Tomar 1 comprimido pela manhã em jejum.",
+    "conteudo_curado": true
   },
   {
     "id_pcdt": 30,
@@ -527,15 +468,11 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
     "nome_protocolo": "Diabetes Insípido",
     "status_conitec": "Aprovado*",
     "tipo_protocolo": "PCDT",
-    "cids_relacionados": [
-      "R69",
-      "Z00.0"
-    ],
-    "farmacos_principais": [
-      "Medicamentos incorporados pela CONITEC / Ministério da Saúde"
-    ],
-    "conduta_clinica": "Protocolo oficial do SUS (PCDT) para Diabetes Insípido. Critérios de inclusão, estratificação diagnóstica e opções farmacológicas aprovadas pela CONITEC/MS.",
-    "bloco_prescricao_copiavel": "PRESCRIÇÃO CONFORME DIRETRIZ PCDT DO SUS (Diabetes Insípido):\n1. Dispensação via Farmácia de Alto Custo / Componente Especializado do SUS mediante LME e laudo médico."
+    "cids_relacionados": [],
+    "farmacos_principais": [],
+    "conduta_clinica": "PCDT listado pela CONITEC/Ministério da Saúde (Aprovado*). O conteúdo clínico do documento oficial não foi importado: consulte o texto vigente no portal da CONITEC.",
+    "bloco_prescricao_copiavel": "",
+    "conteudo_curado": false
   },
   {
     "id_pcdt": 31,
@@ -543,15 +480,11 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
     "nome_protocolo": "Disfunção Neurogênica do Trato Urinário Inferior em Adultos (antes Bexiga Neurogênica)",
     "status_conitec": "Aprovado*",
     "tipo_protocolo": "PCDT",
-    "cids_relacionados": [
-      "R69",
-      "Z00.0"
-    ],
-    "farmacos_principais": [
-      "Medicamentos incorporados pela CONITEC / Ministério da Saúde"
-    ],
-    "conduta_clinica": "Protocolo oficial do SUS (PCDT) para Disfunção Neurogênica do Trato Urinário Inferior em Adultos (antes Bexiga Neurogênica). Critérios de inclusão, estratificação diagnóstica e opções farmacológicas aprovadas pela CONITEC/MS.",
-    "bloco_prescricao_copiavel": "PRESCRIÇÃO CONFORME DIRETRIZ PCDT DO SUS (Disfunção Neurogênica do Trato Urinário Inferior em Adultos (antes Bexiga Neurogênica)):\n1. Dispensação via Farmácia de Alto Custo / Componente Especializado do SUS mediante LME e laudo médico."
+    "cids_relacionados": [],
+    "farmacos_principais": [],
+    "conduta_clinica": "PCDT listado pela CONITEC/Ministério da Saúde (Aprovado*). O conteúdo clínico do documento oficial não foi importado: consulte o texto vigente no portal da CONITEC.",
+    "bloco_prescricao_copiavel": "",
+    "conteudo_curado": false
   },
   {
     "id_pcdt": 32,
@@ -572,7 +505,8 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
       "Fenofibrato 160mg/200mg"
     ],
     "conduta_clinica": "Estatina de intensidade moderada a alta para prevenção primária e secundária conforme risco cardiovascular global. Fibratos indicados se triglicérides > 500 mg/dL.",
-    "bloco_prescricao_copiavel": "1. Sinvastatina 40mg comprimido: Tomar 1 comprimido à noite ao deitar.\n2. Ezetimiba 10mg comprimido: Tomar 1 comprimido pela manhã se LDL permanecer acima da meta terapêutica."
+    "bloco_prescricao_copiavel": "1. Sinvastatina 40mg comprimido: Tomar 1 comprimido à noite ao deitar.\n2. Ezetimiba 10mg comprimido: Tomar 1 comprimido pela manhã se LDL permanecer acima da meta terapêutica.",
+    "conteudo_curado": true
   },
   {
     "id_pcdt": 33,
@@ -580,15 +514,11 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
     "nome_protocolo": "Distonias e Espasmo Hemifacial",
     "status_conitec": "Aprovado*",
     "tipo_protocolo": "PCDT",
-    "cids_relacionados": [
-      "R69",
-      "Z00.0"
-    ],
-    "farmacos_principais": [
-      "Medicamentos incorporados pela CONITEC / Ministério da Saúde"
-    ],
-    "conduta_clinica": "Protocolo oficial do SUS (PCDT) para Distonias e Espasmo Hemifacial. Critérios de inclusão, estratificação diagnóstica e opções farmacológicas aprovadas pela CONITEC/MS.",
-    "bloco_prescricao_copiavel": "PRESCRIÇÃO CONFORME DIRETRIZ PCDT DO SUS (Distonias e Espasmo Hemifacial):\n1. Dispensação via Farmácia de Alto Custo / Componente Especializado do SUS mediante LME e laudo médico."
+    "cids_relacionados": [],
+    "farmacos_principais": [],
+    "conduta_clinica": "PCDT listado pela CONITEC/Ministério da Saúde (Aprovado*). O conteúdo clínico do documento oficial não foi importado: consulte o texto vigente no portal da CONITEC.",
+    "bloco_prescricao_copiavel": "",
+    "conteudo_curado": false
   },
   {
     "id_pcdt": 34,
@@ -596,15 +526,11 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
     "nome_protocolo": "Distúrbio do Espectro da Neuromielite Óptica",
     "status_conitec": "Em elaboração",
     "tipo_protocolo": "PCDT",
-    "cids_relacionados": [
-      "R69",
-      "Z00.0"
-    ],
-    "farmacos_principais": [
-      "Medicamentos incorporados pela CONITEC / Ministério da Saúde"
-    ],
-    "conduta_clinica": "Protocolo oficial do SUS (PCDT) para Distúrbio do Espectro da Neuromielite Óptica. Critérios de inclusão, estratificação diagnóstica e opções farmacológicas aprovadas pela CONITEC/MS.",
-    "bloco_prescricao_copiavel": "PRESCRIÇÃO CONFORME DIRETRIZ PCDT DO SUS (Distúrbio do Espectro da Neuromielite Óptica):\n1. Dispensação via Farmácia de Alto Custo / Componente Especializado do SUS mediante LME e laudo médico."
+    "cids_relacionados": [],
+    "farmacos_principais": [],
+    "conduta_clinica": "PCDT listado pela CONITEC/Ministério da Saúde (Em elaboração). O conteúdo clínico do documento oficial não foi importado: consulte o texto vigente no portal da CONITEC.",
+    "bloco_prescricao_copiavel": "",
+    "conteudo_curado": false
   },
   {
     "id_pcdt": 35,
@@ -625,7 +551,8 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
       "Cloridrato de Memantina 10mg"
     ],
     "conduta_clinica": "Inibidores da acetilcolinesterase (Donepezila/Rivastigmina) para demência leve a moderada. Adicionar Memantina (antagonista NMDA) em fases moderadas a avançadas.",
-    "bloco_prescricao_copiavel": "1. Donepezila 5mg comprimido: Tomar 1 comprimido à noite ao deitar durante 4 semanas; aumentar para 10mg/dia se boa tolerância."
+    "bloco_prescricao_copiavel": "1. Donepezila 5mg comprimido: Tomar 1 comprimido à noite ao deitar durante 4 semanas; aumentar para 10mg/dia se boa tolerância.",
+    "conteudo_curado": true
   },
   {
     "id_pcdt": 36,
@@ -647,7 +574,8 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
       "Metronidazol 400mg"
     ],
     "conduta_clinica": "Indução e manutenção de remissão clínica e cicatrização de mucosa com imunossupressores (Azatioprina) e terapia biológica precoce (Anti-TNF) em doença moderada a grave.",
-    "bloco_prescricao_copiavel": "1. Azatioprina 50mg comprimido: Tomar 2 a 3 comprimidos (2 a 2.5 mg/kg/dia) em dose única diária após o café da manhã (monitorar hemograma mensalmente)."
+    "bloco_prescricao_copiavel": "1. Azatioprina 50mg comprimido: Dose de 2 a 2.5 mg/kg/dia em dose única diária após o café da manhã (ex.: 70 kg = 3 comprimidos de 50 mg); calcular pelo peso do paciente e monitorar hemograma mensalmente.",
+    "conteudo_curado": true
   },
   {
     "id_pcdt": 37,
@@ -664,7 +592,8 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
       "Amantadina 100mg"
     ],
     "conduta_clinica": "Reposição dopaminérgica individualizada com Levodopa/Benserazida ou agonista dopaminérgico em pacientes jovens. Tomar longe de refeições hiperproteicas.",
-    "bloco_prescricao_copiavel": "1. Levodopa 200mg + Benserazida 50mg comprimido: Tomar 1/2 comprimido 3 vezes ao dia (08h, 14h, 20h), pelo menos 30 a 60 minutos antes das refeições."
+    "bloco_prescricao_copiavel": "1. Levodopa 200mg + Benserazida 50mg comprimido: Tomar 1/2 comprimido 3 vezes ao dia (08h, 14h, 20h), pelo menos 30 a 60 minutos antes das refeições.",
+    "conteudo_curado": true
   },
   {
     "id_pcdt": 38,
@@ -685,7 +614,8 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
       "Salbutamol 100mcg"
     ],
     "conduta_clinica": "Broncodilatadores de longa ação (LAMA e/ou LABA) para redução de hiperinsuflação e prevenção de exacerbações. Vacinação anual pneumocócica e influenza.",
-    "bloco_prescricao_copiavel": "1. Brometo de Tiotrópio 2.5mcg inalador Respimat: Inalar 2 jatos uma vez ao dia no mesmo horário.\n2. Salbutamol 100mcg spray: Inalar 2 jatos com espaçador se resgate."
+    "bloco_prescricao_copiavel": "1. Brometo de Tiotrópio 2.5mcg inalador Respimat: Inalar 2 jatos uma vez ao dia no mesmo horário.\n2. Salbutamol 100mcg spray: Inalar 2 jatos com espaçador se resgate.",
+    "conteudo_curado": true
   },
   {
     "id_pcdt": 39,
@@ -707,7 +637,8 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
       "Dipirona 500mg"
     ],
     "conduta_clinica": "Bloqueio hormonal contínuo para atrofia das lesões endometrióticas ectópicas e controle da dor pélvica crônica. Progestagênios de uso contínuo de primeira escolha.",
-    "bloco_prescricao_copiavel": "1. Dienogeste 2mg comprimido: Tomar 1 comprimido por via oral diariamente no mesmo horário de forma contínua, sem pausas.\n2. Dipirona Monoidratada 500mg: Tomar 1 a 2 comprimidos 6/6h se dismenorreia."
+    "bloco_prescricao_copiavel": "1. Dienogeste 2mg comprimido: Tomar 1 comprimido por via oral diariamente no mesmo horário de forma contínua, sem pausas.\n2. Dipirona Monoidratada 500mg: Tomar 1 a 2 comprimidos 6/6h se dismenorreia.",
+    "conteudo_curado": true
   },
   {
     "id_pcdt": 40,
@@ -729,7 +660,8 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
       "Levetiracetam"
     ],
     "conduta_clinica": "Monoterapia com fármaco antiepiléptico de primeira escolha conforme o tipo de crise (focal vs generalizada). Monitorar dosagem sérica e hemograma.",
-    "bloco_prescricao_copiavel": "1. Carbamazepina 200mg comprimido: Tomar 1 comprimido por via oral a cada 12 horas após as refeições (titular gradualmente conforme resposta clínica)."
+    "bloco_prescricao_copiavel": "1. Carbamazepina 200mg comprimido: Tomar 1 comprimido por via oral a cada 12 horas após as refeições (titular gradualmente conforme resposta clínica).",
+    "conteudo_curado": true
   },
   {
     "id_pcdt": 41,
@@ -737,15 +669,11 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
     "nome_protocolo": "Espondiloartrite Axial",
     "status_conitec": "Aprovado*",
     "tipo_protocolo": "PCDT",
-    "cids_relacionados": [
-      "R69",
-      "Z00.0"
-    ],
-    "farmacos_principais": [
-      "Medicamentos incorporados pela CONITEC / Ministério da Saúde"
-    ],
-    "conduta_clinica": "Protocolo oficial do SUS (PCDT) para Espondiloartrite Axial. Critérios de inclusão, estratificação diagnóstica e opções farmacológicas aprovadas pela CONITEC/MS.",
-    "bloco_prescricao_copiavel": "PRESCRIÇÃO CONFORME DIRETRIZ PCDT DO SUS (Espondiloartrite Axial):\n1. Dispensação via Farmácia de Alto Custo / Componente Especializado do SUS mediante LME e laudo médico."
+    "cids_relacionados": [],
+    "farmacos_principais": [],
+    "conduta_clinica": "PCDT listado pela CONITEC/Ministério da Saúde (Aprovado*). O conteúdo clínico do documento oficial não foi importado: consulte o texto vigente no portal da CONITEC.",
+    "bloco_prescricao_copiavel": "",
+    "conteudo_curado": false
   },
   {
     "id_pcdt": 42,
@@ -769,7 +697,8 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
       "Haloperidol 5mg"
     ],
     "conduta_clinica": "Antipsicóticos de 2ª geração (atípicos) de escolha inicial pela menor taxa de sintomas extrapiramidais e discinesia tardia. Monitorar perfil lipídico e glicemia a cada 3 meses.",
-    "bloco_prescricao_copiavel": "1. Risperidona 2mg comprimido: Tomar 1 comprimido por via oral à noite ao deitar (titular conforme resposta clínica e tolerabilidade)."
+    "bloco_prescricao_copiavel": "1. Risperidona 2mg comprimido: Tomar 1 comprimido por via oral à noite ao deitar (titular conforme resposta clínica e tolerabilidade).",
+    "conteudo_curado": true
   },
   {
     "id_pcdt": 43,
@@ -789,7 +718,8 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
       "Dorzolamida colírio 2%"
     ],
     "conduta_clinica": "Redução da Pressão Intraocular (PIO) como único tratamento comprovado para desacelerar perda de campo visual. Análogos de prostaglandina ou betabloqueadores tópicos como 1ª linha.",
-    "bloco_prescricao_copiavel": "1. Maleato de Timolol colírio 0.5%: Pingar 1 gota no olho afetado a cada 12 horas.\n2. Travoprosta colírio 0.004%: Pingar 1 gota no olho afetado uma vez ao dia à noite ao deitar."
+    "bloco_prescricao_copiavel": "1. Maleato de Timolol colírio 0.5%: Pingar 1 gota no olho afetado a cada 12 horas.\n2. Travoprosta colírio 0.004%: Pingar 1 gota no olho afetado uma vez ao dia à noite ao deitar.",
+    "conteudo_curado": true
   },
   {
     "id_pcdt": 44,
@@ -797,15 +727,11 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
     "nome_protocolo": "Hemangioma Infantil",
     "status_conitec": "Em atualização",
     "tipo_protocolo": "PCDT",
-    "cids_relacionados": [
-      "R69",
-      "Z00.0"
-    ],
-    "farmacos_principais": [
-      "Medicamentos incorporados pela CONITEC / Ministério da Saúde"
-    ],
-    "conduta_clinica": "Protocolo oficial do SUS (PCDT) para Hemangioma Infantil. Critérios de inclusão, estratificação diagnóstica e opções farmacológicas aprovadas pela CONITEC/MS.",
-    "bloco_prescricao_copiavel": "PRESCRIÇÃO CONFORME DIRETRIZ PCDT DO SUS (Hemangioma Infantil):\n1. Dispensação via Farmácia de Alto Custo / Componente Especializado do SUS mediante LME e laudo médico."
+    "cids_relacionados": [],
+    "farmacos_principais": [],
+    "conduta_clinica": "PCDT listado pela CONITEC/Ministério da Saúde (Em atualização). O conteúdo clínico do documento oficial não foi importado: consulte o texto vigente no portal da CONITEC.",
+    "bloco_prescricao_copiavel": "",
+    "conteudo_curado": false
   },
   {
     "id_pcdt": 45,
@@ -813,15 +739,11 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
     "nome_protocolo": "Hemoglobinúria Paroxística Noturna",
     "status_conitec": "Aprovado*",
     "tipo_protocolo": "PCDT",
-    "cids_relacionados": [
-      "R69",
-      "Z00.0"
-    ],
-    "farmacos_principais": [
-      "Medicamentos incorporados pela CONITEC / Ministério da Saúde"
-    ],
-    "conduta_clinica": "Protocolo oficial do SUS (PCDT) para Hemoglobinúria Paroxística Noturna. Critérios de inclusão, estratificação diagnóstica e opções farmacológicas aprovadas pela CONITEC/MS.",
-    "bloco_prescricao_copiavel": "PRESCRIÇÃO CONFORME DIRETRIZ PCDT DO SUS (Hemoglobinúria Paroxística Noturna):\n1. Dispensação via Farmácia de Alto Custo / Componente Especializado do SUS mediante LME e laudo médico."
+    "cids_relacionados": [],
+    "farmacos_principais": [],
+    "conduta_clinica": "PCDT listado pela CONITEC/Ministério da Saúde (Aprovado*). O conteúdo clínico do documento oficial não foi importado: consulte o texto vigente no portal da CONITEC.",
+    "bloco_prescricao_copiavel": "",
+    "conteudo_curado": false
   },
   {
     "id_pcdt": 46,
@@ -829,15 +751,11 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
     "nome_protocolo": "Hidradenite Supurativa",
     "status_conitec": "Em atualização",
     "tipo_protocolo": "PCDT",
-    "cids_relacionados": [
-      "R69",
-      "Z00.0"
-    ],
-    "farmacos_principais": [
-      "Medicamentos incorporados pela CONITEC / Ministério da Saúde"
-    ],
-    "conduta_clinica": "Protocolo oficial do SUS (PCDT) para Hidradenite Supurativa. Critérios de inclusão, estratificação diagnóstica e opções farmacológicas aprovadas pela CONITEC/MS.",
-    "bloco_prescricao_copiavel": "PRESCRIÇÃO CONFORME DIRETRIZ PCDT DO SUS (Hidradenite Supurativa):\n1. Dispensação via Farmácia de Alto Custo / Componente Especializado do SUS mediante LME e laudo médico."
+    "cids_relacionados": [],
+    "farmacos_principais": [],
+    "conduta_clinica": "PCDT listado pela CONITEC/Ministério da Saúde (Em atualização). O conteúdo clínico do documento oficial não foi importado: consulte o texto vigente no portal da CONITEC.",
+    "bloco_prescricao_copiavel": "",
+    "conteudo_curado": false
   },
   {
     "id_pcdt": 47,
@@ -845,15 +763,11 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
     "nome_protocolo": "Hipoparatireoidismo",
     "status_conitec": "Em atualização",
     "tipo_protocolo": "PCDT",
-    "cids_relacionados": [
-      "R69",
-      "Z00.0"
-    ],
-    "farmacos_principais": [
-      "Medicamentos incorporados pela CONITEC / Ministério da Saúde"
-    ],
-    "conduta_clinica": "Protocolo oficial do SUS (PCDT) para Hipoparatireoidismo. Critérios de inclusão, estratificação diagnóstica e opções farmacológicas aprovadas pela CONITEC/MS.",
-    "bloco_prescricao_copiavel": "PRESCRIÇÃO CONFORME DIRETRIZ PCDT DO SUS (Hipoparatireoidismo):\n1. Dispensação via Farmácia de Alto Custo / Componente Especializado do SUS mediante LME e laudo médico."
+    "cids_relacionados": [],
+    "farmacos_principais": [],
+    "conduta_clinica": "PCDT listado pela CONITEC/Ministério da Saúde (Em atualização). O conteúdo clínico do documento oficial não foi importado: consulte o texto vigente no portal da CONITEC.",
+    "bloco_prescricao_copiavel": "",
+    "conteudo_curado": false
   },
   {
     "id_pcdt": 48,
@@ -861,15 +775,11 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
     "nome_protocolo": "Imunodeficiência Primária com predominância de defeitos de anticorpos",
     "status_conitec": "Em atualização",
     "tipo_protocolo": "PCDT",
-    "cids_relacionados": [
-      "R69",
-      "Z00.0"
-    ],
-    "farmacos_principais": [
-      "Medicamentos incorporados pela CONITEC / Ministério da Saúde"
-    ],
-    "conduta_clinica": "Protocolo oficial do SUS (PCDT) para Imunodeficiência Primária com predominância de defeitos de anticorpos. Critérios de inclusão, estratificação diagnóstica e opções farmacológicas aprovadas pela CONITEC/MS.",
-    "bloco_prescricao_copiavel": "PRESCRIÇÃO CONFORME DIRETRIZ PCDT DO SUS (Imunodeficiência Primária com predominância de defeitos de anticorpos):\n1. Dispensação via Farmácia de Alto Custo / Componente Especializado do SUS mediante LME e laudo médico."
+    "cids_relacionados": [],
+    "farmacos_principais": [],
+    "conduta_clinica": "PCDT listado pela CONITEC/Ministério da Saúde (Em atualização). O conteúdo clínico do documento oficial não foi importado: consulte o texto vigente no portal da CONITEC.",
+    "bloco_prescricao_copiavel": "",
+    "conteudo_curado": false
   },
   {
     "id_pcdt": 49,
@@ -877,15 +787,11 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
     "nome_protocolo": "Imunodeficiências com defeitos congênitos de fagócitos - defeitos da imunidade inata",
     "status_conitec": "Em elaboração",
     "tipo_protocolo": "PCDT",
-    "cids_relacionados": [
-      "R69",
-      "Z00.0"
-    ],
-    "farmacos_principais": [
-      "Medicamentos incorporados pela CONITEC / Ministério da Saúde"
-    ],
-    "conduta_clinica": "Protocolo oficial do SUS (PCDT) para Imunodeficiências com defeitos congênitos de fagócitos - defeitos da imunidade inata. Critérios de inclusão, estratificação diagnóstica e opções farmacológicas aprovadas pela CONITEC/MS.",
-    "bloco_prescricao_copiavel": "PRESCRIÇÃO CONFORME DIRETRIZ PCDT DO SUS (Imunodeficiências com defeitos congênitos de fagócitos - defeitos da imunidade inata):\n1. Dispensação via Farmácia de Alto Custo / Componente Especializado do SUS mediante LME e laudo médico."
+    "cids_relacionados": [],
+    "farmacos_principais": [],
+    "conduta_clinica": "PCDT listado pela CONITEC/Ministério da Saúde (Em elaboração). O conteúdo clínico do documento oficial não foi importado: consulte o texto vigente no portal da CONITEC.",
+    "bloco_prescricao_copiavel": "",
+    "conteudo_curado": false
   },
   {
     "id_pcdt": 50,
@@ -893,15 +799,11 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
     "nome_protocolo": "Imunodeficiências combinadas graves, imunodeficiências combinadas e imunodeficiências combinadas com características sindrômicas",
     "status_conitec": "Em elaboração",
     "tipo_protocolo": "PCDT",
-    "cids_relacionados": [
-      "R69",
-      "Z00.0"
-    ],
-    "farmacos_principais": [
-      "Medicamentos incorporados pela CONITEC / Ministério da Saúde"
-    ],
-    "conduta_clinica": "Protocolo oficial do SUS (PCDT) para Imunodeficiências combinadas graves, imunodeficiências combinadas e imunodeficiências combinadas com características sindrômicas. Critérios de inclusão, estratificação diagnóstica e opções farmacológicas aprovadas pela CONITEC/MS.",
-    "bloco_prescricao_copiavel": "PRESCRIÇÃO CONFORME DIRETRIZ PCDT DO SUS (Imunodeficiências combinadas graves, imunodeficiências combinadas e imunodeficiências combinadas com características sindrômicas):\n1. Dispensação via Farmácia de Alto Custo / Componente Especializado do SUS mediante LME e laudo médico."
+    "cids_relacionados": [],
+    "farmacos_principais": [],
+    "conduta_clinica": "PCDT listado pela CONITEC/Ministério da Saúde (Em elaboração). O conteúdo clínico do documento oficial não foi importado: consulte o texto vigente no portal da CONITEC.",
+    "bloco_prescricao_copiavel": "",
+    "conteudo_curado": false
   },
   {
     "id_pcdt": 51,
@@ -909,15 +811,11 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
     "nome_protocolo": "Imunossupressão em Transplante de Células-Tronco Hematopoiéticas",
     "status_conitec": "Em elaboração",
     "tipo_protocolo": "PCDT",
-    "cids_relacionados": [
-      "R69",
-      "Z00.0"
-    ],
-    "farmacos_principais": [
-      "Medicamentos incorporados pela CONITEC / Ministério da Saúde"
-    ],
-    "conduta_clinica": "Protocolo oficial do SUS (PCDT) para Imunossupressão em Transplante de Células-Tronco Hematopoiéticas. Critérios de inclusão, estratificação diagnóstica e opções farmacológicas aprovadas pela CONITEC/MS.",
-    "bloco_prescricao_copiavel": "PRESCRIÇÃO CONFORME DIRETRIZ PCDT DO SUS (Imunossupressão em Transplante de Células-Tronco Hematopoiéticas):\n1. Dispensação via Farmácia de Alto Custo / Componente Especializado do SUS mediante LME e laudo médico."
+    "cids_relacionados": [],
+    "farmacos_principais": [],
+    "conduta_clinica": "PCDT listado pela CONITEC/Ministério da Saúde (Em elaboração). O conteúdo clínico do documento oficial não foi importado: consulte o texto vigente no portal da CONITEC.",
+    "bloco_prescricao_copiavel": "",
+    "conteudo_curado": false
   },
   {
     "id_pcdt": 52,
@@ -925,15 +823,11 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
     "nome_protocolo": "Imunossupressão em Transplante de Pulmão",
     "status_conitec": "Em elaboração",
     "tipo_protocolo": "PCDT",
-    "cids_relacionados": [
-      "R69",
-      "Z00.0"
-    ],
-    "farmacos_principais": [
-      "Medicamentos incorporados pela CONITEC / Ministério da Saúde"
-    ],
-    "conduta_clinica": "Protocolo oficial do SUS (PCDT) para Imunossupressão em Transplante de Pulmão. Critérios de inclusão, estratificação diagnóstica e opções farmacológicas aprovadas pela CONITEC/MS.",
-    "bloco_prescricao_copiavel": "PRESCRIÇÃO CONFORME DIRETRIZ PCDT DO SUS (Imunossupressão em Transplante de Pulmão):\n1. Dispensação via Farmácia de Alto Custo / Componente Especializado do SUS mediante LME e laudo médico."
+    "cids_relacionados": [],
+    "farmacos_principais": [],
+    "conduta_clinica": "PCDT listado pela CONITEC/Ministério da Saúde (Em elaboração). O conteúdo clínico do documento oficial não foi importado: consulte o texto vigente no portal da CONITEC.",
+    "bloco_prescricao_copiavel": "",
+    "conteudo_curado": false
   },
   {
     "id_pcdt": 53,
@@ -941,15 +835,11 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
     "nome_protocolo": "Imunossupressão no Transplante de Pâncreas",
     "status_conitec": "Em elaboração",
     "tipo_protocolo": "PCDT",
-    "cids_relacionados": [
-      "R69",
-      "Z00.0"
-    ],
-    "farmacos_principais": [
-      "Medicamentos incorporados pela CONITEC / Ministério da Saúde"
-    ],
-    "conduta_clinica": "Protocolo oficial do SUS (PCDT) para Imunossupressão no Transplante de Pâncreas. Critérios de inclusão, estratificação diagnóstica e opções farmacológicas aprovadas pela CONITEC/MS.",
-    "bloco_prescricao_copiavel": "PRESCRIÇÃO CONFORME DIRETRIZ PCDT DO SUS (Imunossupressão no Transplante de Pâncreas):\n1. Dispensação via Farmácia de Alto Custo / Componente Especializado do SUS mediante LME e laudo médico."
+    "cids_relacionados": [],
+    "farmacos_principais": [],
+    "conduta_clinica": "PCDT listado pela CONITEC/Ministério da Saúde (Em elaboração). O conteúdo clínico do documento oficial não foi importado: consulte o texto vigente no portal da CONITEC.",
+    "bloco_prescricao_copiavel": "",
+    "conteudo_curado": false
   },
   {
     "id_pcdt": 54,
@@ -957,15 +847,11 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
     "nome_protocolo": "Imunossupressão no Transplante Hepático em Adultos",
     "status_conitec": "Em atualização",
     "tipo_protocolo": "PCDT",
-    "cids_relacionados": [
-      "R69",
-      "Z00.0"
-    ],
-    "farmacos_principais": [
-      "Medicamentos incorporados pela CONITEC / Ministério da Saúde"
-    ],
-    "conduta_clinica": "Protocolo oficial do SUS (PCDT) para Imunossupressão no Transplante Hepático em Adultos. Critérios de inclusão, estratificação diagnóstica e opções farmacológicas aprovadas pela CONITEC/MS.",
-    "bloco_prescricao_copiavel": "PRESCRIÇÃO CONFORME DIRETRIZ PCDT DO SUS (Imunossupressão no Transplante Hepático em Adultos):\n1. Dispensação via Farmácia de Alto Custo / Componente Especializado do SUS mediante LME e laudo médico."
+    "cids_relacionados": [],
+    "farmacos_principais": [],
+    "conduta_clinica": "PCDT listado pela CONITEC/Ministério da Saúde (Em atualização). O conteúdo clínico do documento oficial não foi importado: consulte o texto vigente no portal da CONITEC.",
+    "bloco_prescricao_copiavel": "",
+    "conteudo_curado": false
   },
   {
     "id_pcdt": 55,
@@ -973,15 +859,11 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
     "nome_protocolo": "Infecções Virais pós transplantes",
     "status_conitec": "Em elaboração",
     "tipo_protocolo": "PCDT",
-    "cids_relacionados": [
-      "R69",
-      "Z00.0"
-    ],
-    "farmacos_principais": [
-      "Medicamentos incorporados pela CONITEC / Ministério da Saúde"
-    ],
-    "conduta_clinica": "Protocolo oficial do SUS (PCDT) para Infecções Virais pós transplantes. Critérios de inclusão, estratificação diagnóstica e opções farmacológicas aprovadas pela CONITEC/MS.",
-    "bloco_prescricao_copiavel": "PRESCRIÇÃO CONFORME DIRETRIZ PCDT DO SUS (Infecções Virais pós transplantes):\n1. Dispensação via Farmácia de Alto Custo / Componente Especializado do SUS mediante LME e laudo médico."
+    "cids_relacionados": [],
+    "farmacos_principais": [],
+    "conduta_clinica": "PCDT listado pela CONITEC/Ministério da Saúde (Em elaboração). O conteúdo clínico do documento oficial não foi importado: consulte o texto vigente no portal da CONITEC.",
+    "bloco_prescricao_copiavel": "",
+    "conteudo_curado": false
   },
   {
     "id_pcdt": 56,
@@ -989,15 +871,11 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
     "nome_protocolo": "Insuficiência Pancreática Exócrina",
     "status_conitec": "Em atualização",
     "tipo_protocolo": "PCDT",
-    "cids_relacionados": [
-      "R69",
-      "Z00.0"
-    ],
-    "farmacos_principais": [
-      "Medicamentos incorporados pela CONITEC / Ministério da Saúde"
-    ],
-    "conduta_clinica": "Protocolo oficial do SUS (PCDT) para Insuficiência Pancreática Exócrina. Critérios de inclusão, estratificação diagnóstica e opções farmacológicas aprovadas pela CONITEC/MS.",
-    "bloco_prescricao_copiavel": "PRESCRIÇÃO CONFORME DIRETRIZ PCDT DO SUS (Insuficiência Pancreática Exócrina):\n1. Dispensação via Farmácia de Alto Custo / Componente Especializado do SUS mediante LME e laudo médico."
+    "cids_relacionados": [],
+    "farmacos_principais": [],
+    "conduta_clinica": "PCDT listado pela CONITEC/Ministério da Saúde (Em atualização). O conteúdo clínico do documento oficial não foi importado: consulte o texto vigente no portal da CONITEC.",
+    "bloco_prescricao_copiavel": "",
+    "conteudo_curado": false
   },
   {
     "id_pcdt": 57,
@@ -1005,15 +883,11 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
     "nome_protocolo": "Leiomioma de útero",
     "status_conitec": "Em atualização",
     "tipo_protocolo": "PCDT",
-    "cids_relacionados": [
-      "R69",
-      "Z00.0"
-    ],
-    "farmacos_principais": [
-      "Medicamentos incorporados pela CONITEC / Ministério da Saúde"
-    ],
-    "conduta_clinica": "Protocolo oficial do SUS (PCDT) para Leiomioma de útero. Critérios de inclusão, estratificação diagnóstica e opções farmacológicas aprovadas pela CONITEC/MS.",
-    "bloco_prescricao_copiavel": "PRESCRIÇÃO CONFORME DIRETRIZ PCDT DO SUS (Leiomioma de útero):\n1. Dispensação via Farmácia de Alto Custo / Componente Especializado do SUS mediante LME e laudo médico."
+    "cids_relacionados": [],
+    "farmacos_principais": [],
+    "conduta_clinica": "PCDT listado pela CONITEC/Ministério da Saúde (Em atualização). O conteúdo clínico do documento oficial não foi importado: consulte o texto vigente no portal da CONITEC.",
+    "bloco_prescricao_copiavel": "",
+    "conteudo_curado": false
   },
   {
     "id_pcdt": 58,
@@ -1021,15 +895,11 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
     "nome_protocolo": "Leishmaniose Tegumentar",
     "status_conitec": "Em elaboração",
     "tipo_protocolo": "PCDT",
-    "cids_relacionados": [
-      "R69",
-      "Z00.0"
-    ],
-    "farmacos_principais": [
-      "Medicamentos incorporados pela CONITEC / Ministério da Saúde"
-    ],
-    "conduta_clinica": "Protocolo oficial do SUS (PCDT) para Leishmaniose Tegumentar. Critérios de inclusão, estratificação diagnóstica e opções farmacológicas aprovadas pela CONITEC/MS.",
-    "bloco_prescricao_copiavel": "PRESCRIÇÃO CONFORME DIRETRIZ PCDT DO SUS (Leishmaniose Tegumentar):\n1. Dispensação via Farmácia de Alto Custo / Componente Especializado do SUS mediante LME e laudo médico."
+    "cids_relacionados": [],
+    "farmacos_principais": [],
+    "conduta_clinica": "PCDT listado pela CONITEC/Ministério da Saúde (Em elaboração). O conteúdo clínico do documento oficial não foi importado: consulte o texto vigente no portal da CONITEC.",
+    "bloco_prescricao_copiavel": "",
+    "conteudo_curado": false
   },
   {
     "id_pcdt": 59,
@@ -1037,15 +907,11 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
     "nome_protocolo": "Leishmaniose Visceral",
     "status_conitec": "Em elaboração",
     "tipo_protocolo": "PCDT",
-    "cids_relacionados": [
-      "R69",
-      "Z00.0"
-    ],
-    "farmacos_principais": [
-      "Medicamentos incorporados pela CONITEC / Ministério da Saúde"
-    ],
-    "conduta_clinica": "Protocolo oficial do SUS (PCDT) para Leishmaniose Visceral. Critérios de inclusão, estratificação diagnóstica e opções farmacológicas aprovadas pela CONITEC/MS.",
-    "bloco_prescricao_copiavel": "PRESCRIÇÃO CONFORME DIRETRIZ PCDT DO SUS (Leishmaniose Visceral):\n1. Dispensação via Farmácia de Alto Custo / Componente Especializado do SUS mediante LME e laudo médico."
+    "cids_relacionados": [],
+    "farmacos_principais": [],
+    "conduta_clinica": "PCDT listado pela CONITEC/Ministério da Saúde (Em elaboração). O conteúdo clínico do documento oficial não foi importado: consulte o texto vigente no portal da CONITEC.",
+    "bloco_prescricao_copiavel": "",
+    "conteudo_curado": false
   },
   {
     "id_pcdt": 60,
@@ -1053,15 +919,11 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
     "nome_protocolo": "Leucemia Mieloide Crônica do Adulto",
     "status_conitec": "Em atualização",
     "tipo_protocolo": "PCDT",
-    "cids_relacionados": [
-      "R69",
-      "Z00.0"
-    ],
-    "farmacos_principais": [
-      "Medicamentos incorporados pela CONITEC / Ministério da Saúde"
-    ],
-    "conduta_clinica": "Protocolo oficial do SUS (PCDT) para Leucemia Mieloide Crônica do Adulto. Critérios de inclusão, estratificação diagnóstica e opções farmacológicas aprovadas pela CONITEC/MS.",
-    "bloco_prescricao_copiavel": "PRESCRIÇÃO CONFORME DIRETRIZ PCDT DO SUS (Leucemia Mieloide Crônica do Adulto):\n1. Dispensação via Farmácia de Alto Custo / Componente Especializado do SUS mediante LME e laudo médico."
+    "cids_relacionados": [],
+    "farmacos_principais": [],
+    "conduta_clinica": "PCDT listado pela CONITEC/Ministério da Saúde (Em atualização). O conteúdo clínico do documento oficial não foi importado: consulte o texto vigente no portal da CONITEC.",
+    "bloco_prescricao_copiavel": "",
+    "conteudo_curado": false
   },
   {
     "id_pcdt": 61,
@@ -1069,15 +931,11 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
     "nome_protocolo": "Linfoma Difuso de Grandes Células B",
     "status_conitec": "Em atualização",
     "tipo_protocolo": "PCDT",
-    "cids_relacionados": [
-      "R69",
-      "Z00.0"
-    ],
-    "farmacos_principais": [
-      "Medicamentos incorporados pela CONITEC / Ministério da Saúde"
-    ],
-    "conduta_clinica": "Protocolo oficial do SUS (PCDT) para Linfoma Difuso de Grandes Células B. Critérios de inclusão, estratificação diagnóstica e opções farmacológicas aprovadas pela CONITEC/MS.",
-    "bloco_prescricao_copiavel": "PRESCRIÇÃO CONFORME DIRETRIZ PCDT DO SUS (Linfoma Difuso de Grandes Células B):\n1. Dispensação via Farmácia de Alto Custo / Componente Especializado do SUS mediante LME e laudo médico."
+    "cids_relacionados": [],
+    "farmacos_principais": [],
+    "conduta_clinica": "PCDT listado pela CONITEC/Ministério da Saúde (Em atualização). O conteúdo clínico do documento oficial não foi importado: consulte o texto vigente no portal da CONITEC.",
+    "bloco_prescricao_copiavel": "",
+    "conteudo_curado": false
   },
   {
     "id_pcdt": 62,
@@ -1085,15 +943,11 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
     "nome_protocolo": "Linfoma Folicular",
     "status_conitec": "Em atualização",
     "tipo_protocolo": "DDT",
-    "cids_relacionados": [
-      "R69",
-      "Z00.0"
-    ],
-    "farmacos_principais": [
-      "Medicamentos incorporados pela CONITEC / Ministério da Saúde"
-    ],
-    "conduta_clinica": "Protocolo oficial do SUS (DDT) para Linfoma Folicular. Critérios de inclusão, estratificação diagnóstica e opções farmacológicas aprovadas pela CONITEC/MS.",
-    "bloco_prescricao_copiavel": "PRESCRIÇÃO CONFORME DIRETRIZ PCDT DO SUS (Linfoma Folicular):\n1. Dispensação via Farmácia de Alto Custo / Componente Especializado do SUS mediante LME e laudo médico."
+    "cids_relacionados": [],
+    "farmacos_principais": [],
+    "conduta_clinica": "DDT listado pela CONITEC/Ministério da Saúde (Em atualização). O conteúdo clínico do documento oficial não foi importado: consulte o texto vigente no portal da CONITEC.",
+    "bloco_prescricao_copiavel": "",
+    "conteudo_curado": false
   },
   {
     "id_pcdt": 63,
@@ -1101,15 +955,11 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
     "nome_protocolo": "Marca-passos cardíacos",
     "status_conitec": "Em atualização",
     "tipo_protocolo": "Protocolo de Uso",
-    "cids_relacionados": [
-      "R69",
-      "Z00.0"
-    ],
-    "farmacos_principais": [
-      "Medicamentos incorporados pela CONITEC / Ministério da Saúde"
-    ],
-    "conduta_clinica": "Protocolo oficial do SUS (Protocolo de Uso) para Marca-passos cardíacos. Critérios de inclusão, estratificação diagnóstica e opções farmacológicas aprovadas pela CONITEC/MS.",
-    "bloco_prescricao_copiavel": "PRESCRIÇÃO CONFORME DIRETRIZ PCDT DO SUS (Marca-passos cardíacos):\n1. Dispensação via Farmácia de Alto Custo / Componente Especializado do SUS mediante LME e laudo médico."
+    "cids_relacionados": [],
+    "farmacos_principais": [],
+    "conduta_clinica": "Protocolo de Uso listado pela CONITEC/Ministério da Saúde (Em atualização). O conteúdo clínico do documento oficial não foi importado: consulte o texto vigente no portal da CONITEC.",
+    "bloco_prescricao_copiavel": "",
+    "conteudo_curado": false
   },
   {
     "id_pcdt": 64,
@@ -1117,15 +967,11 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
     "nome_protocolo": "Mieloma Múltiplo",
     "status_conitec": "Aprovado*",
     "tipo_protocolo": "PCDT",
-    "cids_relacionados": [
-      "R69",
-      "Z00.0"
-    ],
-    "farmacos_principais": [
-      "Medicamentos incorporados pela CONITEC / Ministério da Saúde"
-    ],
-    "conduta_clinica": "Protocolo oficial do SUS (PCDT) para Mieloma Múltiplo. Critérios de inclusão, estratificação diagnóstica e opções farmacológicas aprovadas pela CONITEC/MS.",
-    "bloco_prescricao_copiavel": "PRESCRIÇÃO CONFORME DIRETRIZ PCDT DO SUS (Mieloma Múltiplo):\n1. Dispensação via Farmácia de Alto Custo / Componente Especializado do SUS mediante LME e laudo médico."
+    "cids_relacionados": [],
+    "farmacos_principais": [],
+    "conduta_clinica": "PCDT listado pela CONITEC/Ministério da Saúde (Aprovado*). O conteúdo clínico do documento oficial não foi importado: consulte o texto vigente no portal da CONITEC.",
+    "bloco_prescricao_copiavel": "",
+    "conteudo_curado": false
   },
   {
     "id_pcdt": 65,
@@ -1133,15 +979,11 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
     "nome_protocolo": "Mucopolissacaridose do tipo II",
     "status_conitec": "Aprovado*",
     "tipo_protocolo": "PCDT",
-    "cids_relacionados": [
-      "R69",
-      "Z00.0"
-    ],
-    "farmacos_principais": [
-      "Medicamentos incorporados pela CONITEC / Ministério da Saúde"
-    ],
-    "conduta_clinica": "Protocolo oficial do SUS (PCDT) para Mucopolissacaridose do tipo II. Critérios de inclusão, estratificação diagnóstica e opções farmacológicas aprovadas pela CONITEC/MS.",
-    "bloco_prescricao_copiavel": "PRESCRIÇÃO CONFORME DIRETRIZ PCDT DO SUS (Mucopolissacaridose do tipo II):\n1. Dispensação via Farmácia de Alto Custo / Componente Especializado do SUS mediante LME e laudo médico."
+    "cids_relacionados": [],
+    "farmacos_principais": [],
+    "conduta_clinica": "PCDT listado pela CONITEC/Ministério da Saúde (Aprovado*). O conteúdo clínico do documento oficial não foi importado: consulte o texto vigente no portal da CONITEC.",
+    "bloco_prescricao_copiavel": "",
+    "conteudo_curado": false
   },
   {
     "id_pcdt": 66,
@@ -1149,15 +991,11 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
     "nome_protocolo": "Neoplasia Maligna Epitelial de Ovário",
     "status_conitec": "Em atualização",
     "tipo_protocolo": "DDT",
-    "cids_relacionados": [
-      "R69",
-      "Z00.0"
-    ],
-    "farmacos_principais": [
-      "Medicamentos incorporados pela CONITEC / Ministério da Saúde"
-    ],
-    "conduta_clinica": "Protocolo oficial do SUS (DDT) para Neoplasia Maligna Epitelial de Ovário. Critérios de inclusão, estratificação diagnóstica e opções farmacológicas aprovadas pela CONITEC/MS.",
-    "bloco_prescricao_copiavel": "PRESCRIÇÃO CONFORME DIRETRIZ PCDT DO SUS (Neoplasia Maligna Epitelial de Ovário):\n1. Dispensação via Farmácia de Alto Custo / Componente Especializado do SUS mediante LME e laudo médico."
+    "cids_relacionados": [],
+    "farmacos_principais": [],
+    "conduta_clinica": "DDT listado pela CONITEC/Ministério da Saúde (Em atualização). O conteúdo clínico do documento oficial não foi importado: consulte o texto vigente no portal da CONITEC.",
+    "bloco_prescricao_copiavel": "",
+    "conteudo_curado": false
   },
   {
     "id_pcdt": 67,
@@ -1165,15 +1003,11 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
     "nome_protocolo": "Nirsevimabe para a prevenção de infecção do trato respiratório inferior associado ao vírus sincicial respiratório.",
     "status_conitec": "Em elaboração",
     "tipo_protocolo": "Protocolo de Uso",
-    "cids_relacionados": [
-      "R69",
-      "Z00.0"
-    ],
-    "farmacos_principais": [
-      "Medicamentos incorporados pela CONITEC / Ministério da Saúde"
-    ],
-    "conduta_clinica": "Protocolo oficial do SUS (Protocolo de Uso) para Nirsevimabe para a prevenção de infecção do trato respiratório inferior associado ao vírus sincicial respiratório.. Critérios de inclusão, estratificação diagnóstica e opções farmacológicas aprovadas pela CONITEC/MS.",
-    "bloco_prescricao_copiavel": "PRESCRIÇÃO CONFORME DIRETRIZ PCDT DO SUS (Nirsevimabe para a prevenção de infecção do trato respiratório inferior associado ao vírus sincicial respiratório.):\n1. Dispensação via Farmácia de Alto Custo / Componente Especializado do SUS mediante LME e laudo médico."
+    "cids_relacionados": [],
+    "farmacos_principais": [],
+    "conduta_clinica": "Protocolo de Uso listado pela CONITEC/Ministério da Saúde (Em elaboração). O conteúdo clínico do documento oficial não foi importado: consulte o texto vigente no portal da CONITEC.",
+    "bloco_prescricao_copiavel": "",
+    "conteudo_curado": false
   },
   {
     "id_pcdt": 68,
@@ -1193,7 +1027,8 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
       "Colecalciferol (Vitamina D3) 7000 UI"
     ],
     "conduta_clinica": "Bisfosfonato oral semanal associado a suplementação diária de cálcio e vitamina D se ingesta inadequada. Manter ortostatismo por 30 minutos após dose.",
-    "bloco_prescricao_copiavel": "1. Alendronato de Sódio 70mg comprimido: Tomar 1 comprimido por via oral uma vez por semana em jejum estrito com 1 copo de água pura. Não deitar por 30 minutos.\n2. Cálcio 500mg + Vitamina D3 400 UI: Tomar 1 comprimido após almoço."
+    "bloco_prescricao_copiavel": "1. Alendronato de Sódio 70mg comprimido: Tomar 1 comprimido por via oral uma vez por semana em jejum estrito com 1 copo de água pura. Não deitar por 30 minutos.\n2. Cálcio 500mg + Vitamina D3 400 UI: Tomar 1 comprimido após almoço.",
+    "conteudo_curado": true
   },
   {
     "id_pcdt": 69,
@@ -1201,15 +1036,11 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
     "nome_protocolo": "Porfirias",
     "status_conitec": "Aprovado*",
     "tipo_protocolo": "PCDT",
-    "cids_relacionados": [
-      "R69",
-      "Z00.0"
-    ],
-    "farmacos_principais": [
-      "Medicamentos incorporados pela CONITEC / Ministério da Saúde"
-    ],
-    "conduta_clinica": "Protocolo oficial do SUS (PCDT) para Porfirias. Critérios de inclusão, estratificação diagnóstica e opções farmacológicas aprovadas pela CONITEC/MS.",
-    "bloco_prescricao_copiavel": "PRESCRIÇÃO CONFORME DIRETRIZ PCDT DO SUS (Porfirias):\n1. Dispensação via Farmácia de Alto Custo / Componente Especializado do SUS mediante LME e laudo médico."
+    "cids_relacionados": [],
+    "farmacos_principais": [],
+    "conduta_clinica": "PCDT listado pela CONITEC/Ministério da Saúde (Aprovado*). O conteúdo clínico do documento oficial não foi importado: consulte o texto vigente no portal da CONITEC.",
+    "bloco_prescricao_copiavel": "",
+    "conteudo_curado": false
   },
   {
     "id_pcdt": 70,
@@ -1217,15 +1048,11 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
     "nome_protocolo": "Rastreamento do Câncer do Colo do Útero: Parte I - Rastreamento organizado utilizando testes moleculares para detecção de DNA-HPV oncogênico",
     "status_conitec": "Aprovado*",
     "tipo_protocolo": "Diretrizes Brasileiras",
-    "cids_relacionados": [
-      "R69",
-      "Z00.0"
-    ],
-    "farmacos_principais": [
-      "Medicamentos incorporados pela CONITEC / Ministério da Saúde"
-    ],
-    "conduta_clinica": "Protocolo oficial do SUS (Diretrizes Brasileiras) para Rastreamento do Câncer do Colo do Útero: Parte I - Rastreamento organizado utilizando testes moleculares para detecção de DNA-HPV oncogênico. Critérios de inclusão, estratificação diagnóstica e opções farmacológicas aprovadas pela CONITEC/MS.",
-    "bloco_prescricao_copiavel": "PRESCRIÇÃO CONFORME DIRETRIZ PCDT DO SUS (Rastreamento do Câncer do Colo do Útero: Parte I - Rastreamento organizado utilizando testes moleculares para detecção de DNA-HPV oncogênico):\n1. Dispensação via Farmácia de Alto Custo / Componente Especializado do SUS mediante LME e laudo médico."
+    "cids_relacionados": [],
+    "farmacos_principais": [],
+    "conduta_clinica": "Diretrizes Brasileiras listado pela CONITEC/Ministério da Saúde (Aprovado*). O conteúdo clínico do documento oficial não foi importado: consulte o texto vigente no portal da CONITEC.",
+    "bloco_prescricao_copiavel": "",
+    "conteudo_curado": false
   },
   {
     "id_pcdt": 71,
@@ -1233,15 +1060,11 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
     "nome_protocolo": "Retinopatia Diabética",
     "status_conitec": "Aprovado*",
     "tipo_protocolo": "PCDT",
-    "cids_relacionados": [
-      "R69",
-      "Z00.0"
-    ],
-    "farmacos_principais": [
-      "Medicamentos incorporados pela CONITEC / Ministério da Saúde"
-    ],
-    "conduta_clinica": "Protocolo oficial do SUS (PCDT) para Retinopatia Diabética. Critérios de inclusão, estratificação diagnóstica e opções farmacológicas aprovadas pela CONITEC/MS.",
-    "bloco_prescricao_copiavel": "PRESCRIÇÃO CONFORME DIRETRIZ PCDT DO SUS (Retinopatia Diabética):\n1. Dispensação via Farmácia de Alto Custo / Componente Especializado do SUS mediante LME e laudo médico."
+    "cids_relacionados": [],
+    "farmacos_principais": [],
+    "conduta_clinica": "PCDT listado pela CONITEC/Ministério da Saúde (Aprovado*). O conteúdo clínico do documento oficial não foi importado: consulte o texto vigente no portal da CONITEC.",
+    "bloco_prescricao_copiavel": "",
+    "conteudo_curado": false
   },
   {
     "id_pcdt": 72,
@@ -1249,15 +1072,11 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
     "nome_protocolo": "Síndrome de Turner",
     "status_conitec": "Aprovado*",
     "tipo_protocolo": "PCDT",
-    "cids_relacionados": [
-      "R69",
-      "Z00.0"
-    ],
-    "farmacos_principais": [
-      "Medicamentos incorporados pela CONITEC / Ministério da Saúde"
-    ],
-    "conduta_clinica": "Protocolo oficial do SUS (PCDT) para Síndrome de Turner. Critérios de inclusão, estratificação diagnóstica e opções farmacológicas aprovadas pela CONITEC/MS.",
-    "bloco_prescricao_copiavel": "PRESCRIÇÃO CONFORME DIRETRIZ PCDT DO SUS (Síndrome de Turner):\n1. Dispensação via Farmácia de Alto Custo / Componente Especializado do SUS mediante LME e laudo médico."
+    "cids_relacionados": [],
+    "farmacos_principais": [],
+    "conduta_clinica": "PCDT listado pela CONITEC/Ministério da Saúde (Aprovado*). O conteúdo clínico do documento oficial não foi importado: consulte o texto vigente no portal da CONITEC.",
+    "bloco_prescricao_copiavel": "",
+    "conteudo_curado": false
   },
   {
     "id_pcdt": 73,
@@ -1265,15 +1084,11 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
     "nome_protocolo": "Síndrome Nefrótica Primária em crianças e adolescentes",
     "status_conitec": "Em atualização",
     "tipo_protocolo": "PCDT",
-    "cids_relacionados": [
-      "R69",
-      "Z00.0"
-    ],
-    "farmacos_principais": [
-      "Medicamentos incorporados pela CONITEC / Ministério da Saúde"
-    ],
-    "conduta_clinica": "Protocolo oficial do SUS (PCDT) para Síndrome Nefrótica Primária em crianças e adolescentes. Critérios de inclusão, estratificação diagnóstica e opções farmacológicas aprovadas pela CONITEC/MS.",
-    "bloco_prescricao_copiavel": "PRESCRIÇÃO CONFORME DIRETRIZ PCDT DO SUS (Síndrome Nefrótica Primária em crianças e adolescentes):\n1. Dispensação via Farmácia de Alto Custo / Componente Especializado do SUS mediante LME e laudo médico."
+    "cids_relacionados": [],
+    "farmacos_principais": [],
+    "conduta_clinica": "PCDT listado pela CONITEC/Ministério da Saúde (Em atualização). O conteúdo clínico do documento oficial não foi importado: consulte o texto vigente no portal da CONITEC.",
+    "bloco_prescricao_copiavel": "",
+    "conteudo_curado": false
   },
   {
     "id_pcdt": 74,
@@ -1296,7 +1111,8 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
       "Enalapril 10mg"
     ],
     "conduta_clinica": "Dupla Antiagregação Plaquetária (DAPT) imediata (AAS + Clopidogrel/Ticagrelor) por 12 meses pós-evento coronariano, associada a estatina de alta potência (Atorvastatina 80mg).",
-    "bloco_prescricao_copiavel": "1. Ácido Acetilsalicílico (AAS) 100mg comprimido: Tomar 1 comprimido por via oral após o almoço diariamente.\n2. Clopidogrel 75mg comprimido: Tomar 1 comprimido por via oral uma vez ao dia.\n3. Atorvastatina 80mg comprimido: Tomar 1 comprimido por via oral à noite."
+    "bloco_prescricao_copiavel": "1. Ácido Acetilsalicílico (AAS) 100mg comprimido: Tomar 1 comprimido por via oral após o almoço diariamente.\n2. Clopidogrel 75mg comprimido: Tomar 1 comprimido por via oral uma vez ao dia.\n3. Atorvastatina 80mg comprimido: Tomar 1 comprimido por via oral à noite.",
+    "conteudo_curado": true
   },
   {
     "id_pcdt": 75,
@@ -1304,15 +1120,11 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
     "nome_protocolo": "Sobrecarga de Ferro",
     "status_conitec": "Aprovado*",
     "tipo_protocolo": "PCDT",
-    "cids_relacionados": [
-      "R69",
-      "Z00.0"
-    ],
-    "farmacos_principais": [
-      "Medicamentos incorporados pela CONITEC / Ministério da Saúde"
-    ],
-    "conduta_clinica": "Protocolo oficial do SUS (PCDT) para Sobrecarga de Ferro. Critérios de inclusão, estratificação diagnóstica e opções farmacológicas aprovadas pela CONITEC/MS.",
-    "bloco_prescricao_copiavel": "PRESCRIÇÃO CONFORME DIRETRIZ PCDT DO SUS (Sobrecarga de Ferro):\n1. Dispensação via Farmácia de Alto Custo / Componente Especializado do SUS mediante LME e laudo médico."
+    "cids_relacionados": [],
+    "farmacos_principais": [],
+    "conduta_clinica": "PCDT listado pela CONITEC/Ministério da Saúde (Aprovado*). O conteúdo clínico do documento oficial não foi importado: consulte o texto vigente no portal da CONITEC.",
+    "bloco_prescricao_copiavel": "",
+    "conteudo_curado": false
   },
   {
     "id_pcdt": 76,
@@ -1320,15 +1132,11 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
     "nome_protocolo": "Stents em Pacientes com Doença Coronariana Estável",
     "status_conitec": "Em atualização",
     "tipo_protocolo": "Diretrizes Brasileiras",
-    "cids_relacionados": [
-      "R69",
-      "Z00.0"
-    ],
-    "farmacos_principais": [
-      "Medicamentos incorporados pela CONITEC / Ministério da Saúde"
-    ],
-    "conduta_clinica": "Protocolo oficial do SUS (Diretrizes Brasileiras) para Stents em Pacientes com Doença Coronariana Estável. Critérios de inclusão, estratificação diagnóstica e opções farmacológicas aprovadas pela CONITEC/MS.",
-    "bloco_prescricao_copiavel": "PRESCRIÇÃO CONFORME DIRETRIZ PCDT DO SUS (Stents em Pacientes com Doença Coronariana Estável):\n1. Dispensação via Farmácia de Alto Custo / Componente Especializado do SUS mediante LME e laudo médico."
+    "cids_relacionados": [],
+    "farmacos_principais": [],
+    "conduta_clinica": "Diretrizes Brasileiras listado pela CONITEC/Ministério da Saúde (Em atualização). O conteúdo clínico do documento oficial não foi importado: consulte o texto vigente no portal da CONITEC.",
+    "bloco_prescricao_copiavel": "",
+    "conteudo_curado": false
   },
   {
     "id_pcdt": 77,
@@ -1336,15 +1144,11 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
     "nome_protocolo": "Teníase",
     "status_conitec": "Em elaboração",
     "tipo_protocolo": "PCDT",
-    "cids_relacionados": [
-      "R69",
-      "Z00.0"
-    ],
-    "farmacos_principais": [
-      "Medicamentos incorporados pela CONITEC / Ministério da Saúde"
-    ],
-    "conduta_clinica": "Protocolo oficial do SUS (PCDT) para Teníase. Critérios de inclusão, estratificação diagnóstica e opções farmacológicas aprovadas pela CONITEC/MS.",
-    "bloco_prescricao_copiavel": "PRESCRIÇÃO CONFORME DIRETRIZ PCDT DO SUS (Teníase):\n1. Dispensação via Farmácia de Alto Custo / Componente Especializado do SUS mediante LME e laudo médico."
+    "cids_relacionados": [],
+    "farmacos_principais": [],
+    "conduta_clinica": "PCDT listado pela CONITEC/Ministério da Saúde (Em elaboração). O conteúdo clínico do documento oficial não foi importado: consulte o texto vigente no portal da CONITEC.",
+    "bloco_prescricao_copiavel": "",
+    "conteudo_curado": false
   },
   {
     "id_pcdt": 78,
@@ -1352,15 +1156,11 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
     "nome_protocolo": "Terapia fotodinâmica para tratamento de câncer de pele não melanoma do tipo carcinoma basocelular superficial e nodular",
     "status_conitec": "Aprovado*",
     "tipo_protocolo": "Protocolo de Uso",
-    "cids_relacionados": [
-      "R69",
-      "Z00.0"
-    ],
-    "farmacos_principais": [
-      "Medicamentos incorporados pela CONITEC / Ministério da Saúde"
-    ],
-    "conduta_clinica": "Protocolo oficial do SUS (Protocolo de Uso) para Terapia fotodinâmica para tratamento de câncer de pele não melanoma do tipo carcinoma basocelular superficial e nodular. Critérios de inclusão, estratificação diagnóstica e opções farmacológicas aprovadas pela CONITEC/MS.",
-    "bloco_prescricao_copiavel": "PRESCRIÇÃO CONFORME DIRETRIZ PCDT DO SUS (Terapia fotodinâmica para tratamento de câncer de pele não melanoma do tipo carcinoma basocelular superficial e nodular):\n1. Dispensação via Farmácia de Alto Custo / Componente Especializado do SUS mediante LME e laudo médico."
+    "cids_relacionados": [],
+    "farmacos_principais": [],
+    "conduta_clinica": "Protocolo de Uso listado pela CONITEC/Ministério da Saúde (Aprovado*). O conteúdo clínico do documento oficial não foi importado: consulte o texto vigente no portal da CONITEC.",
+    "bloco_prescricao_copiavel": "",
+    "conteudo_curado": false
   },
   {
     "id_pcdt": 79,
@@ -1383,7 +1183,8 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
       "Olanzapina 5mg/10mg"
     ],
     "conduta_clinica": "Estabilizador de humor como esteio terapêutico permanente (Lítio ou Valproato). Dosar litemia periódica a cada 3 a 6 meses (janela terapêutica estrita: 0.6 a 1.0 mEq/L).",
-    "bloco_prescricao_copiavel": "1. Carbonato de Lítio 300mg comprimido: Tomar 1 comprimido de 12 em 12 horas junto às refeições (monitorar litemia sérica, TSH e creatinina)."
+    "bloco_prescricao_copiavel": "1. Carbonato de Lítio 300mg comprimido: Tomar 1 comprimido de 12 em 12 horas junto às refeições (monitorar litemia sérica, TSH e creatinina).",
+    "conteudo_curado": true
   },
   {
     "id_pcdt": 80,
@@ -1391,15 +1192,11 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
     "nome_protocolo": "Tratamento de Fratura do Colo do Fêmur em Idosos",
     "status_conitec": "Em atualização",
     "tipo_protocolo": "Diretrizes Brasileiras",
-    "cids_relacionados": [
-      "R69",
-      "Z00.0"
-    ],
-    "farmacos_principais": [
-      "Medicamentos incorporados pela CONITEC / Ministério da Saúde"
-    ],
-    "conduta_clinica": "Protocolo oficial do SUS (Diretrizes Brasileiras) para Tratamento de Fratura do Colo do Fêmur em Idosos. Critérios de inclusão, estratificação diagnóstica e opções farmacológicas aprovadas pela CONITEC/MS.",
-    "bloco_prescricao_copiavel": "PRESCRIÇÃO CONFORME DIRETRIZ PCDT DO SUS (Tratamento de Fratura do Colo do Fêmur em Idosos):\n1. Dispensação via Farmácia de Alto Custo / Componente Especializado do SUS mediante LME e laudo médico."
+    "cids_relacionados": [],
+    "farmacos_principais": [],
+    "conduta_clinica": "Diretrizes Brasileiras listado pela CONITEC/Ministério da Saúde (Em atualização). O conteúdo clínico do documento oficial não foi importado: consulte o texto vigente no portal da CONITEC.",
+    "bloco_prescricao_copiavel": "",
+    "conteudo_curado": false
   },
   {
     "id_pcdt": 81,
@@ -1407,15 +1204,11 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
     "nome_protocolo": "Trombocitopenia Imune Primária",
     "status_conitec": "Conitec",
     "tipo_protocolo": "PCDT",
-    "cids_relacionados": [
-      "R69",
-      "Z00.0"
-    ],
-    "farmacos_principais": [
-      "Medicamentos incorporados pela CONITEC / Ministério da Saúde"
-    ],
-    "conduta_clinica": "Protocolo oficial do SUS (PCDT) para Trombocitopenia Imune Primária. Critérios de inclusão, estratificação diagnóstica e opções farmacológicas aprovadas pela CONITEC/MS.",
-    "bloco_prescricao_copiavel": "PRESCRIÇÃO CONFORME DIRETRIZ PCDT DO SUS (Trombocitopenia Imune Primária):\n1. Dispensação via Farmácia de Alto Custo / Componente Especializado do SUS mediante LME e laudo médico."
+    "cids_relacionados": [],
+    "farmacos_principais": [],
+    "conduta_clinica": "PCDT listado pela CONITEC/Ministério da Saúde (Conitec). O conteúdo clínico do documento oficial não foi importado: consulte o texto vigente no portal da CONITEC.",
+    "bloco_prescricao_copiavel": "",
+    "conteudo_curado": false
   },
   {
     "id_pcdt": 82,
@@ -1423,15 +1216,11 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
     "nome_protocolo": "Tumor no Estroma Gastrointestinal",
     "status_conitec": "Em atualização",
     "tipo_protocolo": "PCDT",
-    "cids_relacionados": [
-      "R69",
-      "Z00.0"
-    ],
-    "farmacos_principais": [
-      "Medicamentos incorporados pela CONITEC / Ministério da Saúde"
-    ],
-    "conduta_clinica": "Protocolo oficial do SUS (PCDT) para Tumor no Estroma Gastrointestinal. Critérios de inclusão, estratificação diagnóstica e opções farmacológicas aprovadas pela CONITEC/MS.",
-    "bloco_prescricao_copiavel": "PRESCRIÇÃO CONFORME DIRETRIZ PCDT DO SUS (Tumor no Estroma Gastrointestinal):\n1. Dispensação via Farmácia de Alto Custo / Componente Especializado do SUS mediante LME e laudo médico."
+    "cids_relacionados": [],
+    "farmacos_principais": [],
+    "conduta_clinica": "PCDT listado pela CONITEC/Ministério da Saúde (Em atualização). O conteúdo clínico do documento oficial não foi importado: consulte o texto vigente no portal da CONITEC.",
+    "bloco_prescricao_copiavel": "",
+    "conteudo_curado": false
   },
   {
     "id_pcdt": 83,
@@ -1439,14 +1228,10 @@ export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = [
     "nome_protocolo": "Uveítes não infecciosas",
     "status_conitec": "Em atualização",
     "tipo_protocolo": "PCDT",
-    "cids_relacionados": [
-      "R69",
-      "Z00.0"
-    ],
-    "farmacos_principais": [
-      "Medicamentos incorporados pela CONITEC / Ministério da Saúde"
-    ],
-    "conduta_clinica": "Protocolo oficial do SUS (PCDT) para Uveítes não infecciosas. Critérios de inclusão, estratificação diagnóstica e opções farmacológicas aprovadas pela CONITEC/MS.",
-    "bloco_prescricao_copiavel": "PRESCRIÇÃO CONFORME DIRETRIZ PCDT DO SUS (Uveítes não infecciosas):\n1. Dispensação via Farmácia de Alto Custo / Componente Especializado do SUS mediante LME e laudo médico."
+    "cids_relacionados": [],
+    "farmacos_principais": [],
+    "conduta_clinica": "PCDT listado pela CONITEC/Ministério da Saúde (Em atualização). O conteúdo clínico do documento oficial não foi importado: consulte o texto vigente no portal da CONITEC.",
+    "bloco_prescricao_copiavel": "",
+    "conteudo_curado": false
   }
 ];

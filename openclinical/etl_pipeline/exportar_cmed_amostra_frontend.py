@@ -23,9 +23,9 @@ SELECT
     tipo_produto, laboratorio, numero_registro, codigo_ean, tarja,
     preco_maximo_consumidor, receita_padrao_copiavel
 FROM catalogo_nacional_medicamentos_cmed
-WHERE preco_maximo_consumidor > 0
+WHERE preco_maximo_consumidor > 0 AND id_cmed % 12 = 0
 ORDER BY id_cmed ASC
-LIMIT 1200;
+LIMIT 2000;
 """
 
 rows = con.execute(query).fetchall()
@@ -33,7 +33,7 @@ medicamentos = [dict(r) for r in rows]
 con.close()
 
 conteudo_ts = f"""// Catálogo Nacional de Medicamentos Registrados no Brasil (CMED / ANVISA)
-// Gerado automaticamente a partir da base oficial governamental (26.635 apresentações comerciais)
+// Amostra espaçada (1 a cada 12 registros) da base oficial CMED/ANVISA; o catálogo completo está no SQLite.
 
 export interface MedicamentoComercialCMED {{
   id_cmed: number;

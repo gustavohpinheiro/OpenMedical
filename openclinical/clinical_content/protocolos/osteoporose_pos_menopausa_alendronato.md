@@ -6,6 +6,7 @@ ciaps_relacionados: ["L95"]
 nivel_atencao: "Atencao_Primaria_e_Ginecologia"
 diretrizes_referencia: "Sociedade Brasileira de Reumatologia (SBR), NOF"
 data_revisao: "2026-10-26"
+status_revisao_clinica: "pendente_revisao_por_profissional_habilitado"
 ---
 
 # Diretrizes Clínicas: Osteoporose

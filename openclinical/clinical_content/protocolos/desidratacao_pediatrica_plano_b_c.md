@@ -6,6 +6,7 @@ ciaps_relacionados: ["T11", "D73"]
 nivel_atencao: "Atencao_Primaria_e_Urgencia"
 diretrizes_referencia: "Organização Mundial da Saúde (OMS), Ministério da Saúde do Brasil, SBP"
 data_revisao: "2026-10-26"
+status_revisao_clinica: "pendente_revisao_por_profissional_habilitado"
 ---
 
 # Diretrizes Clínicas: Desidratação na Infância

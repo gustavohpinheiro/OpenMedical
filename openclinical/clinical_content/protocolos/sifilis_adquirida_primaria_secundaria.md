@@ -6,6 +6,7 @@ ciaps_relacionados: ["Y70"]
 nivel_atencao: "Atencao_Primaria_e_IST"
 diretrizes_referencia: "PCDT ISTs Ministério da Saúde do Brasil (2024), CDC, OMS"
 data_revisao: "2026-10-26"
+status_revisao_clinica: "pendente_revisao_por_profissional_habilitado"
 ---
 
 # Diretrizes Clínicas: Protocolo Clínico da Sífilis (PCDT/MS)

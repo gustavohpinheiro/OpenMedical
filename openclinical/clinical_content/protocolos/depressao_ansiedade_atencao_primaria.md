@@ -6,6 +6,7 @@ ciaps_relacionados: ["P76", "P74"]
 nivel_atencao: "Atencao_Primaria"
 diretrizes_referencia: "Guia mhGAP da OMS, Associação Brasileira de Psiquiatria (ABP), CANMAT"
 data_revisao: "2026-10-26"
+status_revisao_clinica: "pendente_revisao_por_profissional_habilitado"
 ---
 
 # Diretrizes Clínicas: Depressão e Ansiedade na APS

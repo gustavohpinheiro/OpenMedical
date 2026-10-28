@@ -6,6 +6,7 @@ ciaps_relacionados: ["T93"]
 nivel_atencao: "Atencao_Primaria"
 diretrizes_referencia: "Diretrizes de Dislipidemia da Sociedade Brasileira de Cardiologia (SBC), AHA/ACC"
 data_revisao: "2026-10-26"
+status_revisao_clinica: "pendente_revisao_por_profissional_habilitado"
 ---
 
 # Diretrizes Clínicas: Estratificação de Risco e Metas de LDL-colesterol

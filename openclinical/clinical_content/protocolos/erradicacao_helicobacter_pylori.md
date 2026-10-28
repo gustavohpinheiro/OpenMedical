@@ -6,6 +6,7 @@ ciaps_relacionados: ["D85"]
 nivel_atencao: "Atencao_Primaria_e_Gastroenterologia"
 diretrizes_referencia: "IV Diretriz Brasileira sobre Infecção por H. pylori (2024), Maastricht VI"
 data_revisao: "2026-10-26"
+status_revisao_clinica: "pendente_revisao_por_profissional_habilitado"
 ---
 
 # Diretrizes Clínicas: Erradicação de H. pylori

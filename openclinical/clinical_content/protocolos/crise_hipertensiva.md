@@ -6,6 +6,7 @@ ciaps_relacionados: ["K86", "K87"]
 nivel_atencao: "Atencao_Primaria_e_Pronto_Atendimento"
 diretrizes_referencia: "Diretrizes Brasileiras de Hipertensão (SBC 2020), AHA/ACC"
 data_revisao: "2026-10-26"
+status_revisao_clinica: "pendente_revisao_por_profissional_habilitado"
 ---
 
 # Diretrizes Clínicas: Crise Hipertensiva

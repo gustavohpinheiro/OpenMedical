@@ -6,6 +6,7 @@ ciaps_relacionados: ["S70"]
 nivel_atencao: "Atencao_Primaria_e_Pronto_Atendimento"
 diretrizes_referencia: "Sociedade Brasileira de Dermatologia (SBD), CDC"
 data_revisao: "2026-10-26"
+status_revisao_clinica: "pendente_revisao_por_profissional_habilitado"
 ---
 
 # Diretrizes Clínicas: Herpes Zoster

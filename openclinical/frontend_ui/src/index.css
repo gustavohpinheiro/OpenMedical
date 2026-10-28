@@ -25,6 +25,16 @@ body {
   min-height: 100vh;
 }
 
+/* Faixas de rolagem horizontal (abas, chips) sem barra visível */
+.scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
 /* Custom Scrollbars */
 ::-webkit-scrollbar {
   width: 6px;

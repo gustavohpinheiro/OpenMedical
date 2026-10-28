@@ -6,6 +6,8 @@ e os indexa na tabela virtual FTS5 do SQLite com BM25 ranking.
 
 import os
 import sys
+import re
+import json
 import sqlite3
 from typing import List, Dict, Any
 
@@ -18,6 +20,8 @@ from compilador_banco import obter_caminho_padrao_banco
 DIRETORIO_PROTOCOLOS = os.path.abspath(
     os.path.join(diretorio_atual, "..", "clinical_content", "protocolos")
 )
+
+STATUS_REVISAO_CLINICA = "pendente_revisao_por_profissional_habilitado"
 
 # Catálogo completo de 45 Protocolos e Receitas Oficiais
 TODOS_PROTOCOLOS: List[Dict[str, Any]] = [
@@ -188,7 +192,7 @@ USO TÓPICO:
         "nivel_atencao": "Atencao_Primaria",
         "diretrizes": "Sociedade Brasileira de Pneumologia e Tisiologia (SBPT), ATS/IDSA",
         "data_revisao": "2026-10-26",
-        "farmacos_principais": ["Amoxicilina 500mg", "Azitromicina 500mg", "Dipirona 500mg"],
+        "farmacos_principais": ["Amoxicilina 500mg", "Dipirona 500mg"],
         "categoria": "infectologia",
         "conteudo": """# Diretrizes Clínicas: Pneumonia Comunitária Ambulatorial
 
@@ -213,13 +217,11 @@ USO ORAL:
 1. Amoxicilina 500mg cápsula --------------------------- 1 caixa (21 cápsulas)
    Tomar 1 cápsula por via oral a cada 8 horas durante 7 dias.
 
-2. Azitromicina 500mg comprimido ----------------------- 1 caixa (3 comprimidos)
-   Tomar 1 comprimido por via oral uma vez ao dia, 1 hora antes ou 2 horas após a refeição, durante 3 dias.
-
-3. Dipirona Monoidratada 500mg comprimido -------------- 1 blister (10 comprimidos)
+2. Dipirona Monoidratada 500mg comprimido -------------- 1 blister (10 comprimidos)
    Tomar 1 a 2 comprimidos por via oral a cada 6 horas se dor torácica ou febre.
 
 Orientações:
+- Esta receita contempla o adulto hígido sem comorbidades (CURB-65 0 ou 1). Em caso de comorbidades, substituir por Amoxicilina + Clavulanato 875/125 mg 12/12h associada a Azitromicina; em alergia a penicilina, usar Azitromicina 500 mg/dia por 5 dias.
 - Manter repouso e hidratação oral mínima de 2 litros ao dia.
 - Reavaliação médica ambulatorial obrigatória em 48 a 72 horas.
 ```"""
@@ -450,7 +452,7 @@ USO TÓPICO:
 
 USO ORAL (Se lesões extensas):
 2. Cefalexina 500mg comprimido (ou suspensão 250mg/5mL) -- 1 caixa
-   Tomar conforme prescrição médica a cada 6 horas por 7 dias.
+   Adultos: 500 mg por via oral a cada 6 horas por 7 dias. Crianças: 25 a 50 mg/kg/dia da suspensão 250mg/5mL, divididos a cada 6 horas, por 7 dias.
 
 Orientações:
 - Uso estritamente individual de toalhas de banho e roupas de cama para evitar disseminação intrafamiliar.
@@ -744,7 +746,8 @@ Orientações:
         "conteudo": """# Diretrizes Clínicas: Tratamento Farmacológico da Hipertensão
 
 ## 1. Estratégia de Combinação Dupla Precoce
-* Para hipertensos estágio 2 (PA >= 140/90 mmHg com alto risco cardiovascular ou PA >= 160/100 mmHg), iniciar preferencialmente associação de duas classes em doses baixas.
+* Para hipertensos estágio 2 (PA >= 160/100 mmHg) ou estágio 1 (140-159/90-99 mmHg) com alto risco cardiovascular, iniciar preferencialmente associação de duas classes em doses baixas.
+* **Mulheres em idade fértil:** BRA e IECA são contraindicados na gestação (toxicidade fetal); exigir contracepção eficaz ou optar por outra classe.
 * Classes preferenciais: BRA (Losartana) ou IECA (Enalapril) + Bloqueador dos Canais de Cálcio (Anlodipino) ou Tiazídico.
 
 ```receita
@@ -772,7 +775,7 @@ Orientações:
         "nivel_atencao": "Atencao_Primaria_e_Cardiologia",
         "diretrizes": "Diretriz Brasileira de Insuficiência Cardíaca (SBC 2023), ESC, AHA/ACC",
         "data_revisao": "2026-10-26",
-        "farmacos_principais": ["Succinato de Metoprolol", "Maleato de Enalapril", "Espironolactona 25mg", "Dapagliflozina 10mg"],
+        "farmacos_principais": ["Succinato de Metoprolol", "Maleato de Enalapril 5mg", "Espironolactona 25mg", "Dapagliflozina 10mg"],
         "categoria": "cardiovascular",
         "conteudo": """# Diretrizes Clínicas: Terapia Modificadora de Prognóstico na IC-FEr
 
@@ -791,8 +794,8 @@ USO ORAL:
 1. Succinato de Metoprolol 25mg comprimido lib. prolongada - 1 caixa (30 comprimidos)
    Tomar 1 comprimido por via oral pela manhã (titular dose a cada 2 a 4 semanas até 100-200 mg/dia).
 
-2. Maleato de Enalapril 10mg comprimido ----------------- 1 caixa (60 comprimidos)
-   Tomar 1 comprimido por via oral de 12 em 12 horas.
+2. Maleato de Enalapril 5mg comprimido ------------------ 1 caixa (60 comprimidos)
+   Tomar 1/2 comprimido (2.5 mg) por via oral de 12 em 12 horas na 1ª semana; titular a cada 2 semanas até a dose-alvo de 10 a 20 mg de 12 em 12 horas conforme PA, potássio e creatinina.
 
 3. Espironolactona 25mg comprimido --------------------- 1 caixa (30 comprimidos)
    Tomar 1 comprimido por via oral pela manhã (monitorar potássio e creatinina séricos).
@@ -819,6 +822,7 @@ USO ORAL:
 ## 1. Estratificação de Risco Embólico pelo Escore CHA2DS2-VASc
 * Insuficiência Cardíaca (+1), Hipertensão (+1), Idade >= 75 anos (+2), Diabetes (+1), AVC/AIT prévio (+2), Doença Vascular (+1), Idade 65-74 (+1), Sexo Feminino (+1).
 * **Indicação de Anticoagulação:** Homens com escore >= 2 e Mulheres com escore >= 3 têm indicação formal de DOAC (Anticoagulante Oral Direto) ou Varfarina.
+* **Exceção:** FA com estenose mitral moderada a grave ou prótese valvar mecânica não deve receber DOAC; usar Varfarina (INR 2-3).
 
 ```receita
 RECEITUÁRIO MÉDICO - FIBRILAÇÃO ATRIAL (ANTICOAGULAÇÃO ORAL)
@@ -845,7 +849,7 @@ Orientações:
         "nivel_atencao": "Atencao_Primaria_e_Cardiologia",
         "diretrizes": "Diretriz de DAC Estável da SBC, ESC, AHA",
         "data_revisao": "2026-10-26",
-        "farmacos_principais": ["AAS 100mg", "Sinvastatina 40mg", "Atenolol 50mg", "Mononitrato de Isossorbida"],
+        "farmacos_principais": ["AAS 100mg", "Atorvastatina 40mg", "Atenolol 50mg", "Dinitrato de Isossorbida"],
         "categoria": "cardiovascular",
         "conteudo": """# Diretrizes Clínicas: Angina Estável
 
@@ -862,8 +866,8 @@ USO ORAL:
 1. Ácido Acetilsalicílico (AAS) 100mg comprimido -------- 1 caixa (30 comprimidos)
    Tomar 1 comprimido por via oral uma vez ao dia logo após o almoço.
 
-2. Sinvastatina 40mg comprimido revestido -------------- 1 caixa (30 comprimidos)
-   Tomar 1 comprimido por via oral uma vez ao dia à noite ao deitar.
+2. Atorvastatina 40mg comprimido revestido -------------- 1 caixa (30 comprimidos)
+   Tomar 1 comprimido por via oral uma vez ao dia (estatina de alta intensidade; titular até 80 mg se LDL-c acima da meta).
 
 3. Atenolol 50mg comprimido ---------------------------- 1 caixa (30 comprimidos)
    Tomar 1 comprimido por via oral pela manhã.
@@ -1016,7 +1020,7 @@ Orientações:
         "nivel_atencao": "Atencao_Primaria_e_Pneumologia",
         "diretrizes": "Global Initiative for Chronic Obstructive Lung Disease (GOLD 2024), SBPT",
         "data_revisao": "2026-10-26",
-        "farmacos_principais": ["Brometo de Tiotrópio (LAMA)", "Salmeterol (LABA)", "Vacina Influenza e Pneumocócica"],
+        "farmacos_principais": ["Brometo de Tiotrópio 2.5mcg (LAMA)", "Salmeterol 50mcg (LABA)", "Sulfato de Salbutamol 100mcg"],
         "categoria": "respiratorio",
         "conteudo": """# Diretrizes Clínicas: DPOC (GOLD 2024)
 
@@ -1032,7 +1036,10 @@ Data: [Data do Atendimento]
 
 USO INALATÓRIO:
 1. Brometo de Tiotrópio 2.5mcg inalador Respimat -------- 1 frasco (60 doses)
-   Inalar 2 jatos por via inalatória uma vez ao dia, no mesmo horário.
+   Inalar 2 jatos por via inalatória uma vez ao dia, no mesmo horário (LAMA).
+
+1b. Xinafoato de Salmeterol 50mcg pó inalatório --------- 1 inalador (60 doses)
+   Inalar 1 dose a cada 12 horas (LABA), completando a dupla broncodilatação do grupo B.
 
 2. Sulfato de Salbutamol 100mcg spray ------------------- 1 frasco
    Inalar 2 jatos com espaçador se falta de ar aguda de resgate.
@@ -1239,7 +1246,7 @@ Orientações:
 
 ## 1. Metformina como Terapia Inicial Padrão
 * Iniciar com 500 a 850 mg/dia junto à refeição principal e titular gradualmente a cada 14 dias até dose plena de 2000 a 2550 mg/dia.
-* Redução esperada de HbA1c: 1.5% a 2.0%.
+* Redução esperada de HbA1c: 1.0% a 1.5%.
 * Monitorar TFG: Contraindicação formal absoluta se TFG < 30 mL/min/1.73m² (risco de acidose lática).
 
 ```receita
@@ -1288,6 +1295,8 @@ USO ORAL:
 Orientações:
 - Manter higiene íntima rigorosa com água após micções para prevenir candidíase urogenital.
 - Manter hidratação adequada ao longo do dia.
+- Suspender a dapagliflozina em jejum prolongado, vômitos/diarreia ou doença aguda grave e procurar atendimento se náuseas, dor abdominal ou mal-estar intenso (risco de cetoacidose euglicêmica).
+- Para efeito glicêmico, TFG >= 45 mL/min; para proteção cardio-renal, pode ser mantida até TFG >= 20 mL/min.
 ```"""
     },
     {
@@ -1334,7 +1343,8 @@ Orientações Mandatórias:
 
 ## 1. Crise Aguda de Podagra (1ª Metatarsofalângica)
 * Colchicina: 1 mg imediatamente, seguido de 0.5 mg após 1 hora (dose total de 1.5 mg no 1º dia); manter 0.5 mg 12/12h até resolução.
-* **REGRA FUNDAMENTAL:** NÃO iniciar e NÃO suspender Alopurinol durante a vigência de crise álgica aguda (a variação dos níveis séricos de ácido úrico perpetua a precipitação de cristais de monourato).
+* **REGRA FUNDAMENTAL:** NÃO suspender Alopurinol já em uso durante a crise (a variação dos níveis séricos de ácido úrico perpetua a precipitação de cristais de monourato). O início de hipouricemiante pode ocorrer durante ou após a crise (ACR 2020), sempre com profilaxia anti-inflamatória (colchicina 0.5 mg/dia) por 3 a 6 meses e dose inicial baixa (100 mg/dia).
+* Colchicina: ajustar em insuficiência renal e evitar com claritromicina (inibidor de CYP3A4/P-gp).
 
 ```receita
 RECEITUÁRIO MÉDICO - CRISE AGUDA DE GOTA (ARTRITE ÚRICA)
@@ -1630,6 +1640,62 @@ USO ORAL:
     },
 ]
 
+CAMINHO_TS_PROTOCOLOS = os.path.abspath(
+    os.path.join(diretorio_atual, "..", "frontend_ui", "src", "data", "protocolos_gerados.ts")
+)
+
+PADRAO_BLOCO_RECEITA = r"```receita\n(.*?)```"
+
+
+def separar_corpo_e_receita(conteudo: str) -> tuple:
+    """Separa o texto explicativo (sem o título H1) do bloco de receita copiável."""
+    correspondencia = re.search(PADRAO_BLOCO_RECEITA, conteudo, flags=re.DOTALL)
+    receita = correspondencia.group(1).strip() if correspondencia else ""
+    corpo = re.sub(PADRAO_BLOCO_RECEITA, "", conteudo, flags=re.DOTALL).strip()
+    corpo = re.sub(r"^# .*\n+", "", corpo).strip()
+    return corpo, receita
+
+
+def exportar_protocolos_typescript() -> int:
+    """Gera o módulo TypeScript do frontend a partir da mesma fonte dos arquivos Markdown."""
+    protocolos_ts = []
+    farmacos = {}
+    categorias = {}
+    for p in TODOS_PROTOCOLOS:
+        corpo, receita = separar_corpo_e_receita(p["conteudo"])
+        protocolos_ts.append({
+            "id_protocolo": p["id_protocolo"],
+            "titulo": p["titulo"],
+            "cids_relacionados": p["cids"],
+            "ciaps_relacionados": p["ciaps"],
+            "nivel_atencao": p["nivel_atencao"],
+            "data_revisao": p["data_revisao"],
+            "status_revisao_clinica": STATUS_REVISAO_CLINICA,
+            "conteudo_markdown": corpo,
+            "bloco_prescricao_copiavel": receita,
+        })
+        farmacos[p["id_protocolo"]] = p["farmacos_principais"]
+        categorias[p["id_protocolo"]] = p["categoria"]
+
+    cabecalho = (
+        "// ARQUIVO GERADO por etl_pipeline/gerador_receitas_completas.py - NÃO EDITAR MANUALMENTE.\n"
+        "import { ProtocoloClinico } from '../types';\n\n"
+    )
+    conteudo_ts = (
+        cabecalho
+        + "export const PROTOCOLOS_GERADOS: ProtocoloClinico[] = "
+        + json.dumps(protocolos_ts, ensure_ascii=False, indent=2)
+        + ";\n\nexport const FARMACOS_POR_PROTOCOLO: Record<string, string[]> = "
+        + json.dumps(farmacos, ensure_ascii=False, indent=2)
+        + ";\n\nexport const CATEGORIAS_POR_PROTOCOLO: Record<string, string> = "
+        + json.dumps(categorias, ensure_ascii=False, indent=2)
+        + ";\n"
+    )
+    with open(CAMINHO_TS_PROTOCOLOS, "w", encoding="utf-8") as f:
+        f.write(conteudo_ts)
+    print(f"Módulo TypeScript de {len(protocolos_ts)} protocolos exportado em: {CAMINHO_TS_PROTOCOLOS}")
+    return len(protocolos_ts)
+
 
 def salvar_todos_protocolos_markdown() -> int:
     """Cria e persiste todos os 45 arquivos Markdown no diretório oficial."""
@@ -1651,6 +1717,7 @@ ciaps_relacionados: [{ciaps_formatados}]
 nivel_atencao: "{p['nivel_atencao']}"
 diretrizes_referencia: "{p.get('diretrizes', 'Ministério da Saúde / OMS')}"
 data_revisao: "{p['data_revisao']}"
+status_revisao_clinica: "{STATUS_REVISAO_CLINICA}"
 ---
 
 {p['conteudo'].strip()}
@@ -1714,7 +1781,7 @@ def sincronizar_fts5_completo(caminho_banco: str = None) -> int:
             conexao.execute("""
                 INSERT INTO indice_busca_fts(tipo_registro, id_referencia, titulo_primario, subtitulo, conteudo_textual)
                 VALUES ('protocolo', ?, ?, ?, ?);
-            """, (idx, titulo, subtitulo, conteudo_textual))
+            """, (id_protocolo, titulo, subtitulo, conteudo_textual))
             indexados += 1
 
     conexao.close()
@@ -1724,4 +1791,5 @@ def sincronizar_fts5_completo(caminho_banco: str = None) -> int:
 
 if __name__ == "__main__":
     salvar_todos_protocolos_markdown()
+    exportar_protocolos_typescript()
     sincronizar_fts5_completo()

@@ -25,7 +25,8 @@ CAMINHO_TS_ANVISA = os.path.abspath(
     os.path.join(DIRETORIO_ETL, "..", "frontend_ui", "src", "data", "anvisa_medicamentos_publicos.ts")
 )
 
-# Mapeamento clínico especializado para os 83 PCDTs oficiais do Ministério da Saúde
+# Resumos clínicos ESCRITOS PELO PROJETO (curadoria OpenClinical) para parte da lista oficial de protocolos.
+# Não são extraídos dos PCDTs; o CSV oficial traz apenas nome, status e tipo. Pendentes de revisão clínica.
 MAPEAMENTO_CLINICO_PCDT: Dict[str, Dict[str, Any]] = {
     "Artrite Reumatoide": {
         "cids": ["M05.0", "M05.1", "M05.2", "M05.3", "M05.8", "M06.0"],
@@ -97,19 +98,13 @@ MAPEAMENTO_CLINICO_PCDT: Dict[str, Dict[str, Any]] = {
         "cids": ["D50.0", "D50.8", "D50.9"],
         "farmacos": ["Sulfato Ferroso 40mg de ferro elementar", "Sacarato de Hidróxido de Ferro III injetável"],
         "conduta": "Reposição oral de ferro elementar (100 a 200 mg/dia) preferencialmente em jejum com suco cítrico. Manter por 3 meses após normalização do hemograma para repor estoques de ferritina.",
-        "receita": "1. Sulfato Ferroso 40mg (ferro elementar) comprimido: Tomar 1 comprimido por via oral 2 vezes ao dia, 1 hora antes das principais refeições com água ou suco de laranja."
+        "receita": "1. Sulfato Ferroso 40mg (ferro elementar) comprimido: Tomar 1 comprimido por via oral 3 vezes ao dia (120 mg/dia de ferro elementar), 1 hora antes das principais refeições com água ou suco de laranja."
     },
     "Anemia na Doença Renal Crônica": {
         "cids": ["D63.8", "N18.3", "N18.4", "N18.5"],
         "farmacos": ["Alfaepoetina (EPO) 2000 UI / 4000 UI injetável", "Sacarato de Hidróxido de Ferro III 100mg/5mL"],
         "conduta": "Garantir saturação de transferrina > 20% e ferritina > 100 ng/mL antes e durante o tratamento com Agente Estimulador da Eritropoiese (Alfaepoetina). Meta de Hemoglobina: 10 a 11.5 g/dL.",
         "receita": "1. Alfaepoetina 4000 UI frasco-ampola: Aplicar via subcutânea 1 vez por semana conforme dosagem de hemoglobina.\n2. Sacarato de Ferro 100mg ampola: Infusão intravenosa lenta em solução salina a cada 15 dias na unidade de hemodiálise."
-    },
-    "Hipertensão Arterial Sistêmica": {
-        "cids": ["I10", "I15"],
-        "farmacos": ["Losartana 50mg", "Enalapril 10mg/20mg", "Anlodipino 5mg", "Hidroclorotiazida 25mg", "Atenolol 50mg"],
-        "conduta": "Terapia combinada inicial para estágio 2 ou estágio 1 de alto risco cardiovascular com duas classes sinérgicas (IECA/BRA + BCC ou Tiazídico). Meta PA < 130/80 mmHg.",
-        "receita": "1. Losartana Potássica 50mg comprimido: Tomar 1 comprimido pela manhã.\n2. Besilato de Anlodipino 5mg comprimido: Tomar 1 comprimido pela manhã."
     },
     "Acidentes Escorpiônicos": {
         "cids": ["T63.2"],
@@ -151,7 +146,7 @@ MAPEAMENTO_CLINICO_PCDT: Dict[str, Dict[str, Any]] = {
         "cids": ["K50.0", "K50.1", "K50.8", "K50.9"],
         "farmacos": ["Azatioprina 50mg", "Mesalazina 800mg/1000mg", "Infliximabe 100mg injetável", "Adalimumabe 40mg", "Metronidazol 400mg"],
         "conduta": "Indução e manutenção de remissão clínica e cicatrização de mucosa com imunossupressores (Azatioprina) e terapia biológica precoce (Anti-TNF) em doença moderada a grave.",
-        "receita": "1. Azatioprina 50mg comprimido: Tomar 2 a 3 comprimidos (2 a 2.5 mg/kg/dia) em dose única diária após o café da manhã (monitorar hemograma mensalmente)."
+        "receita": "1. Azatioprina 50mg comprimido: Dose de 2 a 2.5 mg/kg/dia em dose única diária após o café da manhã (ex.: 70 kg = 3 comprimidos de 50 mg); calcular pelo peso do paciente e monitorar hemograma mensalmente."
     },
     "Endometriose": {
         "cids": ["N80.0", "N80.1", "N80.2", "N80.3", "N80.8"],
@@ -194,16 +189,14 @@ def compilar_pcdt_oficial() -> List[Dict[str, Any]]:
 
             # Informações clínicas da base Conitec / MS
             info_clinica = MAPEAMENTO_CLINICO_PCDT.get(nome, {})
-            cids = info_clinica.get("cids", ["R69", "Z00.0"])
-            farmacos = info_clinica.get("farmacos", ["Medicamentos incorporados pela CONITEC / Ministério da Saúde"])
+            curado = bool(info_clinica)
+            cids = info_clinica.get("cids", [])
+            farmacos = info_clinica.get("farmacos", [])
             conduta = info_clinica.get(
                 "conduta",
-                f"Protocolo oficial do SUS ({tipo}) para {nome}. Critérios de inclusão, estratificação diagnóstica e opções farmacológicas aprovadas pela CONITEC/MS."
+                f"{tipo} listado pela CONITEC/Ministério da Saúde ({status}). O conteúdo clínico do documento oficial não foi importado: consulte o texto vigente no portal da CONITEC."
             )
-            receita = info_clinica.get(
-                "receita",
-                f"PRESCRIÇÃO CONFORME DIRETRIZ PCDT DO SUS ({nome}):\n1. Dispensação via Farmácia de Alto Custo / Componente Especializado do SUS mediante LME e laudo médico."
-            )
+            receita = info_clinica.get("receita", "")
 
             protocolos_compilados.append({
                 "id_pcdt": i,
@@ -215,6 +208,7 @@ def compilar_pcdt_oficial() -> List[Dict[str, Any]]:
                 "farmacos_principais": farmacos,
                 "conduta_clinica": conduta,
                 "bloco_prescricao_copiavel": receita,
+                "conteudo_curado": curado,
             })
 
     print(f"Total de {len(protocolos_compilados)} protocolos PCDT compilados com sucesso.")
@@ -222,15 +216,16 @@ def compilar_pcdt_oficial() -> List[Dict[str, Any]]:
 
 
 def compilar_anvisa_oficial(limite_registros: int = 200) -> List[Dict[str, Any]]:
-    caminho_csv = os.path.join(DIRETORIO_DADOS, "anvisa_medicamentos.csv")
+    caminho_csv = os.path.join(DIRETORIO_DADOS, "DADOS_ABERTOS_MEDICAMENTOS.csv")
     medicamentos_compilados: List[Dict[str, Any]] = []
 
     if not os.path.exists(caminho_csv):
         return medicamentos_compilados
 
-    for enc in ["utf-8", "latin1", "iso-8859-1"]:
+    for enc in ["utf-8", "latin1"]:
+        medicamentos_compilados = []
         try:
-            with open(caminho_csv, "r", encoding=enc) as f:
+            with open(caminho_csv, "r", encoding=enc, newline="") as f:
                 leitor = csv.DictReader(f, delimiter=";")
                 for i, linha in enumerate(leitor, start=1):
                     nome_prod = linha.get("NOME_PRODUTO", "").strip().strip('"')
@@ -241,7 +236,7 @@ def compilar_anvisa_oficial(limite_registros: int = 200) -> List[Dict[str, Any]]
                     cat_reg = linha.get("CATEGORIA_REGULATORIA", "").strip().strip('"')
                     situacao = linha.get("SITUACAO_REGISTRO", "").strip().strip('"')
 
-                    if nome_prod and (principio or classe):
+                    if nome_prod and (principio or classe) and situacao.lower() == "ativo":
                         medicamentos_compilados.append({
                             "id_anvisa": i,
                             "nome_produto": nome_prod,
@@ -282,7 +277,8 @@ def persistir_no_sqlite(pcdts: List[Dict[str, Any]], anvisas: List[Dict[str, Any
                     cids_json TEXT NOT NULL,
                     farmacos_json TEXT NOT NULL,
                     conduta_clinica TEXT NOT NULL,
-                    bloco_prescricao TEXT NOT NULL
+                    bloco_prescricao TEXT NOT NULL,
+                    conteudo_curado INTEGER NOT NULL DEFAULT 0
                 );
             """)
 
@@ -290,13 +286,13 @@ def persistir_no_sqlite(pcdts: List[Dict[str, Any]], anvisas: List[Dict[str, Any
                 con.execute("""
                     INSERT INTO pcdt_conitec_oficial (
                         id_pcdt, id_protocolo, nome_protocolo, status_conitec, tipo_protocolo,
-                        cids_json, farmacos_json, conduta_clinica, bloco_prescricao
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+                        cids_json, farmacos_json, conduta_clinica, bloco_prescricao, conteudo_curado
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
                 """, (
                     p["id_pcdt"], p["id_protocolo"], p["nome_protocolo"], p["status_conitec"], p["tipo_protocolo"],
                     json.dumps(p["cids_relacionados"], ensure_ascii=False),
                     json.dumps(p["farmacos_principais"], ensure_ascii=False),
-                    p["conduta_clinica"], p["bloco_prescricao_copiavel"]
+                    p["conduta_clinica"], p["bloco_prescricao_copiavel"], int(p["conteudo_curado"])
                 ))
 
             # Tabela ANVISA Oficial
@@ -344,7 +340,8 @@ def persistir_no_sqlite(pcdts: List[Dict[str, Any]], anvisas: List[Dict[str, Any
 def exportar_para_frontend(pcdts: List[Dict[str, Any]], anvisas: List[Dict[str, Any]]) -> None:
     # 1. Exporta PCDT Oficial em TypeScript
     ts_pcdt_conteudo = f"""// Base Oficial PCDT do Ministério da Saúde / CONITEC (83 Protocolos)
-// Extraído diretamente dos dados abertos governamentais (ckan.saude.gov.br)
+// Lista (nome/status/tipo) extraída dos dados abertos governamentais (ckan.saude.gov.br).
+// Campos clínicos só existem onde conteudo_curado = true e são resumos escritos pelo projeto, NÃO o texto do PCDT.
 
 export interface ProtocoloPCDTOficial {{
   id_pcdt: number;
@@ -356,6 +353,7 @@ export interface ProtocoloPCDTOficial {{
   farmacos_principais: string[];
   conduta_clinica: string;
   bloco_prescricao_copiavel: string;
+  conteudo_curado: boolean;
 }}
 
 export const LISTA_PCDT_OFICIAL_MS: ProtocoloPCDTOficial[] = {json.dumps(pcdts, ensure_ascii=False, indent=2)};

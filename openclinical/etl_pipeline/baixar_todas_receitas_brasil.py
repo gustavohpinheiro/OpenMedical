@@ -75,7 +75,7 @@ def garantir_bases_completas() -> None:
         print(f"[CMED] Arquivo já existente: {os.path.getsize(ARQUIVO_CMED)/(1024*1024):.2f} MB.")
 
 
-def carregar_e_indexar_todos_remedios(limite_insercao: int = 50000) -> Dict[str, int]:
+def carregar_e_indexar_todos_remedios(limite_insercao: int = 0) -> Dict[str, int]:
     """
     Processa todos os medicamentos registrados na ANVISA e compila no SQLite.
     """
@@ -113,7 +113,7 @@ def carregar_e_indexar_todos_remedios(limite_insercao: int = 50000) -> Dict[str,
         """)
 
         # Tenta codificações comuns em arquivos do governo
-        for enc in ["latin1", "iso-8859-1", "cp1252", "utf-8"]:
+        for enc in ["latin1"]:
             try:
                 with open(ARQUIVO_ANVISA, "r", encoding=enc) as f:
                     leitor = csv.DictReader(f, delimiter=";")
@@ -130,23 +130,15 @@ def carregar_e_indexar_todos_remedios(limite_insercao: int = 50000) -> Dict[str,
                         laboratorio = linha.get("EMPRESA_DETENTORA_REGISTRO", "").strip().strip('"')
                         situacao = linha.get("SITUACAO_REGISTRO", "").strip().strip('"')
 
-                        if not nome_prod:
+                        if not nome_prod or situacao.lower() != "ativo":
                             continue
 
                         # Gera prescrição médica estruturada padrão para a apresentação
                         principio_limpo = principio if principio else nome_prod
                         classe_limpa = classe if classe else "Farmacoterápico Registrado"
                         
-                        modelo_receita = (
-                            f"RECEITA MÉDICA - {nome_prod.upper()}\n"
-                            f"Princípio Ativo (DCB): {principio_limpo}\n"
-                            f"Classe Terapêutica: {classe_limpa}\n"
-                            f"Laboratório / Detentor: {laboratorio}\n"
-                            f"Registro ANVISA: {num_reg} ({cat_reg})\n\n"
-                            f"USO CONFORME BULA REGULATÓRIA APROVADA PELA ANVISA:\n"
-                            f"1. {nome_prod} ({principio_limpo}) ---------------- Posologia a critério médico.\n"
-                            f"   (Observar contraindicações e ajuste de dose conforme função renal/hepática)."
-                        )
+                        # O modelo de prescrição é montado na interface; não se armazena texto repetido por registro.
+                        modelo_receita = ""
 
                         lote.append((
                             nome_prod, principio_limpo, classe_limpa, cat_reg,
@@ -164,7 +156,7 @@ def carregar_e_indexar_todos_remedios(limite_insercao: int = 50000) -> Dict[str,
                             print(f"Progresso: {total_inseridos} medicamentos registrados indexados no SQLite...", end="\r")
                             lote = []
 
-                        if total_inseridos >= limite_insercao:
+                        if limite_insercao and total_inseridos >= limite_insercao:
                             break
 
                     if lote:

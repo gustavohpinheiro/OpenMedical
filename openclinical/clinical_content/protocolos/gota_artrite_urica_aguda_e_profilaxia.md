@@ -6,13 +6,15 @@ ciaps_relacionados: ["T92"]
 nivel_atencao: "Atencao_Primaria_e_Reumatologia"
 diretrizes_referencia: "Sociedade Brasileira de Reumatologia (SBR), ACR"
 data_revisao: "2026-10-26"
+status_revisao_clinica: "pendente_revisao_por_profissional_habilitado"
 ---
 
 # Diretrizes Clínicas: Manejo da Gota
 
 ## 1. Crise Aguda de Podagra (1ª Metatarsofalângica)
 * Colchicina: 1 mg imediatamente, seguido de 0.5 mg após 1 hora (dose total de 1.5 mg no 1º dia); manter 0.5 mg 12/12h até resolução.
-* **REGRA FUNDAMENTAL:** NÃO iniciar e NÃO suspender Alopurinol durante a vigência de crise álgica aguda (a variação dos níveis séricos de ácido úrico perpetua a precipitação de cristais de monourato).
+* **REGRA FUNDAMENTAL:** NÃO suspender Alopurinol já em uso durante a crise (a variação dos níveis séricos de ácido úrico perpetua a precipitação de cristais de monourato). O início de hipouricemiante pode ocorrer durante ou após a crise (ACR 2020), sempre com profilaxia anti-inflamatória (colchicina 0.5 mg/dia) por 3 a 6 meses e dose inicial baixa (100 mg/dia).
+* Colchicina: ajustar em insuficiência renal e evitar com claritromicina (inibidor de CYP3A4/P-gp).
 
 ```receita
 RECEITUÁRIO MÉDICO - CRISE AGUDA DE GOTA (ARTRITE ÚRICA)

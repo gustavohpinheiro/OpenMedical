@@ -6,6 +6,7 @@ ciaps_relacionados: ["A92"]
 nivel_atencao: "Urgencia_Emergencia"
 diretrizes_referencia: "World Allergy Organization (WAO), ASBAI, AHA"
 data_revisao: "2026-10-26"
+status_revisao_clinica: "pendente_revisao_por_profissional_habilitado"
 ---
 
 # Protocolo de Emergência: Anafilaxia

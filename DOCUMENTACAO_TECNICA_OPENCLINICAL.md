@@ -1,7 +1,7 @@
 # Relatório Técnico, Arquitetura e Memorial de Engenharia: OpenClinical (OpenMedical)
 
 **Data de Elaboração:** Outubro de 2026  
-**Status do Projeto:** Fase de Produção / Multiplataforma (Desktop Tauri 2.0, PWA Mobile Offline & Android CI/CD)  
+**Status do Projeto:** Protótipo funcional multiplataforma (Desktop Tauri 2.0, PWA Mobile Offline). **Não validado clinicamente: todo o conteúdo clínico está pendente de revisão por profissional habilitado e não deve ser usado em decisões reais sem essa revisão.**  
 **Repositório Oficial:** [github.com/gustavohpinheiro/OpenMedical](https://github.com/gustavohpinheiro/OpenMedical)
 
 ---
@@ -34,8 +34,8 @@ flowchart TD
     subgraph Apresentacao [Camada de Apresentação Multiplataforma]
         Engine --> TauriIPC["Tauri 2.0 Core (IPC Commands)"]
         TauriIPC --> DesktopUI["Desktop App (Windows / Linux / macOS)"]
-        Engine -.->|Wasm Compilation| WasmTarget["WebAssembly Target (wasm32)"]
-        WasmTarget --> PWAUI["Mobile PWA Offline & Web Browser"]
+        Engine -.->|Porte TypeScript com testes de paridade| TsPort["clinical_fallback.ts"]
+        TsPort --> PWAUI["Mobile PWA Offline & Web Browser"]
         DesktopUI & PWAUI --> UI["Frontend UI (React 18 + Tailwind + Vite)"]
     end
 ```
@@ -56,18 +56,17 @@ Pacientes polimedicados (idosos, nefropatas, cardiopatas) frequentemente utiliza
 * Em linguagens interpretadas, a criação de centenas de objetos dinâmicos em loops combinatórios introduz latência perceptível.
 * Em Rust, os algoritmos de interação operam sobre fatias contíguas de memória (`slices`), permitindo a checagem combinatória instantânea (< 1 milissegundo).
 
-### 2.3. Eficiência Extrema em SQLite FTS5 (Consultas Locais Sub-Milissegundo)
-O crate [`clinical_engine`](file:///e:/source/OpenMedical/openclinical/core_rust/clinical_engine/) utiliza `rusqlite` integrado ao tokenizador `unicode61 remove_diacritics 2`.
-* Pesquisas com radicais fonéticos e acentos (ex: "amoxil", "dengue", "úlvera", "tfg") encontram correspondência direta no índice B-Tree FTS5 local em ~1.2 ms.
+### 2.3. Busca local em SQLite FTS5
+O crate [`clinical_engine`](openclinical/core_rust/clinical_engine/) utiliza `rusqlite` integrado ao tokenizador `unicode61 remove_diacritics 2` (busca insensível a acentos, coberta por teste automatizado).
+* Os tempos de resposta ainda não foram medidos de forma sistemática; qualquer valor de latência deve ser tratado como estimativa até existir benchmark.
 
 ### 2.4. Tauri 2.0 vs. Electron: Memória e Desempenho
 Tradicionalmente, aplicações desktop híbridas recorrem ao *Electron*, que empacota um browser Chromium completo e o runtime Node.js, consumindo de 500 MB a 1.2 GB de memória RAM por janela.
 * O **Tauri 2.0** substitui o Node.js por um backend nativo compilado em Rust e consome a Webview pré-instalada do sistema operacional.
-* **Consumo de Memória:** O OpenClinical consome apenas ~25 a 45 MB de RAM em repouso.
-* **Tamanho do Binário:** Em vez de instaladores de 200 MB+, o executável nativo compilado ocupa cerca de 10 a 15 MB, permitindo execução fluida em computadores antigos de postos de saúde municipais.
+* **Consumo de memória e tamanho do binário:** o Tauri tende a ser muito mais leve que o Electron, mas os números exatos do OpenClinical **não foram medidos** (o banco SQLite empacotado, por si só, tem ~48 MB).
 
-### 2.5. Compilação para WebAssembly (`wasm32-unknown-unknown`)
-O motor clínico em Rust foi desenhado sem dependência de runtimes assíncronos (`tokio`) nas rotinas de cálculo numérico. Ele compila de forma idêntica para binários nativos e para WebAssembly, permitindo que o mesmo código auditado de cálculo de doses rode diretamente dentro do navegador do smartphone sem servidor central.
+### 2.5. Execução no navegador/PWA
+O motor foi desenhado sem `tokio` nas rotinas numéricas e o módulo de banco é isolado por `cfg(target_arch = "wasm32")`, mas **o build WebAssembly não está configurado nem é usado** (o target `wasm32-unknown-unknown` nem está instalado no ambiente de desenvolvimento). No navegador/PWA os cálculos rodam em `frontend_ui/src/clinical_fallback.ts`, um **porte manual** do Rust. Para evitar divergência, `npm test` executa casos de referência idênticos aos testes Rust (`tests/paridade_calculos.test.mjs`). Migrar para WASM real eliminaria a duplicação e é o próximo passo recomendado.
 
 ---
 
@@ -91,7 +90,7 @@ OpenMedical/
 │   │   ├── baixar_bases_publicas.py   # Baixa e extrai arquivos públicos via HTTPS
 │   │   ├── baixar_anvisa_e_pcdt.py    # Inspeciona e extrai registros de medicamentos
 │   │   ├── compilador_bases_publicas.py # Compila dados para SQLite e gera módulos TypeScript
-│   │   ├── gerador_receitas_completas.py# Gera os 45 protocolos clínicos completos (.md)
+│   │   ├── gerador_receitas_completas.py# Fonte única dos 45 protocolos: gera os .md e o módulo TS do frontend
 │   │   ├── openclinical_core.sqlite   # Banco relacional com FTS5 BM25
 │   │   └── tests/
 │   │       └── test_etl_pipeline.py   # Testes automatizados do pipeline (pytest)
@@ -109,13 +108,14 @@ OpenMedical/
 │   │   │   │   ├── protocols.rs       # Parser Docs-as-Code (Markdown + Frontmatter YAML)
 │   │   │   │   └── database.rs        # rusqlite FTS5 com BM25
 │   │   │   └── tests/
-│   │   │       └── test_clinical_engine.rs # 11 testes unitários determinísticos
+│   │   │       └── test_clinical_engine.rs # 18 testes (cálculos, parser, FTS5, CMED e banco empacotado)
 │   │   │
 │   │   └── openclinical_desktop/      # Runtime Tauri 2.0 nativo
-│   │       ├── tauri.conf.json        # Configurações de janela, IPC e segurança
+│   │       ├── tauri.conf.json        # Janela, IPC, empacotamento do banco como recurso
+│   │       ├── gerar_icones.py        # Gera os ícones do desktop e do PWA (Pillow)
 │   │       └── src/
-│   │           ├── main.rs
-│   │           └── commands.rs        # Endpoints IPC Tauri expostos ao frontend
+│   │           ├── main.rs            # Resolve o banco (OPENCLINICAL_DB_PATH, recursos do app, dev)
+│   │           └── commands.rs        # Comandos IPC: busca, bula, CMED, interações, protocolos, cálculos
 │   │
 │   ├── clinical_content/              # CONTEÚDO CLÍNICO (Docs-as-Code)
 │   │   └── protocolos/                # 45 Arquivos Markdown oficiais com receitas copiáveis
@@ -126,16 +126,17 @@ OpenMedical/
 │       │   └── sw.js                  # Service Worker com cache offline de assets
 │       ├── src/
 │       │   ├── api.ts                 # Fachada multiplataforma (Tauri IPC + fallback client-side)
-│       │   ├── catalog_protocolos.ts  # Catálogo consolidado dos 45 protocolos e chips
+│       │   ├── catalog_protocolos.ts  # Reexporta o catálogo gerado (data/protocolos_gerados.ts)
+│       │   ├── clinical_fallback.ts   # Porte TS do motor para navegador/PWA (testado por paridade)
 │       │   ├── data/
-│       │   │   ├── protocolos_infectologia.ts
-│       │   │   ├── protocolos_clinica_geral.ts
-│       │   │   ├── pcdt_oficial_ms.ts # 83 Protocolos PCDT oficiais do Ministério da Saúde
+│       │   │   ├── protocolos_gerados.ts # GERADO: 45 protocolos, fármacos e categorias
+│       │   │   ├── pcdt_oficial_ms.ts # Lista de 83 PCDT/DDT do MS (nome, status, tipo) + resumos curados
 │       │   │   └── anvisa_medicamentos_publicos.ts # Registros da base aberta da ANVISA
 │       │   ├── components/
 │       │   │   ├── DrugDetail.tsx     # Ficha completa do medicamento e bula
 │       │   │   ├── ProtocolsView.tsx  # Central de 45 Receitas Clínicas com filtro Dipirona
-│       │   │   ├── PublicDatabasesView.tsx # Visualizador dos 83 PCDT e base ANVISA
+│       │   │   ├── PublicDatabasesView.tsx # CMED, 83 PCDT e ANVISA (amostras offline + seleção pela busca)
+│       │   │   ├── MarkdownSimples.tsx # Renderização segura do Markdown dos protocolos (sem innerHTML)
 │       │   │   ├── PediatricCalculator.tsx # Calculadora com verificação de teto
 │       │   │   ├── ClinicalCalculators.tsx # Calculadoras CKD-EPI, Wells e CURB-65
 │       │   │   ├── InteractionChecker.tsx  # Matriz de interações medicamentosas
@@ -160,8 +161,8 @@ Desenvolvido com foco no atendimento em atenção primária e pronto-atendimento
 * **Neurologia & Saúde Mental (5):** Lombalgia mecânica aguda, Cefaleia tensional / Enxaqueca, Profilaxia de enxaqueca, Depressão e ansiedade (mhGAP OMS / ABP), Vertigem e VPPB.
 * **Urgência & Pediatria Geral (2):** Anafilaxia grave (Adrenalina IM), Desidratação pediátrica (Planos A, B e C da OMS).
 
-### 4.2. Base Oficial do PCDT do Ministério da Saúde / CONITEC (83 Protocolos)
-Baixada diretamente dos servidores públicos de dados abertos (`ckan.saude.gov.br`), contendo todos os protocolos oficiais incorporados pelo SUS para dispensação no Componente Especializado da Assistência Farmacêutica (CEAF) e Alto Custo.
+### 4.2. Lista de PCDT/DDT do Ministério da Saúde / CONITEC (83 itens)
+O CSV público (`ckan.saude.gov.br`) contém **apenas nome, status e tipo** de cada documento; vários itens estão "Em elaboração/atualização" e há diretrizes (DDT) que não são PCDT. Os campos clínicos (CIDs, fármacos, conduta, receita) existem somente para 23 itens (`conteudo_curado = true`), são **resumos escritos pelo projeto** (não o texto do PCDT) e estão pendentes de revisão clínica. Para os demais 60 itens esses campos ficam vazios.
 
 ---
 
@@ -171,9 +172,19 @@ A integridade do software é validada em duas camadas determinísticas independe
 
 1. **Python (Engenharia de Dados e Schemas):**
    * Validação com `pytest` cobrindo instanciamento de modelos Pydantic v2, criação do banco SQLite, integridade de chaves estrangeiras e indexação FTS5.
-   * Resultado: **4 testes aprovados (100% de sucesso).**
+   * Resultado: **10 testes aprovados** (inclui banco isolado semeado do zero, consistência dos 45 protocolos com o gerador, ausência de posologia genérica nas receitas, PCDT sem CIDs inventados, leitura UTF-8 da CMED e igualdade entre os dados de demonstração do frontend e o seed).
 2. **Rust (Motor Clínico e Fórmulas Médicas):**
    * Validação com `cargo test` cobrindo casos clínicos de referência para CKD-EPI 2021 (homens, mulheres, idosos e parâmetros fora de faixa), Cockcroft-Gault, Escore de Wells para TEP, CURB-65 para pneumonia comunitária, infusão de vasopressores, cruzamento de interações medicamentosas e cálculo pediátrico com detecção de extrapolação de dose teto máxima diária da ANVISA.
-   * Resultado: **11 testes aprovados (100% de sucesso em 0.00s).**
+   * Resultado: **18 testes aprovados** (inclui limites do escore de Wells, entradas inválidas, busca FTS5 sem acentos / termos só com pontuação, consulta CMED e um teste que exercita o banco realmente empacotado no app: bula, interações e busca por tipo de registro).
 3. **Frontend (Vite / TypeScript):**
-   * Compilação estrita com tipagem completa sem erros de TypeScript em todos os módulos e componentes.
+   * `npm run typecheck` (tsc estrito) sem erros; `npm test` executa 8 testes de paridade dos cálculos contra os casos de referência do Rust; `npm run build` gera o bundle de produção.
+   * Tailwind CSS e as fontes (Plus Jakarta Sans, JetBrains Mono) são empacotados no build: a interface não depende de CDN e renderiza igual offline (PWA e desktop).
+
+## 6. Limitações Conhecidas
+
+* **Sem validação clínica formal.** Protocolos, bulas, interações e resumos de PCDT foram redigidos pelo projeto; todos carregam `status_revisao_clinica: pendente_revisao_por_profissional_habilitado`.
+* **Cobertura farmacológica mínima:** bulas estruturadas para 10 princípios ativos, 13 apresentações e 5 interações. A ausência de alerta de interação **não** significa ausência de interação (a interface agora informa isso).
+* **Catálogo CMED/ANVISA** (26.635 apresentações CMED; ~85 mil registros ANVISA ativos) traz identificação e preço, **sem posologia**: os modelos de receita desses registros são esqueletos com campos `[PREENCHER]`.
+* **Dados de demonstração duplicados no frontend** (`MOCK_MEDICAMENTOS` e `MOCK_INTERACOES` em `api.ts`) repetem o seed Python. Um teste garante que gravidades e formas farmacêuticas coincidem, mas os textos ainda são cópias e o ideal é gerá-los a partir do seed.
+* **No navegador/PWA** os catálogos CMED e ANVISA são amostras (1.855 e 250 registros); o catálogo completo só é pesquisável no app desktop. No app instalado, a lista de protocolos vem do catálogo gerado embutido no frontend (os `.md` não são empacotados como recurso).
+* O build Android (`.github/workflows/android-build.yml`) não executa `cargo tauri android init` e não foi validado.

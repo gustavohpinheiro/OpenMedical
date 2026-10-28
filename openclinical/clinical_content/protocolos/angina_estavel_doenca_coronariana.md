@@ -6,6 +6,7 @@ ciaps_relacionados: ["K74"]
 nivel_atencao: "Atencao_Primaria_e_Cardiologia"
 diretrizes_referencia: "Diretriz de DAC Estável da SBC, ESC, AHA"
 data_revisao: "2026-10-26"
+status_revisao_clinica: "pendente_revisao_por_profissional_habilitado"
 ---
 
 # Diretrizes Clínicas: Angina Estável
@@ -23,8 +24,8 @@ USO ORAL:
 1. Ácido Acetilsalicílico (AAS) 100mg comprimido -------- 1 caixa (30 comprimidos)
    Tomar 1 comprimido por via oral uma vez ao dia logo após o almoço.
 
-2. Sinvastatina 40mg comprimido revestido -------------- 1 caixa (30 comprimidos)
-   Tomar 1 comprimido por via oral uma vez ao dia à noite ao deitar.
+2. Atorvastatina 40mg comprimido revestido -------------- 1 caixa (30 comprimidos)
+   Tomar 1 comprimido por via oral uma vez ao dia (estatina de alta intensidade; titular até 80 mg se LDL-c acima da meta).
 
 3. Atenolol 50mg comprimido ---------------------------- 1 caixa (30 comprimidos)
    Tomar 1 comprimido por via oral pela manhã.

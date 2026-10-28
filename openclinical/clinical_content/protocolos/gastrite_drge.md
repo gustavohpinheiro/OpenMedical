@@ -6,6 +6,7 @@ ciaps_relacionados: ["D84", "D87"]
 nivel_atencao: "Atencao_Primaria"
 diretrizes_referencia: "Federação Brasileira de Gastroenterologia (FBG), ACG"
 data_revisao: "2026-10-26"
+status_revisao_clinica: "pendente_revisao_por_profissional_habilitado"
 ---
 
 # Diretrizes Clínicas: DRGE e Doença Péptica

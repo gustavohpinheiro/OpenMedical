@@ -6,6 +6,7 @@ ciaps_relacionados: ["A77", "W78"]
 nivel_atencao: "Atencao_Primaria_e_Pre_Natal"
 diretrizes_referencia: "Ministério da Saúde do Brasil, FEBRASGO, OMS"
 data_revisao: "2026-10-26"
+status_revisao_clinica: "pendente_revisao_por_profissional_habilitado"
 ---
 
 # Protocolo: Zika Vírus e Rastreio de Síndrome Congênita

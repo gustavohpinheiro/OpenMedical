@@ -6,6 +6,7 @@ ciaps_relacionados: ["R74"]
 nivel_atencao: "Atencao_Primaria"
 diretrizes_referencia: "Ministério da Saúde (Brasil), IDSA, NICE"
 data_revisao: "2026-10-26"
+status_revisao_clinica: "pendente_revisao_por_profissional_habilitado"
 ---
 
 # Diretrizes Clínicas: Faringite e Amigdalite Aguda Estreptocócica

@@ -3,6 +3,7 @@ use clinical_engine::calculators::{
 };
 use clinical_engine::database::BancoDadosClinico;
 use clinical_engine::pediatric::calcular_dose_pediatrica;
+use clinical_engine::pharmacy_pricing::cotar_precos_farmacias;
 use std::env;
 use std::path::Path;
 
@@ -13,7 +14,6 @@ fn resolver_caminho_banco() -> String {
         "../etl_pipeline/openclinical_core.sqlite",
         "../../etl_pipeline/openclinical_core.sqlite",
         "etl_pipeline/openclinical_core.sqlite",
-        "e:/source/OpenMedical/openclinical/etl_pipeline/openclinical_core.sqlite",
     ];
 
     for c in caminhos {
@@ -137,8 +137,93 @@ fn main() {
             }
         }
 
+        "precos" => {
+            let termo = args.get(2).map(|s| s.as_str()).unwrap_or("dipirona");
+            let caminho_db = resolver_caminho_banco();
+            println!("\n💊 LOCALIZADOR DE PREÇOS EM FARMÁCIAS BRASILEIRAS");
+            println!("   Pesquisando: '{}' nas bases CMED/ANVISA e redes parceiras...\n", termo);
+
+            match BancoDadosClinico::abrir_somente_leitura(&caminho_db) {
+                Ok(banco) => {
+                    match banco.buscar_geral(termo, 20) {
+                        Ok(achados) => {
+                            let item_cmed = achados
+                                .into_iter()
+                                .find(|item| item.tipo_registro == "cmed_comercial")
+                                .and_then(|item| item.id_referencia.as_i64());
+
+                            match item_cmed {
+                                Some(id) => match banco.obter_registro_cmed(id) {
+                                    Ok(med) => {
+                                        let analise = cotar_precos_farmacias(
+                                            &med.nome_produto,
+                                            &med.substancia,
+                                            &med.tipo_produto,
+                                            &med.apresentacao,
+                                            &med.codigo_ean,
+                                            med.preco_maximo_consumidor,
+                                        );
+
+                                        println!("══════════════════════════════════════════════════════════════");
+                                        println!("  MEDICAMENTO: {} ({})", analise.nome_comercial, analise.substancia);
+                                        println!("  Apresentação: {}", analise.apresentacao);
+                                        println!("  Tipo: {} | Cód. EAN: {}", analise.tipo_produto, analise.codigo_ean);
+                                        println!("══════════════════════════════════════════════════════════════");
+                                        println!("  ⭐ MENOR PREÇO ESTIMADO: R$ {:.2}", analise.menor_preco_estimado);
+                                        println!("  📊 PREÇO MÉDIO DE BALCÃO: R$ {:.2}", analise.preco_medio);
+                                        println!("  🏛️ PREÇO MÁXIMO ANVISA (PMC): R$ {:.2}", analise.preco_pmc_teto);
+                                        if let Some(ppu) = analise.preco_por_unidade {
+                                            println!("  📦 Custo por Unidade: R$ {:.2} / dose/comp", ppu);
+                                        }
+                                        if analise.elegivel_farmacia_popular {
+                                            println!("  🟢 {}", analise.faixa_farmacia_popular.unwrap_or_default());
+                                        }
+
+                                        println!("\n  📋 COTAÇÕES POR REDE DE FARMÁCIA:");
+                                        for cot in analise.cotacoes {
+                                            println!(
+                                                "    • {:<30} -> R$ {:>6.2}  ({:>4.1}% desc.) | {}",
+                                                cot.nome_farmacia,
+                                                cot.preco_estimado,
+                                                cot.desconto_percentual,
+                                                cot.disponibilidade
+                                            );
+                                        }
+                                        println!("══════════════════════════════════════════════════════════════\n");
+                                    }
+                                    Err(e) => eprintln!("❌ Erro ao buscar dados da CMED: {}", e),
+                                },
+                                None => {
+                                    println!("Apresentação exata não encontrada na CMED. Simulando cotação para '{}':", termo);
+                                    let analise = cotar_precos_farmacias(
+                                        termo,
+                                        termo,
+                                        "Genérico",
+                                        "Apresentação Comercial Padrão",
+                                        "",
+                                        25.0,
+                                    );
+                                    println!("  ⭐ MENOR PREÇO: R$ {:.2} | PREÇO MÉDIO: R$ {:.2} | PMC TETO: R$ {:.2}",
+                                        analise.menor_preco_estimado, analise.preco_medio, analise.preco_pmc_teto);
+                                    for cot in analise.cotacoes {
+                                        println!("    • {:<30} -> R$ {:>6.2}", cot.nome_farmacia, cot.preco_estimado);
+                                    }
+                                }
+                            }
+                        }
+                        Err(e) => eprintln!("❌ Erro ao buscar registros: {}", e),
+                    }
+                }
+                Err(e) => eprintln!("❌ Falha ao conectar ao banco SQLite: {}", e),
+            }
+        }
+
         _ => {
             println!("\nUso do OpenClinical CLI em Rust:");
+            println!("  cargo run --bin openclinical_cli -- precos <medicamento>");
+            println!("      Ex: cargo run --bin openclinical_cli -- precos dipirona");
+            println!("      Ex: cargo run --bin openclinical_cli -- precos losartana");
+            println!("      Ex: cargo run --bin openclinical_cli -- precos amoxicilina\n");
             println!("  cargo run --bin openclinical_cli -- buscar <termo>");
             println!("      Ex: cargo run --bin openclinical_cli -- buscar amoxicilina");
             println!("      Ex: cargo run --bin openclinical_cli -- buscar \"N39.0\"");

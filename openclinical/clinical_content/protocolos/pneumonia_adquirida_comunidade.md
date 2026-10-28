@@ -6,6 +6,7 @@ ciaps_relacionados: ["R81"]
 nivel_atencao: "Atencao_Primaria"
 diretrizes_referencia: "Sociedade Brasileira de Pneumologia e Tisiologia (SBPT), ATS/IDSA"
 data_revisao: "2026-10-26"
+status_revisao_clinica: "pendente_revisao_por_profissional_habilitado"
 ---
 
 # Diretrizes Clínicas: Pneumonia Comunitária Ambulatorial
@@ -31,13 +32,11 @@ USO ORAL:
 1. Amoxicilina 500mg cápsula --------------------------- 1 caixa (21 cápsulas)
    Tomar 1 cápsula por via oral a cada 8 horas durante 7 dias.
 
-2. Azitromicina 500mg comprimido ----------------------- 1 caixa (3 comprimidos)
-   Tomar 1 comprimido por via oral uma vez ao dia, 1 hora antes ou 2 horas após a refeição, durante 3 dias.
-
-3. Dipirona Monoidratada 500mg comprimido -------------- 1 blister (10 comprimidos)
+2. Dipirona Monoidratada 500mg comprimido -------------- 1 blister (10 comprimidos)
    Tomar 1 a 2 comprimidos por via oral a cada 6 horas se dor torácica ou febre.
 
 Orientações:
+- Esta receita contempla o adulto hígido sem comorbidades (CURB-65 0 ou 1). Em caso de comorbidades, substituir por Amoxicilina + Clavulanato 875/125 mg 12/12h associada a Azitromicina; em alergia a penicilina, usar Azitromicina 500 mg/dia por 5 dias.
 - Manter repouso e hidratação oral mínima de 2 litros ao dia.
 - Reavaliação médica ambulatorial obrigatória em 48 a 72 horas.
 ```

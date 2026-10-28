@@ -6,6 +6,7 @@ ciaps_relacionados: ["T90"]
 nivel_atencao: "Atencao_Primaria_e_Endocrinologia"
 diretrizes_referencia: "Sociedade Brasileira de Diabetes (SBD 2024), ADA Standards of Care 2024"
 data_revisao: "2026-10-26"
+status_revisao_clinica: "pendente_revisao_por_profissional_habilitado"
 ---
 
 # Diretrizes Clínicas: Associação Metformina + iSGLT2
@@ -29,4 +30,6 @@ USO ORAL:
 Orientações:
 - Manter higiene íntima rigorosa com água após micções para prevenir candidíase urogenital.
 - Manter hidratação adequada ao longo do dia.
+- Suspender a dapagliflozina em jejum prolongado, vômitos/diarreia ou doença aguda grave e procurar atendimento se náuseas, dor abdominal ou mal-estar intenso (risco de cetoacidose euglicêmica).
+- Para efeito glicêmico, TFG >= 45 mL/min; para proteção cardio-renal, pode ser mantida até TFG >= 20 mL/min.
 ```

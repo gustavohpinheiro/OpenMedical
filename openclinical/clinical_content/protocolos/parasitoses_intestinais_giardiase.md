@@ -6,6 +6,7 @@ ciaps_relacionados: ["D96"]
 nivel_atencao: "Atencao_Primaria"
 diretrizes_referencia: "Ministério da Saúde do Brasil, OMS"
 data_revisao: "2026-10-26"
+status_revisao_clinica: "pendente_revisao_por_profissional_habilitado"
 ---
 
 # Diretrizes Clínicas: Parasitoses Intestinais

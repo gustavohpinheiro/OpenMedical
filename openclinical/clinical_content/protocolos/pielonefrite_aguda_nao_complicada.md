@@ -6,6 +6,7 @@ ciaps_relacionados: ["U70"]
 nivel_atencao: "Atencao_Primaria_e_Urgencia"
 diretrizes_referencia: "Sociedade Brasileira de Nefrologia (SBN), IDSA"
 data_revisao: "2026-10-26"
+status_revisao_clinica: "pendente_revisao_por_profissional_habilitado"
 ---
 
 # Diretrizes Clínicas: Pielonefrite Aguda

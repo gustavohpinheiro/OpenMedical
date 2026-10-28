@@ -6,6 +6,7 @@ ciaps_relacionados: ["X72"]
 nivel_atencao: "Atencao_Primaria"
 diretrizes_referencia: "FEBRASGO, CDC"
 data_revisao: "2026-10-26"
+status_revisao_clinica: "pendente_revisao_por_profissional_habilitado"
 ---
 
 # Diretrizes Clínicas: Candidíase Vulvovaginal

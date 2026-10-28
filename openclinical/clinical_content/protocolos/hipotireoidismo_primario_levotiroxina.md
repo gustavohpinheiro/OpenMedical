@@ -6,6 +6,7 @@ ciaps_relacionados: ["T86"]
 nivel_atencao: "Atencao_Primaria"
 diretrizes_referencia: "Sociedade Brasileira de Endocrinologia e Metabologia (SBEM), ATA"
 data_revisao: "2026-10-26"
+status_revisao_clinica: "pendente_revisao_por_profissional_habilitado"
 ---
 
 # Diretrizes Clínicas: Reposição de Levotiroxina

@@ -8,10 +8,17 @@ import {
   ResultadoCurb65,
   ResultadoWells,
   CodigoDiagnostico,
+  AnalisePrecoMedicamento,
 } from './types';
 
+import { executarCalculoLocal } from './clinical_fallback';
+
 // Detecta se a aplicação está rodando dentro do WebView nativo do Tauri 2.0
-const isTauri = () => typeof window !== 'undefined' && ('__TAURI_INTERNALS__' in window || '__TAURI__' in window);
+export const isTauri = () => typeof window !== 'undefined' && ('__TAURI_INTERNALS__' in window || '__TAURI__' in window);
+
+// Remove acentos e caixa, como o tokenizador FTS5 'unicode61 remove_diacritics 2' do app nativo
+export const normalizarTexto = (texto: string) =>
+  texto.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
 
 async function invokeTauri<T>(cmd: string, args: Record<string, unknown> = {}): Promise<T> {
   const { invoke } = await import('@tauri-apps/api/core');
@@ -32,7 +39,7 @@ export const MOCK_MEDICAMENTOS: Record<number, DetalheMedicamentoCompleto> = {
       apresentacao_comercial: 'Cápsula dura 500 mg - Embalagem com 21 cápsulas',
       concentracao_valor: 500.0,
       concentracao_unidade: 'mg',
-      forma_farmaceutica: 'comprimido',
+      forma_farmaceutica: 'capsula',
       tipo_receituario: 'antimicrobiano',
       preco_maximo_consumidor: 35.5,
     },
@@ -438,7 +445,7 @@ export const MOCK_MEDICAMENTOS: Record<number, DetalheMedicamentoCompleto> = {
       apresentacao_comercial: 'Frasco-ampola com 1000 mg pó liofilizado + ampola diluente 10 mL',
       concentracao_valor: 1000.0,
       concentracao_unidade: 'mg',
-      forma_farmaceutica: 'solucao_injetavel',
+      forma_farmaceutica: 'po_para_solucao_injetavel',
       tipo_receituario: 'antimicrobiano',
       preco_maximo_consumidor: 74.2,
     },
@@ -575,7 +582,7 @@ export const MOCK_INTERACOES: MatrizInteracao[] = [
     nome_principio_b: 'Maleato de Enalapril',
     gravidade_interacao: 'Contraindicada',
     efeito_clinico: 'Duplo bloqueio simultâneo do sistema renina-angiotensina-aldosterona (SRAA). Risco crítico de hipercalemia grave refratária, hipotensão precipitante e deterioração acelerada da TFG sem ganhos cardiovasculares.',
-    conduta_recomendada: 'Associação formalmente contraindicada pelas diretrizes clínicas da SBC e KDIGO. Suspender um dos agentes e associar com bloqueador dos canais de cálcio (anlodipino) ou tiazídico (hidroclorotiazida).',
+    conduta_recomendada: 'Diretrizes (SBC 2020, KDIGO) recomendam não associar IECA e BRA (ONTARGET, VA NEPHRON-D). Manter apenas uma das classes e, se a meta pressórica não for atingida, associar bloqueador dos canais de cálcio (anlodipino) ou diurético tiazídico.',
   },
   {
     id_interacao: 2,
@@ -583,9 +590,9 @@ export const MOCK_INTERACOES: MatrizInteracao[] = [
     id_principio_ativo_b: 6,
     nome_principio_a: 'Sinvastatina',
     nome_principio_b: 'Azitromicina',
-    gravidade_interacao: 'Grave',
-    efeito_clinico: 'Inibição do citocromo CYP3A4 com elevação expressiva dos níveis séricos de sinvastatina e risco crítico de miopatia severa e rabdomiólise aguda.',
-    conduta_recomendada: 'Suspender temporariamente a sinvastatina durante o curso de azitromicina ou substituir temporariamente por pravastatina.',
+    gravidade_interacao: 'Leve',
+    efeito_clinico: 'Azitromicina, ao contrário de claritromicina e eritromicina, é inibidora fraca do CYP3A4; há relatos isolados de miopatia/rabdomiólise com sinvastatina, sem aumento relevante e consistente dos níveis séricos.',
+    conduta_recomendada: 'Pode-se manter a sinvastatina, orientando suspensão e procura de atendimento se houver dor ou fraqueza muscular. Se o macrolídeo for claritromicina ou eritromicina, suspender a sinvastatina durante o curso.',
   },
   {
     id_interacao: 3,
@@ -614,7 +621,7 @@ export const MOCK_INTERACOES: MatrizInteracao[] = [
     nome_principio_a: 'Hemitartarato de Norepinefrina',
     nome_principio_b: 'Maleato de Enalapril',
     gravidade_interacao: 'Grave',
-    efeito_clinico: 'Em estado de choque com vasopressores, IECA bloqueia a vasoconstrição da arteríola eferente renal gerando necrose tubular aguda isquêmica.',
+    efeito_clinico: 'No choque, o IECA reduz a angiotensina II que sustenta a pressão arterial e a vasoconstrição da arteríola eferente: agrava a hipotensão, aumenta a necessidade de vasopressor e reduz a TFG (risco de lesão renal aguda).',
     conduta_recomendada: 'Suspender imediatamente anti-hipertensivos e IECAs durante choque e instabilidade hemodinâmica.',
   },
 ];
@@ -624,6 +631,10 @@ export const MOCK_INTERACOES: MatrizInteracao[] = [
 // -----------------------------------------------------------------------------
 import { CATALOGO_PROTOCOLOS } from './catalog_protocolos';
 import { LISTA_PCDT_OFICIAL_MS } from './data/pcdt_oficial_ms';
+import type { MedicamentoComercialCMED } from './data/catalogo_cmed_nacional';
+
+// A amostra CMED (~2 MB) só é carregada quando a busca ou a tela de bases públicas precisa dela
+const carregarCatalogoCmed = () => import('./data/catalogo_cmed_nacional').then((m) => m.CATALOGO_CMED_NACIONAL);
 export const MOCK_PROTOCOLOS: ProtocoloClinico[] = CATALOGO_PROTOCOLOS;
 
 // -----------------------------------------------------------------------------
@@ -648,26 +659,38 @@ export const MOCK_DIAGNOSTICOS: CodigoDiagnostico[] = [
 // -----------------------------------------------------------------------------
 export async function buscarGeral(termo: string): Promise<ItemBuscaFts[]> {
   if (isTauri()) {
-    try {
-      const res = await invokeTauri<ItemBuscaFts[]>('buscar_geral', { termo });
-      if (res && res.length > 0) return res;
-    } catch {
-      // fallback gracioso se não estiver em ambiente Tauri
-    }
+    // No app nativo a busca é do índice FTS5 completo; erros são exibidos, não trocados por base reduzida.
+    return invokeTauri<ItemBuscaFts[]>('buscar_geral', { termo });
   }
 
-  const termoNormalizado = termo.toLowerCase().trim();
+  const termoNormalizado = normalizarTexto(termo);
   if (!termoNormalizado) return [];
 
   const resultados: ItemBuscaFts[] = [];
 
+  // 0. Formulário Terapêutico Nacional (posologia oficial do MS), carregado sob demanda
+  const { MONOGRAFIAS_FTN } = await import('./data/formulario_terapeutico');
+  for (const m of MONOGRAFIAS_FTN) {
+    const nome = normalizarTexto(m.nome);
+    const nomeBusca = normalizarTexto(m.nome_busca);
+    if (nome.includes(termoNormalizado) || nomeBusca.includes(termoNormalizado)) {
+      resultados.push({
+        tipo_registro: 'ftn_monografia',
+        id_referencia: m.id_monografia,
+        titulo_primario: m.nome.charAt(0).toUpperCase() + m.nome.slice(1),
+        subtitulo: `Formulário Terapêutico Nacional - ${m.apresentacoes.slice(0, 2).join('; ')}`,
+        score_relevancia: nomeBusca.startsWith(termoNormalizado) || nome.startsWith(termoNormalizado) ? -6.0 : -4.8,
+      });
+    }
+  }
+
   // 1. Pesquisa em Medicamentos Comerciais e seus Princípios Ativos (DCB)
   for (const m of Object.values(MOCK_MEDICAMENTOS)) {
-    const nomeComercial = m.medicamento.nome_comercial.toLowerCase();
-    const dcb = m.principio_ativo.nome_dcb.toLowerCase();
-    const classe = m.principio_ativo.classe_terapeutica.toLowerCase();
-    const apresentacao = m.medicamento.apresentacao_comercial.toLowerCase();
-    const indicacoes = (m.bula?.indicacoes_clinicas || '').toLowerCase();
+    const nomeComercial = normalizarTexto(m.medicamento.nome_comercial);
+    const dcb = normalizarTexto(m.principio_ativo.nome_dcb);
+    const classe = normalizarTexto(m.principio_ativo.classe_terapeutica);
+    const apresentacao = normalizarTexto(m.medicamento.apresentacao_comercial);
+    const indicacoes = normalizarTexto(m.bula?.indicacoes_clinicas || '');
 
     if (
       nomeComercial.includes(termoNormalizado) ||
@@ -689,14 +712,12 @@ export async function buscarGeral(termo: string): Promise<ItemBuscaFts[]> {
 
   // 2. Pesquisa em Protocolos Clínicos e Receituários Oficiais
   for (const p of MOCK_PROTOCOLOS) {
-    const titulo = p.titulo.toLowerCase();
-    const cids = p.cids_relacionados.join(' ').toLowerCase();
-    const ciaps = p.ciaps_relacionados.join(' ').toLowerCase();
-    const markdown = p.conteudo_markdown.toLowerCase();
-    const receita = p.bloco_prescricao_copiavel.toLowerCase();
-    const id = p.id_protocolo.toLowerCase();
-
-    const querReceita = termoNormalizado.includes('receita') || termoNormalizado.includes('prescri') || termoNormalizado.includes('conduta');
+    const titulo = normalizarTexto(p.titulo);
+    const cids = normalizarTexto(p.cids_relacionados.join(' '));
+    const ciaps = normalizarTexto(p.ciaps_relacionados.join(' '));
+    const markdown = normalizarTexto(p.conteudo_markdown);
+    const receita = normalizarTexto(p.bloco_prescricao_copiavel);
+    const id = normalizarTexto(p.id_protocolo);
 
     if (
       titulo.includes(termoNormalizado) ||
@@ -704,15 +725,14 @@ export async function buscarGeral(termo: string): Promise<ItemBuscaFts[]> {
       cids.includes(termoNormalizado) ||
       ciaps.includes(termoNormalizado) ||
       markdown.includes(termoNormalizado) ||
-      receita.includes(termoNormalizado) ||
-      querReceita
+      receita.includes(termoNormalizado)
     ) {
-      const matchNoTitulo = titulo.includes(termoNormalizado) || receita.includes(termoNormalizado);
+      const matchNoTitulo = titulo.includes(termoNormalizado) || cids.includes(termoNormalizado);
       resultados.push({
         tipo_registro: 'protocolo',
-        id_referencia: p.id_protocolo as any,
+        id_referencia: p.id_protocolo,
         titulo_primario: p.titulo,
-        subtitulo: `Receita & Conduta (${p.id_protocolo}) - CIDs: ${p.cids_relacionados.join(', ')}`,
+        subtitulo: `Receita & Conduta - CIDs: ${p.cids_relacionados.join(', ')}`,
         score_relevancia: matchNoTitulo ? -4.5 : -2.5,
       });
     }
@@ -720,10 +740,10 @@ export async function buscarGeral(termo: string): Promise<ItemBuscaFts[]> {
 
   // 3. Pesquisa em Diagnósticos CIDs e CIAPs
   for (const d of MOCK_DIAGNOSTICOS) {
-    const cid = d.codigo_cid10.toLowerCase();
-    const descCid = d.descricao_cid10.toLowerCase();
-    const ciap = d.codigo_ciap2.toLowerCase();
-    const descCiap = d.descricao_ciap2.toLowerCase();
+    const cid = normalizarTexto(d.codigo_cid10);
+    const descCid = normalizarTexto(d.descricao_cid10);
+    const ciap = normalizarTexto(d.codigo_ciap2);
+    const descCiap = normalizarTexto(d.descricao_ciap2);
 
     if (
       cid.includes(termoNormalizado) ||
@@ -743,10 +763,10 @@ export async function buscarGeral(termo: string): Promise<ItemBuscaFts[]> {
 
   // 4. Pesquisa nos 83 PCDT Oficiais do Ministério da Saúde / CONITEC
   for (const pcdt of LISTA_PCDT_OFICIAL_MS) {
-    const nome = pcdt.nome_protocolo.toLowerCase();
-    const cids = pcdt.cids_relacionados.join(' ').toLowerCase();
-    const farmacos = pcdt.farmacos_principais.join(' ').toLowerCase();
-    const conduta = pcdt.conduta_clinica.toLowerCase();
+    const nome = normalizarTexto(pcdt.nome_protocolo);
+    const cids = normalizarTexto(pcdt.cids_relacionados.join(' '));
+    const farmacos = normalizarTexto(pcdt.farmacos_principais.join(' '));
+    const conduta = normalizarTexto(pcdt.conduta_clinica);
 
     if (
       nome.includes(termoNormalizado) ||
@@ -754,12 +774,31 @@ export async function buscarGeral(termo: string): Promise<ItemBuscaFts[]> {
       farmacos.includes(termoNormalizado) ||
       conduta.includes(termoNormalizado)
     ) {
+      const cidsTexto = pcdt.cids_relacionados.length > 0 ? ` - CIDs: ${pcdt.cids_relacionados.join(', ')}` : '';
       resultados.push({
-        tipo_registro: 'protocolo',
-        id_referencia: pcdt.id_protocolo as any,
-        titulo_primario: `PCDT MS: ${pcdt.nome_protocolo}`,
-        subtitulo: `${pcdt.tipo_protocolo} (${pcdt.status_conitec}) - CIDs: ${pcdt.cids_relacionados.join(', ')}`,
+        tipo_registro: 'pcdt_governo',
+        id_referencia: pcdt.id_pcdt,
+        titulo_primario: pcdt.nome_protocolo,
+        subtitulo: `${pcdt.tipo_protocolo} (${pcdt.status_conitec})${cidsTexto}`,
         score_relevancia: nome.includes(termoNormalizado) ? -5.5 : -3.5,
+      });
+    }
+  }
+
+  // 5. Amostra do catálogo CMED disponível offline no navegador (o catálogo completo está no app nativo)
+  let encontradosCmed = 0;
+  for (const item of await carregarCatalogoCmed()) {
+    if (encontradosCmed >= 10) break;
+    const nome = normalizarTexto(item.nome_produto);
+    const substancia = normalizarTexto(item.substancia);
+    if (nome.includes(termoNormalizado) || substancia.includes(termoNormalizado)) {
+      encontradosCmed += 1;
+      resultados.push({
+        tipo_registro: 'cmed_comercial',
+        id_referencia: item.id_cmed,
+        titulo_primario: `${item.nome_produto} (${item.apresentacao})`,
+        subtitulo: `${item.substancia} - ${item.laboratorio}`,
+        score_relevancia: nome.startsWith(termoNormalizado) ? -2.0 : -1.0,
       });
     }
   }
@@ -767,30 +806,33 @@ export async function buscarGeral(termo: string): Promise<ItemBuscaFts[]> {
   return resultados.sort((a, b) => a.score_relevancia - b.score_relevancia);
 }
 
+export async function obterRegistroCmed(idCmed: number): Promise<MedicamentoComercialCMED> {
+  if (isTauri()) {
+    return invokeTauri<MedicamentoComercialCMED>('obter_registro_cmed', { idCmed });
+  }
+  const registro = (await carregarCatalogoCmed()).find((item) => item.id_cmed === idCmed);
+  if (!registro) {
+    throw new Error(`Apresentação CMED ${idCmed} não está na amostra offline do navegador`);
+  }
+  return registro;
+}
+
 export async function obterDetalheMedicamento(idMedicamento: number): Promise<DetalheMedicamentoCompleto> {
   if (isTauri()) {
-    try {
-      return await invokeTauri<DetalheMedicamentoCompleto>('obter_detalhe_medicamento', {
-        idMedicamento,
-      });
-    } catch {
-      // fallback gracioso
-    }
+    return invokeTauri<DetalheMedicamentoCompleto>('obter_detalhe_medicamento', { idMedicamento });
   }
 
-  const med = MOCK_MEDICAMENTOS[idMedicamento] || MOCK_MEDICAMENTOS[1];
+  const med = MOCK_MEDICAMENTOS[idMedicamento];
+  if (!med) {
+    throw new Error(`Medicamento não localizado para o identificador ${idMedicamento}`);
+  }
   return med;
 }
 
 export async function verificarInteracoes(idsPrincipiosAtivos: number[]): Promise<MatrizInteracao[]> {
   if (isTauri()) {
-    try {
-      return await invokeTauri<MatrizInteracao[]>('verificar_interacoes', {
-        idsPrincipiosAtivos,
-      });
-    } catch {
-      // fallback
-    }
+    // Em ambiente nativo, falha na checagem de interações deve ser exibida, nunca substituída por base reduzida.
+    return invokeTauri<MatrizInteracao[]>('verificar_interacoes', { idsPrincipiosAtivos });
   }
 
   const resultados: MatrizInteracao[] = [];
@@ -828,155 +870,47 @@ export async function listarProtocolos(): Promise<ProtocoloClinico[]> {
 }
 
 export async function executarCalculoClinico<T>(tipo: string, parametros: Record<string, unknown>): Promise<T> {
+  // No app nativo o cálculo é do motor Rust; uma falha NUNCA cai silenciosamente para outra implementação.
   if (isTauri()) {
-    try {
-      return await invokeTauri<T>('executar_calculo_clinico', { tipo, parametros });
-    } catch {
-      // fallback
+    return invokeTauri<T>('executar_calculo_clinico', { tipo, parametros });
+  }
+  // No navegador/PWA usa-se o porte fiel do motor (validado por tests/paridade_calculos.test.mjs).
+  return executarCalculoLocal(tipo, parametros) as T;
+}
+
+
+export async function cotarPrecosMedicamento(parametros: {
+  id_cmed?: number;
+  id_medicamento?: number;
+  termo?: string;
+}): Promise<AnalisePrecoMedicamento> {
+  if (isTauri()) {
+    return invokeTauri<AnalisePrecoMedicamento>('cotar_precos_medicamento', {
+      idCmed: parametros.id_cmed,
+      idMedicamento: parametros.id_medicamento,
+      termo: parametros.termo,
+    });
+  }
+
+  // Fallback web / PWA offline
+  const { buscarCotacaoLocal } = await import('./pharmacy_pricing');
+  if (parametros.id_cmed) {
+    return buscarCotacaoLocal(parametros.id_cmed);
+  }
+  if (parametros.id_medicamento) {
+    const med = MOCK_MEDICAMENTOS[parametros.id_medicamento];
+    if (med) {
+      const { cotarPrecosFarmacias } = await import('./pharmacy_pricing');
+      return cotarPrecosFarmacias(
+        med.medicamento.nome_comercial,
+        med.principio_ativo.nome_dcb,
+        'Referência / Padronizado',
+        med.medicamento.apresentacao_comercial,
+        med.medicamento.numero_registro_anvisa,
+        med.medicamento.preco_maximo_consumidor
+      );
     }
   }
 
-  // Fallback determinístico client-side
-  if (tipo === 'ckd_epi_2021') {
-    const creatinina = Number(parametros.creatinina);
-    const idade = Number(parametros.idade);
-    const sexoFeminino = Boolean(parametros.sexo_feminino);
-
-    const kappa = sexoFeminino ? 0.7 : 0.9;
-    const alpha = sexoFeminino ? -0.241 : -0.302;
-    const multSexo = sexoFeminino ? 1.012 : 1.0;
-
-    const ratio = creatinina / kappa;
-    const minVal = Math.min(ratio, 1.0);
-    const maxVal = Math.max(ratio, 1.0);
-
-    const tfg = 142.0 * Math.pow(minVal, alpha) * Math.pow(maxVal, -1.2) * Math.pow(0.9938, idade) * multSexo;
-    const tfgArredondada = Math.round(tfg * 100) / 100;
-
-    let estagio = 'G1 - Normal ou elevada';
-    let rec = 'Função renal preservada.';
-    if (tfgArredondada < 15) {
-      estagio = 'G5 - Falência renal terminal';
-      rec = 'Terapia renal substitutiva necessária.';
-    } else if (tfgArredondada < 30) {
-      estagio = 'G4 - Gravemente diminuída';
-      rec = 'Contraindicação formal de metformina e fármacos nefrotóxicos.';
-    } else if (tfgArredondada < 45) {
-      estagio = 'G3b - Moderada a gravemente diminuída';
-      rec = 'Ajuste estrito de doses e acompanhamento com nefrologista.';
-    } else if (tfgArredondada < 60) {
-      estagio = 'G3a - Leve a moderadamente diminuída';
-      rec = 'Monitorar função renal e evitar nefrotóxicos.';
-    } else if (tfgArredondada < 90) {
-      estagio = 'G2 - Levemente diminuída';
-      rec = 'Acompanhamento ambulatorial periódico.';
-    }
-
-    return {
-      taxa_filtracao_glomerular: tfgArredondada,
-      estagio_drc: estagio,
-      metodo_utilizado: 'CKD-EPI 2021 (sem viés racial)',
-      recomendacao_geral: rec,
-    } as unknown as T;
-  }
-
-  if (tipo === 'cockcroft_gault') {
-    const creatinina = Number(parametros.creatinina);
-    const peso = Number(parametros.peso_kg);
-    const idade = Number(parametros.idade);
-    const sexoFeminino = Boolean(parametros.sexo_feminino);
-
-    const multSexo = sexoFeminino ? 0.85 : 1.0;
-    const clcr = ((140.0 - idade) * peso) / (72.0 * creatinina) * multSexo;
-    return {
-      clearance_creatinina_ml_min: Math.round(clcr * 100) / 100,
-    } as unknown as T;
-  }
-
-  if (tipo === 'dose_pediatrica') {
-    const peso = Number(parametros.peso_kg);
-    const doseAlvo = Number(parametros.dose_alvo_mg_kg_dia);
-    const conc = Number(parametros.concentracao_mg_ml);
-    const frac = Number(parametros.fracionamento_diario);
-    const teto = parametros.dose_maxima_diaria_mg ? Number(parametros.dose_maxima_diaria_mg) : null;
-
-    const totalCalculado = peso * doseAlvo;
-    const alerta = teto !== null && totalCalculado > teto;
-    const tetoAplicado = alerta ? (teto as number) : totalCalculado;
-
-    const doseTomada = tetoAplicado / frac;
-    const volTomada = doseTomada / conc;
-    const gotas = Math.round(volTomada * 20);
-
-    return {
-      peso_kg: peso,
-      dose_alvo_mg_kg_dia: doseAlvo,
-      dose_total_calculada_mg_dia: Math.round(totalCalculado * 100) / 100,
-      dose_teto_aplicada_mg_dia: Math.round(tetoAplicado * 100) / 100,
-      fracionamento_diario: frac,
-      intervalo_horas: Math.floor(24 / frac),
-      dose_por_tomada_mg: Math.round(doseTomada * 100) / 100,
-      volume_ml_por_tomada: Math.round(volTomada * 100) / 100,
-      numero_gotas_por_tomada: gotas,
-      alerta_teto_ultrapassado: alerta,
-      justificativa_seguranca: alerta
-        ? `A dose calculada baseada no peso (${totalCalculado.toFixed(1)} mg/dia) excedeu o teto diário seguro da ANVISA (${teto?.toFixed(1)} mg/dia) e foi limitada automaticamente.`
-        : null,
-    } as unknown as T;
-  }
-
-  if (tipo === 'vazao_infusao') {
-    const dose = Number(parametros.dose_mcg_kg_min);
-    const peso = Number(parametros.peso_kg);
-    const conc = Number(parametros.concentracao_mg_ml);
-    const vazao = (dose * peso * 60) / (conc * 1000);
-    return {
-      vazao_ml_h: Math.round(vazao * 100) / 100,
-      unidade: 'mL/h',
-    } as unknown as T;
-  }
-
-  if (tipo === 'curb65') {
-    let pts = 0;
-    if (parametros.confusao) pts++;
-    if (parametros.ureia_maior_50) pts++;
-    if (parametros.fr_maior_30) pts++;
-    if (parametros.hipotensao) pts++;
-    if (parametros.idade_maior_65) pts++;
-
-    const estrato = pts <= 1 ? 'Baixo risco (< 3% mortalidade)' : pts === 2 ? 'Risco intermediário (~9% mortalidade)' : 'Alto risco (15% a 40% mortalidade)';
-    const conduta = pts <= 1 ? 'Tratamento ambulatorial seguro.' : pts === 2 ? 'Considerar internação em enfermaria clínica.' : 'Internação hospitalar urgente; avaliar UTI.';
-
-    return {
-      pontuacao: pts,
-      estrato_mortalidade: estrato,
-      recomendacao_local_tratamento: conduta,
-    } as unknown as T;
-  }
-
-  if (tipo === 'wells_tep') {
-    let score = 0.0;
-    if (parametros.sinais_tvp) score += 3.0;
-    if (parametros.diagnostico_alternativo_menos_provavel) score += 3.0;
-    if (parametros.fc_maior_100) score += 1.5;
-    if (parametros.imobilizacao_ou_cirurgia) score += 1.5;
-    if (parametros.historico_previo_tep_tvp) score += 1.5;
-    if (parametros.hemoptise) score += 1.0;
-    if (parametros.malignidade_ativa) score += 1.0;
-
-    const categoria = score <= 4.0 ? 'TEP Improvável' : 'TEP Provável';
-    const prob = score <= 4.0 ? '~12% (Baixa probabilidade)' : '~37% a 65% (Alta probabilidade)';
-    const propedeutica = score <= 4.0
-      ? 'Dosagem de D-dímero de alta sensibilidade. Se negativo, exclui TEP sem necessidade de angiotomografia.'
-      : 'Angiotomografia computadorizada (Angio-TC) de tórax com protocolo para artérias pulmonares.';
-
-    return {
-      pontuacao_total: score,
-      categoria_risco: categoria,
-      probabilidade_clinica_percentual: prob,
-      conduta_propedêutica: propedeutica,
-    } as unknown as T;
-  }
-
-  throw new Error(`Cálculo não implementado: ${tipo}`);
+  return buscarCotacaoLocal(parametros.termo || 'Dipirona');
 }

@@ -4,9 +4,11 @@ use clinical_engine::calculators::{
 };
 use clinical_engine::database::BancoDadosClinico;
 use clinical_engine::models::{
-    DetalheMedicamentoCompleto, ItemBuscaFts, MatrizInteracao, ProtocoloClinico,
+    DetalheMedicamentoCompleto, ItemBuscaFts, MatrizInteracao, MedicamentoComercialCmed,
+    ProtocoloClinico,
 };
 use clinical_engine::pediatric::calcular_dose_pediatrica;
+use clinical_engine::pharmacy_pricing::{cotar_precos_farmacias, AnalisePrecoMedicamento};
 use clinical_engine::protocols::analisar_protocolo_markdown;
 use serde_json::{json, Value};
 use std::fs;
@@ -14,32 +16,37 @@ use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
 pub struct EstadoAplicacao {
-    pub caminho_banco: Mutex<String>,
+    pub caminho_banco: Mutex<Option<String>>,
 }
 
-pub fn resolver_caminho_banco() -> String {
+/// Procura o banco em `OPENCLINICAL_DB_PATH`, no diretório de recursos do app empacotado
+/// e, por fim, nos caminhos relativos usados durante o desenvolvimento.
+pub fn resolver_caminho_banco(diretorio_recursos: Option<PathBuf>) -> Option<String> {
     if let Ok(caminho_env) = std::env::var("OPENCLINICAL_DB_PATH") {
         if Path::new(&caminho_env).exists() {
-            return caminho_env;
+            return Some(caminho_env);
+        }
+    }
+
+    if let Some(diretorio) = diretorio_recursos {
+        let caminho_recurso = diretorio.join("openclinical_core.sqlite");
+        if caminho_recurso.exists() {
+            return Some(caminho_recurso.to_string_lossy().into_owned());
         }
     }
 
     let caminhos_candidatos = [
         "openclinical_core.sqlite",
+        "openclinical/core_rust/openclinical_desktop/openclinical_core.sqlite",
         "openclinical/etl_pipeline/openclinical_core.sqlite",
         "../etl_pipeline/openclinical_core.sqlite",
         "../../etl_pipeline/openclinical_core.sqlite",
-        "../../../etl_pipeline/openclinical_core.sqlite",
-        "e:/source/OpenMedical/openclinical/etl_pipeline/openclinical_core.sqlite",
     ];
 
-    for candidato in caminhos_candidatos {
-        if Path::new(candidato).exists() {
-            return candidato.to_string();
-        }
-    }
-
-    "openclinical_core.sqlite".to_string()
+    caminhos_candidatos
+        .iter()
+        .find(|candidato| Path::new(candidato).exists())
+        .map(|candidato| candidato.to_string())
 }
 
 fn obter_conexao_banco(estado: &EstadoAplicacao) -> Result<BancoDadosClinico, String> {
@@ -47,9 +54,10 @@ fn obter_conexao_banco(estado: &EstadoAplicacao) -> Result<BancoDadosClinico, St
         .caminho_banco
         .lock()
         .map_err(|e| format!("Erro ao obter trava do estado do banco: {e}"))?
-        .clone();
+        .clone()
+        .ok_or("Banco de dados clínico (openclinical_core.sqlite) não encontrado. Defina OPENCLINICAL_DB_PATH ou reinstale o aplicativo.")?;
 
-    BancoDadosClinico::abrir(&caminho).map_err(|e| e.to_string())
+    BancoDadosClinico::abrir_somente_leitura(&caminho).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -73,6 +81,80 @@ pub fn obter_detalhe_medicamento(
 }
 
 #[tauri::command]
+pub fn obter_registro_cmed(
+    id_cmed: i64,
+    estado: tauri::State<'_, EstadoAplicacao>,
+) -> Result<MedicamentoComercialCmed, String> {
+    let banco = obter_conexao_banco(&estado)?;
+    banco.obter_registro_cmed(id_cmed).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn cotar_precos_medicamento(
+    id_cmed: Option<i64>,
+    id_medicamento: Option<i64>,
+    termo: Option<String>,
+    estado: tauri::State<'_, EstadoAplicacao>,
+) -> Result<AnalisePrecoMedicamento, String> {
+    let banco = obter_conexao_banco(&estado)?;
+
+    if let Some(id) = id_cmed {
+        let med = banco.obter_registro_cmed(id).map_err(|e| e.to_string())?;
+        return Ok(cotar_precos_farmacias(
+            &med.nome_produto,
+            &med.substancia,
+            &med.tipo_produto,
+            &med.apresentacao,
+            &med.codigo_ean,
+            med.preco_maximo_consumidor,
+        ));
+    }
+
+    if let Some(id) = id_medicamento {
+        let detalhe = banco.obter_detalhe_medicamento(id).map_err(|e| e.to_string())?;
+        return Ok(cotar_precos_farmacias(
+            &detalhe.medicamento.nome_comercial,
+            &detalhe.principio_ativo.nome_dcb,
+            "Referência / Padronizado",
+            &detalhe.medicamento.apresentacao_comercial,
+            &detalhe.medicamento.numero_registro_anvisa,
+            detalhe.medicamento.preco_maximo_consumidor,
+        ));
+    }
+
+    if let Some(t) = termo {
+        let achados = banco.buscar_geral(&t, 10).map_err(|e| e.to_string())?;
+        if let Some(item_cmed) = achados
+            .into_iter()
+            .find(|item| item.tipo_registro == "cmed_comercial")
+            .and_then(|item| item.id_referencia.as_i64())
+        {
+            let med = banco.obter_registro_cmed(item_cmed).map_err(|e| e.to_string())?;
+            return Ok(cotar_precos_farmacias(
+                &med.nome_produto,
+                &med.substancia,
+                &med.tipo_produto,
+                &med.apresentacao,
+                &med.codigo_ean,
+                med.preco_maximo_consumidor,
+            ));
+        }
+
+        // Simulação com base no termo
+        return Ok(cotar_precos_farmacias(
+            &t,
+            &t,
+            "Genérico",
+            "Apresentação Comercial Farmacêutica",
+            "",
+            25.0,
+        ));
+    }
+
+    Err("Nenhum parâmetro de identificação do medicamento fornecido para cotação.".to_string())
+}
+
+#[tauri::command]
 pub fn verificar_interacoes(
     ids_principios_ativos: Vec<i64>,
     estado: tauri::State<'_, EstadoAplicacao>,
@@ -90,7 +172,6 @@ pub fn listar_protocolos_clinicos() -> Result<Vec<ProtocoloClinico>, String> {
         "openclinical/clinical_content/protocolos",
         "../../clinical_content/protocolos",
         "../../../clinical_content/protocolos",
-        "e:/source/OpenMedical/openclinical/clinical_content/protocolos",
     ];
 
     let mut dir_encontrado: Option<PathBuf> = None;

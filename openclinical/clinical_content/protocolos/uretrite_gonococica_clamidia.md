@@ -6,6 +6,7 @@ ciaps_relacionados: ["U72", "X71"]
 nivel_atencao: "Atencao_Primaria_e_Urgencia"
 diretrizes_referencia: "PCDT ISTs Ministério da Saúde do Brasil, CDC"
 data_revisao: "2026-10-26"
+status_revisao_clinica: "pendente_revisao_por_profissional_habilitado"
 ---
 
 # Diretrizes Clínicas: Corrimento Uretral Masculino e Cervicite

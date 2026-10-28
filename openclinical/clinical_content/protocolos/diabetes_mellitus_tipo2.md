@@ -6,13 +6,14 @@ ciaps_relacionados: ["T90"]
 nivel_atencao: "Atencao_Primaria"
 diretrizes_referencia: "Diretrizes da Sociedade Brasileira de Diabetes (SBD 2024), ADA"
 data_revisao: "2026-10-26"
+status_revisao_clinica: "pendente_revisao_por_profissional_habilitado"
 ---
 
 # Diretrizes Clínicas: Início do Tratamento do DM2
 
 ## 1. Metformina como Terapia Inicial Padrão
 * Iniciar com 500 a 850 mg/dia junto à refeição principal e titular gradualmente a cada 14 dias até dose plena de 2000 a 2550 mg/dia.
-* Redução esperada de HbA1c: 1.5% a 2.0%.
+* Redução esperada de HbA1c: 1.0% a 1.5%.
 * Monitorar TFG: Contraindicação formal absoluta se TFG < 30 mL/min/1.73m² (risco de acidose lática).
 
 ```receita

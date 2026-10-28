@@ -6,6 +6,7 @@ ciaps_relacionados: ["A77"]
 nivel_atencao: "Atencao_Primaria_e_Urgencia"
 diretrizes_referencia: "Ministério da Saúde do Brasil (2024), Organização Pan-Americana da Saúde (OPAS/OMS)"
 data_revisao: "2026-10-26"
+status_revisao_clinica: "pendente_revisao_por_profissional_habilitado"
 ---
 
 # Protocolo de Manejo Clínico da Dengue (Diretrizes MS / OPAS)

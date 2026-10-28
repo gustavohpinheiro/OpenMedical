@@ -4,6 +4,7 @@ pub mod errors;
 pub mod interactions;
 pub mod models;
 pub mod pediatric;
+pub mod pharmacy_pricing;
 pub mod protocols;
 
 // Re-exports convenientes para os consumidores da biblioteca
@@ -16,6 +17,10 @@ pub use errors::ClinicalError;
 pub use interactions::{gerar_pares_combinatorios, verificar_interacoes_em_memoria};
 pub use models::*;
 pub use pediatric::calcular_dose_pediatrica;
+pub use pharmacy_pricing::{
+    cotar_precos_farmacias, extrair_quantidade_unidades, verificar_elegibilidade_farmacia_popular,
+    AnalisePrecoMedicamento, CotacaoFarmacia,
+};
 pub use protocols::analisar_protocolo_markdown;
 
 #[cfg(not(target_arch = "wasm32"))]

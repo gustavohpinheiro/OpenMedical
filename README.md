@@ -94,7 +94,7 @@ conda activate openclinical
 
 ### 2. Executar o Pipeline ETL e Banco SQLite
 ```bash
-# Compilar o banco de dados e aplicar o seed inicial com os 10 medicamentos RENAME
+# Compilar o banco de dados e aplicar o seed inicial (10 princípios ativos, 13 apresentações)
 python openclinical/etl_pipeline/seed_dados_iniciais.py
 
 # Rodar os testes unitários do pipeline Python
@@ -105,15 +105,21 @@ python -m pytest openclinical/etl_pipeline/tests/test_etl_pipeline.py
 ```bash
 cargo test --package clinical_engine --manifest-path openclinical/core_rust/clinical_engine/Cargo.toml
 ```
-*Todos os 11 testes unitários determinísticos (CKD-EPI 2021, Cockcroft-Gault, CURB-65, Wells TEP, vazão de noradrenalina, dose pediátrica com teto de segurança, combinatória de interações e parser de protocolos) foram validados com 100% de sucesso.*
+*18 testes determinísticos (CKD-EPI 2021, Cockcroft-Gault, CURB-65, Wells TEP, vazão de noradrenalina, dose pediátrica com teto, combinatória de interações, parser de protocolos, busca FTS5, consulta CMED, entradas inválidas e consultas no banco empacotado).*
 
 ### 4. Executar a Interface do Usuário (Frontend Web / PWA)
 ```bash
 cd openclinical/frontend_ui
-npm install
+npm ci
 npm run dev
 ```
+Se `npm run dev` acusar `Cannot find module ... vite/bin/vite.js`, o `node_modules` está incompleto: encerre qualquer servidor dev aberto e rode `npm ci` de novo.
 Acesse `http://localhost:5173`. Pressione `Ctrl+K` para abrir a busca global instantânea.
+
+```bash
+npm run typecheck   # tsc estrito
+npm test            # paridade dos cálculos TS x casos de referência do Rust
+```
 
 ### 5. Executar o Aplicativo Nativo Multiplataforma (Tauri 2.0 Desktop)
 ```bash
@@ -121,6 +127,9 @@ cargo tauri dev --manifest-path openclinical/core_rust/openclinical_desktop/Carg
 ```
 
 ---
+
+## ⚠️ Aviso
+Projeto em estágio de protótipo. O conteúdo clínico (protocolos, bulas, interações, resumos de PCDT) **não passou por revisão clínica formal** e não substitui julgamento profissional nem as fontes oficiais. Os modelos de receita dos catálogos CMED/ANVISA não trazem posologia.
 
 ## 🛡️ Segurança Clínica e Determinismo
 - Todos os cálculos médicos são estritamente matemáticos e determinísticos, auditados por testes unitários e nunca delegados a LLMs em tempo de execução.

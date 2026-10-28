@@ -6,6 +6,7 @@ ciaps_relacionados: ["R96"]
 nivel_atencao: "Atencao_Primaria_e_Urgencia"
 diretrizes_referencia: "Global Initiative for Asthma (GINA 2024), SBPT"
 data_revisao: "2026-10-26"
+status_revisao_clinica: "pendente_revisao_por_profissional_habilitado"
 ---
 
 # Diretrizes Clínicas: Crise Asmática Aguda

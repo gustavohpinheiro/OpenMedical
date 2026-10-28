@@ -34,6 +34,7 @@ pub fn analisar_protocolo_markdown(conteudo_arquivo: &str) -> Result<ProtocoloCl
     let mut ciaps_relacionados: Vec<String> = Vec::new();
     let mut nivel_atencao = String::new();
     let mut data_revisao = String::new();
+    let mut status_revisao_clinica: Option<String> = None;
 
     // Extrai metadados do frontmatter YAML linha a linha de forma determinística
     for i in 1..fim_frontmatter {
@@ -51,6 +52,7 @@ pub fn analisar_protocolo_markdown(conteudo_arquivo: &str) -> Result<ProtocoloCl
                 "titulo" => titulo = valor_limpo.to_string(),
                 "nivel_atencao" => nivel_atencao = valor_limpo.to_string(),
                 "data_revisao" => data_revisao = valor_limpo.to_string(),
+                "status_revisao_clinica" => status_revisao_clinica = Some(valor_limpo.to_string()),
                 "cids_relacionados" | "cids" => {
                     cids_relacionados = parsear_lista_yaml(valor_limpo);
                 }
@@ -86,9 +88,33 @@ pub fn analisar_protocolo_markdown(conteudo_arquivo: &str) -> Result<ProtocoloCl
         ciaps_relacionados,
         nivel_atencao,
         data_revisao,
-        conteudo_markdown: corpo_markdown,
+        status_revisao_clinica,
+        conteudo_markdown: remover_titulo_e_bloco_receita(&corpo_markdown),
         bloco_prescricao_copiavel: bloco_prescricao,
     })
+}
+
+/// Deixa no corpo apenas o texto explicativo, como o gerador faz para o frontend:
+/// o título H1 já vem do frontmatter e a receita é exibida no bloco copiável próprio.
+fn remover_titulo_e_bloco_receita(corpo_markdown: &str) -> String {
+    let mut corpo = corpo_markdown.to_string();
+
+    if let Some(pos_inicio) = corpo.find("```receita") {
+        let apos_abertura = pos_inicio + "```receita".len();
+        if let Some(pos_fim_relativa) = corpo[apos_abertura..].find("```") {
+            let pos_fim = apos_abertura + pos_fim_relativa + "```".len();
+            corpo.replace_range(pos_inicio..pos_fim, "");
+        }
+    }
+
+    let corpo = corpo.trim();
+    let sem_titulo = if corpo.starts_with("# ") {
+        corpo.split_once('\n').map(|(_, resto)| resto).unwrap_or("")
+    } else {
+        corpo
+    };
+
+    sem_titulo.trim().to_string()
 }
 
 fn parsear_lista_yaml(texto_lista: &str) -> Vec<String> {
