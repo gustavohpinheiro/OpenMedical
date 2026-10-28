@@ -10,6 +10,8 @@ interface SearchModalProps {
   onSelecionarProtocolo: (id: string) => void;
   onSelecionarBasePublica: (tipo: 'cmed' | 'pcdt', id: number) => void;
   onSelecionarFormulario: (idMonografia: number) => void;
+  /** Termo já digitado ao abrir (clique em um nome de medicamento sem bula própria) */
+  termoInicial?: string;
 }
 
 const ROTULO_TIPO: Record<ItemBuscaFts['tipo_registro'], string> = {
@@ -46,6 +48,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
   onSelecionarProtocolo,
   onSelecionarBasePublica,
   onSelecionarFormulario,
+  termoInicial,
 }) => {
   const [termo, setTermo] = useState('');
   const [resultados, setResultados] = useState<ItemBuscaFts[]>([]);
@@ -57,13 +60,14 @@ export const SearchModal: React.FC<SearchModalProps> = ({
 
   useEffect(() => {
     if (aberto) {
+      if (termoInicial) setTermo(termoInicial);
       inputRef.current?.focus();
     } else {
       setTermo('');
       setResultados([]);
       setErro(null);
     }
-  }, [aberto]);
+  }, [aberto, termoInicial]);
 
   useEffect(() => {
     if (!termo.trim()) {

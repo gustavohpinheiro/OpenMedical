@@ -14,6 +14,7 @@ import {
   Store,
 } from 'lucide-react';
 import { DetalheMedicamentoCompleto, FaixaAjusteRenal, GuiaDiluicao } from '../types';
+import { BotaoBulaAnvisa, BulaVigenteAnvisa } from './PosologiaFtnProduto';
 
 interface DrugDetailProps {
   detalhe: DetalheMedicamentoCompleto;
@@ -149,7 +150,7 @@ Receituário: ${medicamento.tipo_receituario.toUpperCase()}`;
               <button
                 onClick={() => onCompararPrecos(medicamento.nome_comercial)}
                 className="flex items-center space-x-1.5 px-3 py-1.5 bg-emerald-950/70 hover:bg-emerald-900/80 text-emerald-300 border border-emerald-600/50 rounded-xl text-xs font-semibold transition-all shadow"
-                title="Buscar cotações deste medicamento nas farmácias e Farmácia Popular"
+                title="Teto de preço (PMC), Farmácia Popular e busca de preço nas farmácias"
               >
                 <Store className="w-4 h-4 text-emerald-400" />
                 <span>Preços em Farmácias</span>
@@ -187,8 +188,20 @@ Receituário: ${medicamento.tipo_receituario.toUpperCase()}`;
           </span>
 
           <span className="text-[11px] font-mono text-slate-400 ml-auto">
-            ANVISA: {medicamento.numero_registro_anvisa}
+            {medicamento.numero_registro_anvisa
+              ? `ANVISA/CMED: ${medicamento.numero_registro_anvisa}`
+              : 'Registro não localizado na tabela CMED'}
           </span>
+          <BotaoBulaAnvisa
+            numeroRegistro={medicamento.numero_registro_anvisa}
+            nomeProduto={medicamento.nome_comercial}
+            compacto
+          />
+          {medicamento.numero_registro_anvisa && (
+            <div className="w-full flex justify-end">
+              <BulaVigenteAnvisa numeroRegistro={medicamento.numero_registro_anvisa} />
+            </div>
+          )}
         </div>
       </div>
 
@@ -304,9 +317,11 @@ Receituário: ${medicamento.tipo_receituario.toUpperCase()}`;
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-xs font-semibold text-slate-400">Preço Máximo Consumidor (CMED)</div>
+                <div className="text-xs font-semibold text-slate-400">Preço Máximo ao Consumidor (CMED, ICMS 18%)</div>
                 <div className="text-lg font-mono font-bold text-emerald-400 mt-0.5">
-                  R$ {medicamento.preco_maximo_consumidor.toFixed(2)}
+                  {medicamento.preco_maximo_consumidor > 0
+                    ? `R$ ${medicamento.preco_maximo_consumidor.toFixed(2)}`
+                    : 'Sem PMC publicado'}
                 </div>
               </div>
             </div>
@@ -325,10 +340,11 @@ Receituário: ${medicamento.tipo_receituario.toUpperCase()}`;
                 <div className="space-y-0.5">
                   <div className="text-xs font-bold text-emerald-300 flex items-center gap-1.5">
                     <Store className="w-4 h-4 text-emerald-400" />
-                    Cotação em Tempo Real nas Farmácias
+                    Preço e Farmácia Popular
                   </div>
                   <p className="text-[11px] text-slate-400">
-                    Veja o preço de {medicamento.nome_comercial} na Drogasil, Raia, DPSP, Pague Menos, Panvel, Ultrafarma e se tem no Farmácia Popular (SUS).
+                    Veja o teto oficial (PMC), se {medicamento.nome_comercial} é gratuito no Farmácia Popular e os links para
+                    pesquisar o preço nas redes de farmácias.
                   </p>
                 </div>
                 <button

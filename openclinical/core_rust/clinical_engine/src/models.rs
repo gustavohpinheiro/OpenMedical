@@ -90,8 +90,9 @@ pub struct ResultadoDosePediatrica {
     pub fracionamento_diario: u8,
     pub intervalo_horas: u8,
     pub dose_por_tomada_mg: f64,
-    pub volume_ml_por_tomada: f64,
-    pub numero_gotas_por_tomada: u32,
+    /// Ausente quando não há formulação líquida (comprimido, cápsula): a dose fica só em mg
+    pub volume_ml_por_tomada: Option<f64>,
+    pub numero_gotas_por_tomada: Option<u32>,
     pub alerta_teto_ultrapassado: bool,
     pub justificativa_seguranca: Option<String>,
 }

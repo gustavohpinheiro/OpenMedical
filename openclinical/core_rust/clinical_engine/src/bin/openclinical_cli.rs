@@ -1,9 +1,11 @@
+use clinical_engine::api_anvisa::{mascarar_client_id, normalizar_credenciais, testar_conexao};
+use clinical_engine::atualizador::atualizar_bases;
 use clinical_engine::calculators::{
     avaliar_estagio_drc, calcular_tfg_ckd_epi_2021,
 };
 use clinical_engine::database::BancoDadosClinico;
 use clinical_engine::pediatric::calcular_dose_pediatrica;
-use clinical_engine::pharmacy_pricing::cotar_precos_farmacias;
+use clinical_engine::pharmacy_pricing::analisar_preco_medicamento;
 use std::env;
 use std::path::Path;
 
@@ -92,9 +94,11 @@ fn main() {
             println!("   Peso: {} kg | Dose: {} mg/kg/dia | Conc: {} mg/mL | Tomadas/dia: {} | Teto: {} mg/dia",
                 peso, dose_alvo, conc, fracionamento, teto);
 
-            match calcular_dose_pediatrica(peso, dose_alvo, conc, fracionamento, Some(teto)) {
+            match calcular_dose_pediatrica(peso, dose_alvo, Some(conc), fracionamento, Some(teto)) {
                 Ok(res) => {
-                    println!("\n   ⭐ Volume por Tomada: {:.1} mL ({})", res.volume_ml_por_tomada, format!("{} gotas", res.numero_gotas_por_tomada));
+                    if let (Some(volume), Some(gotas)) = (res.volume_ml_por_tomada, res.numero_gotas_por_tomada) {
+                        println!("\n   ⭐ Volume por Tomada: {volume:.1} mL ({gotas} gotas)");
+                    }
                     println!("   ⭐ Dose por Tomada: {:.1} mg a cada {} horas", res.dose_por_tomada_mg, res.intervalo_horas);
                     println!("   ⭐ Dose Diária Total: {:.1} mg/dia (Teto aplicado: {:.1} mg)", res.dose_total_calculada_mg_dia, res.dose_teto_aplicada_mg_dia);
                     if res.alerta_teto_ultrapassado {
@@ -140,86 +144,124 @@ fn main() {
         "precos" => {
             let termo = args.get(2).map(|s| s.as_str()).unwrap_or("dipirona");
             let caminho_db = resolver_caminho_banco();
-            println!("\n💊 LOCALIZADOR DE PREÇOS EM FARMÁCIAS BRASILEIRAS");
-            println!("   Pesquisando: '{}' nas bases CMED/ANVISA e redes parceiras...\n", termo);
+            println!("\n💊 PREÇO MÁXIMO (PMC/CMED) E FARMÁCIA POPULAR");
+            println!("   Pesquisando: '{}' na tabela CMED...\n", termo);
 
             match BancoDadosClinico::abrir_somente_leitura(&caminho_db) {
-                Ok(banco) => {
-                    match banco.buscar_geral(termo, 20) {
-                        Ok(achados) => {
-                            let item_cmed = achados
-                                .into_iter()
-                                .find(|item| item.tipo_registro == "cmed_comercial")
-                                .and_then(|item| item.id_referencia.as_i64());
+                Ok(banco) => match banco.buscar_geral(termo, 50) {
+                    Ok(achados) => {
+                        let ids_cmed: Vec<i64> = achados
+                            .into_iter()
+                            .filter(|item| item.tipo_registro == "cmed_comercial")
+                            .filter_map(|item| item.id_referencia.as_i64())
+                            .take(10)
+                            .collect();
 
-                            match item_cmed {
-                                Some(id) => match banco.obter_registro_cmed(id) {
-                                    Ok(med) => {
-                                        let analise = cotar_precos_farmacias(
-                                            &med.nome_produto,
-                                            &med.substancia,
-                                            &med.tipo_produto,
-                                            &med.apresentacao,
-                                            &med.codigo_ean,
-                                            med.preco_maximo_consumidor,
-                                        );
+                        if ids_cmed.is_empty() {
+                            println!("Nenhuma apresentação encontrada na tabela CMED para '{}'.", termo);
+                        }
 
-                                        println!("══════════════════════════════════════════════════════════════");
-                                        println!("  MEDICAMENTO: {} ({})", analise.nome_comercial, analise.substancia);
-                                        println!("  Apresentação: {}", analise.apresentacao);
-                                        println!("  Tipo: {} | Cód. EAN: {}", analise.tipo_produto, analise.codigo_ean);
-                                        println!("══════════════════════════════════════════════════════════════");
-                                        println!("  ⭐ MENOR PREÇO ESTIMADO: R$ {:.2}", analise.menor_preco_estimado);
-                                        println!("  📊 PREÇO MÉDIO DE BALCÃO: R$ {:.2}", analise.preco_medio);
-                                        println!("  🏛️ PREÇO MÁXIMO ANVISA (PMC): R$ {:.2}", analise.preco_pmc_teto);
-                                        if let Some(ppu) = analise.preco_por_unidade {
-                                            println!("  📦 Custo por Unidade: R$ {:.2} / dose/comp", ppu);
-                                        }
-                                        if analise.elegivel_farmacia_popular {
-                                            println!("  🟢 {}", analise.faixa_farmacia_popular.unwrap_or_default());
-                                        }
-
-                                        println!("\n  📋 COTAÇÕES POR REDE DE FARMÁCIA:");
-                                        for cot in analise.cotacoes {
-                                            println!(
-                                                "    • {:<30} -> R$ {:>6.2}  ({:>4.1}% desc.) | {}",
-                                                cot.nome_farmacia,
-                                                cot.preco_estimado,
-                                                cot.desconto_percentual,
-                                                cot.disponibilidade
-                                            );
-                                        }
-                                        println!("══════════════════════════════════════════════════════════════\n");
-                                    }
-                                    Err(e) => eprintln!("❌ Erro ao buscar dados da CMED: {}", e),
-                                },
-                                None => {
-                                    println!("Apresentação exata não encontrada na CMED. Simulando cotação para '{}':", termo);
-                                    let analise = cotar_precos_farmacias(
-                                        termo,
-                                        termo,
-                                        "Genérico",
-                                        "Apresentação Comercial Padrão",
-                                        "",
-                                        25.0,
+                        for id in ids_cmed {
+                            match banco.obter_registro_cmed(id) {
+                                Ok(med) => {
+                                    let analise = analisar_preco_medicamento(
+                                        &med.nome_produto,
+                                        &med.substancia,
+                                        &med.tipo_produto,
+                                        &med.apresentacao,
+                                        &med.codigo_ean,
+                                        med.preco_maximo_consumidor,
                                     );
-                                    println!("  ⭐ MENOR PREÇO: R$ {:.2} | PREÇO MÉDIO: R$ {:.2} | PMC TETO: R$ {:.2}",
-                                        analise.menor_preco_estimado, analise.preco_medio, analise.preco_pmc_teto);
-                                    for cot in analise.cotacoes {
-                                        println!("    • {:<30} -> R$ {:>6.2}", cot.nome_farmacia, cot.preco_estimado);
-                                    }
+                                    let pmc = analise
+                                        .preco_pmc_teto
+                                        .map(|valor| format!("R$ {valor:.2}"))
+                                        .unwrap_or_else(|| "sem PMC publicado".to_string());
+                                    println!("• {} - {}", analise.nome_comercial, analise.apresentacao);
+                                    println!("    {} | PMC (ICMS 18%): {}", analise.substancia, pmc);
+                                    println!(
+                                        "    Farmácia Popular: {}",
+                                        analise.farmacia_popular.mensagem
+                                    );
                                 }
+                                Err(e) => eprintln!("❌ Erro ao buscar dados da CMED: {}", e),
                             }
                         }
-                        Err(e) => eprintln!("❌ Erro ao buscar registros: {}", e),
+                        println!(
+                            "\nO preço praticado só pode ser conferido nas farmácias (ex.: https://consultaremedios.com.br/)."
+                        );
+                    }
+                    Err(e) => eprintln!("❌ Erro ao buscar registros: {}", e),
+                },
+                Err(e) => eprintln!("❌ Falha ao conectar ao banco SQLite: {}", e),
+            }
+        }
+
+        "atualizar" => {
+            // Mesmo atualizador que o app desktop dispara uma vez por dia; pode ir no agendador do sistema
+            let caminho_db = args
+                .get(2)
+                .filter(|a| !a.starts_with("--"))
+                .cloned()
+                .unwrap_or_else(resolver_caminho_banco);
+            let forcar = args.iter().any(|a| a == "--forcar");
+            println!("\n🔄 Atualizando bases oficiais da ANVISA em {caminho_db}...\n");
+            match atualizar_bases(&caminho_db, forcar) {
+                Ok(resultados) => {
+                    for r in resultados {
+                        println!("• [{}] {}: {}", r.situacao.to_uppercase(), r.descricao, r.mensagem);
                     }
                 }
-                Err(e) => eprintln!("❌ Falha ao conectar ao banco SQLite: {}", e),
+                Err(e) => {
+                    eprintln!("❌ {e}");
+                    std::process::exit(1);
+                }
+            }
+        }
+
+        "testar-api-anvisa" => {
+            // Credencial por variável de ambiente para não ficar no histórico do terminal
+            let (Ok(client_id), Ok(client_secret)) = (env::var("ANVISA_CLIENT_ID"), env::var("ANVISA_CLIENT_SECRET")) else {
+                eprintln!("Defina ANVISA_CLIENT_ID (CPF, só números) e ANVISA_CLIENT_SECRET antes de rodar.");
+                std::process::exit(2);
+            };
+            let credenciais = match normalizar_credenciais(&client_id, &client_secret) {
+                Ok(c) => c,
+                Err(e) => {
+                    eprintln!("❌ {e}");
+                    std::process::exit(2);
+                }
+            };
+            println!("\n🔑 Testando a credencial {} no Portal de APIs da ANVISA...\n", mascarar_client_id(&credenciais.client_id));
+            let teste = testar_conexao(&credenciais);
+            println!("{} {}", if teste.autenticado { "✅" } else { "❌" }, teste.mensagem);
+            for servico in teste.servicos {
+                println!("• {}: {} - {}", servico.nome, servico.situacao, servico.detalhe);
+                for operacao in servico.operacoes.iter().take(40) {
+                    println!("    {operacao}");
+                }
+            }
+        }
+
+        "bula" => {
+            let registro = args.get(2).map(|s| s.as_str()).unwrap_or("100290007");
+            let caminho_db = resolver_caminho_banco();
+            match BancoDadosClinico::abrir_somente_leitura(&caminho_db).and_then(|b| b.consultar_bula_anvisa(registro)) {
+                Ok(Some(bula)) => {
+                    println!("\n📄 {} ({})", bula.nome_produto, bula.empresa);
+                    println!("   Bula vigente no Bulário: {} | expediente {}", bula.data_publicacao, bula.expediente);
+                    println!("   {}", bula.url_bulario);
+                }
+                Ok(None) => println!("\nRegistro {registro} sem bula no índice (rode 'atualizar' para baixar o índice)."),
+                Err(e) => eprintln!("❌ {e}"),
             }
         }
 
         _ => {
             println!("\nUso do OpenClinical CLI em Rust:");
+            println!("  cargo run --bin openclinical_cli -- atualizar [caminho_banco] [--forcar]");
+            println!("      Baixa preços CMED, registros e índice de bulas da ANVISA (só o que mudou)\n");
+            println!("  cargo run --bin openclinical_cli -- bula <numero_registro>");
+            println!("      Ex: cargo run --bin openclinical_cli -- bula 100290007\n");
             println!("  cargo run --bin openclinical_cli -- precos <medicamento>");
             println!("      Ex: cargo run --bin openclinical_cli -- precos dipirona");
             println!("      Ex: cargo run --bin openclinical_cli -- precos losartana");

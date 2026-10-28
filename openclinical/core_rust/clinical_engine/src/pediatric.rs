@@ -4,18 +4,18 @@ use crate::models::ResultadoDosePediatrica;
 /// Fator padrão para conversão de soluções aquosas farmacêuticas pediátricas em frasco gotejador.
 pub const GOTAS_POR_MILILITRO: f64 = 20.0;
 
-/// Cálculo determinístico de dose pediátrica líquida com verificação de teto diário de segurança.
+/// Cálculo determinístico de dose pediátrica por peso com verificação de teto diário de segurança.
 ///
 /// Parâmetros:
 /// - peso_kg: peso corporal da criança em quilogramas
-/// - dose_alvo_mg_kg_dia: posologia diária recomendada em mg/kg/dia
-/// - concentracao_mg_ml: concentração da suspensão/solução oral (mg/mL)
+/// - dose_alvo_mg_kg_dia: posologia diária recomendada em mg/kg/dia (dose por tomada × tomadas, se a fonte for por tomada)
+/// - concentracao_mg_ml: concentração da formulação líquida (mg/mL); `None` para formas sólidas (resultado só em mg)
 /// - fracionamento_diario: número de tomadas diárias (ex: 3 para cada 8 horas, 4 para cada 6 horas)
 /// - dose_maxima_diaria_mg: teto diário absoluto de segurança (opcional, extraído da bula)
 pub fn calcular_dose_pediatrica(
     peso_kg: f64,
     dose_alvo_mg_kg_dia: f64,
-    concentracao_mg_ml: f64,
+    concentracao_mg_ml: Option<f64>,
     fracionamento_diario: u8,
     dose_maxima_diaria_mg: Option<f64>,
 ) -> Result<ResultadoDosePediatrica, ClinicalError> {
@@ -35,10 +35,8 @@ pub fn calcular_dose_pediatrica(
         });
     }
 
-    if concentracao_mg_ml <= 0.0 {
-        return Err(ClinicalError::ConcentracaoInvalida {
-            valor: concentracao_mg_ml,
-        });
+    if let Some(concentracao) = concentracao_mg_ml.filter(|c| *c <= 0.0) {
+        return Err(ClinicalError::ConcentracaoInvalida { valor: concentracao });
     }
 
     if fracionamento_diario == 0 || fracionamento_diario > 24 {
@@ -64,8 +62,8 @@ pub fn calcular_dose_pediatrica(
 
     let intervalo_horas = (24 / fracionamento_diario) as u8;
     let dose_por_tomada = dose_teto_aplicada / (fracionamento_diario as f64);
-    let volume_ml_por_tomada = dose_por_tomada / concentracao_mg_ml;
-    let numero_gotas = (volume_ml_por_tomada * GOTAS_POR_MILILITRO).round() as u32;
+    let volume_ml_por_tomada = concentracao_mg_ml.map(|concentracao| dose_por_tomada / concentracao);
+    let numero_gotas = volume_ml_por_tomada.map(|volume| (volume * GOTAS_POR_MILILITRO).round() as u32);
 
     Ok(ResultadoDosePediatrica {
         peso_kg: (peso_kg * 100.0).round() / 100.0,
@@ -75,7 +73,7 @@ pub fn calcular_dose_pediatrica(
         fracionamento_diario,
         intervalo_horas,
         dose_por_tomada_mg: (dose_por_tomada * 100.0).round() / 100.0,
-        volume_ml_por_tomada: (volume_ml_por_tomada * 100.0).round() / 100.0,
+        volume_ml_por_tomada: volume_ml_por_tomada.map(|volume| (volume * 100.0).round() / 100.0),
         numero_gotas_por_tomada: numero_gotas,
         alerta_teto_ultrapassado: alerta_teto,
         justificativa_seguranca: justificativa,

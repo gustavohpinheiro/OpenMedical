@@ -173,7 +173,9 @@ def classificar_estilo(spans: List[dict]) -> str:
     população (Minion negrito), indicação (Minion itálico) e texto (Minion regular).
     Os números de referência sobrescritos (corpo ~4,4) são ignorados na classificação.
     """
-    principais = [s for s in spans if s["text"].strip() and s["size"] >= 6]
+    # Marcadores e parênteses vêm em fonte regular mesmo em linhas negritas/itálicas ("• Adultos",
+    # "Tratamento de hanseníase (esquemas ...)"): só trechos com letras ou números definem o estilo
+    principais = [s for s in spans if re.search(r"\w", s["text"]) and s["size"] >= 6]
     if not principais:
         return "texto"
     fontes = {s["font"] for s in principais}
@@ -242,13 +244,39 @@ class ItemSecao(BaseModel):
     texto: str
 
 
+INICIO_POPULACAO = r"(?:adult[oa]s?|idos[oa]s?|crianças?|neonatos?|lactentes?|recém-nascidos?|adolescentes?|gestantes?)\b"
+UNIDADE_DE_DOSE = re.compile(r"\d\s*(mg|g|mcg|microgramas?|ml|ui|mEq)\b", re.IGNORECASE)
+PADRAO_POPULACAO_INLINE = re.compile(rf"^({INICIO_POPULACAO}[^:]{{0,60}}):\s+\S", re.IGNORECASE)
+
+
+def eh_rotulo_populacao(texto: str, proxima: Optional[Tuple[str, str]]) -> bool:
+    """
+    Rótulo de população que o PDF não diagramou em negrito puro: '• Adultos' (marcador em fonte regular)
+    ou 'Adultos' com espaço em outra fonte. Só vale se for curto, sem dose, e a linha seguinte abrir
+    item, indicação ou população — assim o início de uma frase quebrada ('Crianças com menos de 10 anos
+    requerem...') não vira rótulo.
+    """
+    rotulo = texto.lstrip("• ").strip().rstrip(":").strip()
+    if not re.match(INICIO_POPULACAO, rotulo, re.IGNORECASE) or len(rotulo) > 70 or rotulo.endswith("."):
+        return False
+    if UNIDADE_DE_DOSE.search(rotulo):
+        return False
+    if proxima is None:
+        return False
+    texto_seguinte, estilo_seguinte = proxima
+    return texto_seguinte.startswith("•") or estilo_seguinte in ("indicacao", "populacao")
+
+
 def estruturar_secao(linhas: List[Tuple[str, str]]) -> Tuple[str, List[ItemSecao]]:
     """
     Converte as linhas (texto, estilo) de uma seção em Markdown simples e em itens com o contexto
     de população (negrito) e indicação (itálico) definidos pela tipografia do FTN.
     """
     blocos: List[List[str]] = []  # [tipo, texto] com tipo em populacao/indicacao/item/subitem/texto
-    for texto, estilo in linhas:
+    for posicao, (texto, estilo) in enumerate(linhas):
+        proxima = linhas[posicao + 1] if posicao + 1 < len(linhas) else None
+        if estilo != "populacao" and eh_rotulo_populacao(texto, proxima):
+            estilo, texto = "populacao", texto.lstrip("• ").strip()
         if estilo == "populacao":
             if texto.lower().startswith("nota"):
                 estilo = "texto"  # "Nota:" em negrito é observação, não população
@@ -256,7 +284,17 @@ def estruturar_secao(linhas: List[Tuple[str, str]]) -> Tuple[str, List[ItemSecao
                 texto = texto.rstrip(":").strip()
                 if not PADRAO_POPULACAO.search(texto):
                     estilo = "indicacao"  # negrito que não descreve pacientes ("Cuidados na administração")
+        if (
+            estilo in ("populacao", "indicacao")
+            and texto.endswith(".")
+            and blocos
+            and blocos[-1][0] in ("item", "subitem", "texto")
+            and not re.search(r"[.:;]$", blocos[-1][1])
+        ):
+            # Fim de frase em itálico (nome científico: "...veneno referência de" + "Bothrops jararaca.")
+            estilo = "texto"
         if estilo in ("populacao", "indicacao"):
+            texto = texto.lstrip("•–- ").strip()  # marcador em fonte regular antes do itálico
             if blocos and blocos[-1][0] == estilo and not re.search(r"[.:;]$", blocos[-1][1]):
                 blocos[-1][1] = concatenar(blocos[-1][1], texto)
             else:
@@ -275,20 +313,28 @@ def estruturar_secao(linhas: List[Tuple[str, str]]) -> Tuple[str, List[ItemSecao
     markdown: List[str] = []
     itens: List[ItemSecao] = []
     populacao, indicacao = "", ""
+    # Algumas monografias usam "––" como marcador principal: subitem sem item acima é item próprio,
+    # e os "––" seguintes do mesmo bloco são itens irmãos
+    subitens_sao_itens = True
     for tipo, texto in blocos:
         if tipo == "populacao":
             populacao, indicacao = texto, ""
+            subitens_sao_itens = True
             markdown.append(f"\n**{texto}**")
         elif tipo == "indicacao":
             indicacao = texto
+            subitens_sao_itens = True
             markdown.append(f"\n*{texto}*")
-        elif tipo == "subitem":
+        elif tipo == "subitem" and not subitens_sao_itens:
             markdown.append(f"  - {texto}")
-            if itens:
-                itens[-1].texto = f"{itens[-1].texto} {texto}"
+            itens[-1].texto = f"{itens[-1].texto} {texto}"
         else:
-            markdown.append(f"- {texto}" if tipo == "item" else texto)
-            itens.append(ItemSecao(populacao=populacao, indicacao=indicacao, texto=texto))
+            if tipo in ("item", "texto"):
+                subitens_sao_itens = False
+            markdown.append(f"- {texto}" if tipo in ("item", "subitem") else texto)
+            # "Neonatos: 5 mg/kg..." dentro do bloco de outra população vale só para este item
+            inline = PADRAO_POPULACAO_INLINE.match(texto)
+            itens.append(ItemSecao(populacao=inline.group(1) if inline else populacao, indicacao=indicacao, texto=texto))
     return "\n".join(markdown).strip(), itens
 
 
@@ -507,48 +553,94 @@ def extrair_monografias_ftn(caminho_pdf: str = CAMINHO_PDF_FTN) -> List[Monograf
 # RENAME 2024
 # ---------------------------------------------------------------------------
 
-PADRAO_ATC = re.compile(r"^[A-Z]\d{2}[A-Z]{2}\d{2}$")
-COMPONENTES = {"Básico", "Estratégico", "Especializado"}
-AWARE = {"Acesso", "Alerta", "Reserva", "-"}
+
+
+def _texto_celula(pagina, bbox) -> Optional[str]:
+    """Texto de uma célula pelas palavras dentro dela (a extração direta da tabela perde os espaços)."""
+    import pymupdf
+
+    if bbox is None:
+        return None
+    palavras = sorted(pagina.get_text("words", clip=pymupdf.Rect(bbox)), key=lambda w: (w[5], w[6], w[7]))
+    return re.sub(r"\s+", " ", " ".join(w[4] for w in palavras)).replace("\u200b", "").strip()
+
+
+def _colunas_tabela_rename(cabecalho: List[Optional[str]]) -> Dict[str, int]:
+    colunas: Dict[str, int] = {}
+    for indice, titulo in enumerate(cabecalho):
+        chave = normalizar_chave(titulo or "").replace(" ", "")
+        for nome, trecho in (("denominacao", "denominacao"), ("concentracao", "concentra"), ("forma", "forma"),
+                             ("componente", "componente"), ("atc", "atc"), ("aware", "aware")):
+            if trecho in chave and nome not in colunas:
+                colunas[nome] = indice
+                break
+    return colunas
 
 
 def extrair_itens_rename_2024(caminho_pdf: str = CAMINHO_PDF_RENAME) -> List[ItemRename2024Schema]:
     """
-    Lê as tabelas de medicamentos da RENAME 2024. Cada linha da tabela vira, no texto do PDF, a sequência
-    [denominação (opcional, várias linhas)] concentração, forma, componente, ATC [AWaRe].
+    Lê as tabelas de medicamentos da RENAME 2024 pela estrutura de tabela do PDF (colunas pelo cabeçalho de
+    cada tabela). Célula de denominação vazia = mesma denominação da linha anterior (várias apresentações).
+    A leitura sequencial do texto, usada antes, colava cabeçalhos de página e concentrações no nome e perdia itens.
     """
-    textos = [t.strip() for _, t in extrair_linhas_pdf(caminho_pdf)]
+    import pymupdf
+
     itens: List[ItemRename2024Schema] = []
     denominacao_atual = ""
-    ultimo_fim = 0
-    for i, texto in enumerate(textos):
-        if not PADRAO_ATC.match(texto) or i < 4 or textos[i - 1] not in COMPONENTES:
-            continue
-        componente = textos[i - 1]
-        forma = textos[i - 2]
-        concentracao = textos[i - 3]
-        nome_linhas = [
-            t for t in textos[ultimo_fim:i - 3]
-            if t and t not in AWARE and not LINHAS_DESCARTADAS.match(t) and not t.startswith("=====")
-        ]
-        # Linhas de nome só existem quando a denominação muda; títulos de tabela e cabeçalhos são ignorados
-        nome_linhas = [t for t in nome_linhas if not re.match(r"^(Denominação|Concentração|Forma|Componente|Código|ATC|AWaRe|Classificação)", t)]
-        if nome_linhas and len(" ".join(nome_linhas)) < 160:
-            denominacao_atual = re.sub(r"\s+", " ", " ".join(nome_linhas)).strip()
-        aware = textos[i + 1] if i + 1 < len(textos) and textos[i + 1] in AWARE else ""
-        ultimo_fim = i + (2 if aware else 1)
-        if denominacao_atual:
-            itens.append(
-                ItemRename2024Schema(
-                    denominacao=denominacao_atual,
-                    concentracao=concentracao,
-                    forma_farmaceutica=forma,
-                    componente=componente,
-                    codigo_atc=texto,
-                    classificacao_aware="" if aware in ("", "-") else aware,
-                )
-            )
+    with pymupdf.open(caminho_pdf) as documento:
+        for pagina in documento:
+            for tabela in pagina.find_tables().tables:
+                linhas = [[_texto_celula(pagina, celula) for celula in linha.cells] for linha in tabela.rows]
+                if not linhas:
+                    continue
+                colunas = _colunas_tabela_rename(linhas[0])
+                if not {"concentracao", "forma", "componente", "atc"} <= colunas.keys():
+                    continue  # tabelas que não são de medicamentos (índices, siglas)
+                for linha in linhas[1:]:
+                    def celula(nome: str) -> str:
+                        indice = colunas.get(nome)
+                        return (linha[indice] or "") if indice is not None and indice < len(linha) else ""
+
+                    # "J04BA02 e J04BA51": vale o primeiro código
+                    codigos = re.findall(r"[A-Z]\d{2}[A-Z]{2}\d{2}", celula("atc").replace(" ", ""))
+                    if not codigos:
+                        continue
+                    atc = codigos[0]
+                    if celula("denominacao"):
+                        # "*" marca nota de rodapé da RENAME, não faz parte do nome
+                        denominacao_atual = celula("denominacao").replace("*", "").strip()
+                    if not denominacao_atual:
+                        continue
+                    aware = celula("aware")
+                    itens.append(
+                        ItemRename2024Schema(
+                            denominacao=denominacao_atual,
+                            concentracao=celula("concentracao").replace("*", "").strip(),
+                            forma_farmaceutica=celula("forma"),
+                            componente=celula("componente"),
+                            codigo_atc=atc,
+                            classificacao_aware="" if aware in ("", "-") else aware,
+                        )
+                    )
     return itens
+
+
+def chaves_associacao(nome: str) -> List[str]:
+    """
+    Chaves de um título do FTN para cruzar com a RENAME. Sais alternativos do mesmo fármaco titulados juntos
+    ("succinato de metoprolol ou tartarato de metoprolol", "omeprazol e omeprazol sódico") geram uma chave cada;
+    associações ("a + b") e títulos de fármacos diferentes ficam com uma chave só.
+    """
+    if "+" in nome:
+        return [normalizar_chave(nome_para_busca(nome))]
+    chaves: List[str] = []
+    for alternativa in re.split(r"\s+ou\s+", nome.lower()):
+        partes = [normalizar_chave(nome_para_busca(p)) for p in re.split(r"\s+e\s+|,\s*", alternativa) if p.strip()]
+        mesmo_farmaco = partes and all(p in partes[0] or partes[0] in p for p in partes)
+        # Fármacos diferentes ("artesunato de sódio e cloridrato de mefloquina"): título inteiro, que só casa com
+        # a mesma associação; nome_para_busca cortaria tudo depois do "e"
+        chaves.extend(partes if mesmo_farmaco else [normalizar_chave(alternativa)])
+    return list(dict.fromkeys(c for c in chaves if c))
 
 
 def associar_rename(monografias: List[MonografiaFtnSchema], itens: List[ItemRename2024Schema]) -> None:
@@ -556,7 +648,9 @@ def associar_rename(monografias: List[MonografiaFtnSchema], itens: List[ItemRena
     for item in itens:
         por_chave.setdefault(normalizar_chave(nome_para_busca(item.denominacao)), []).append(item)
     for monografia in monografias:
-        encontrados = por_chave.get(normalizar_chave(monografia.nome_busca), [])
+        encontrados: List[ItemRename2024Schema] = []
+        for chave in chaves_associacao(monografia.nome):
+            encontrados.extend(i for i in por_chave.get(chave, []) if i not in encontrados)
         monografia.rename_2024 = [
             {
                 "concentracao": item.concentracao,

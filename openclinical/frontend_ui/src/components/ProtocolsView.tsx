@@ -15,6 +15,7 @@ import { ProtocoloClinico } from '../types';
 import { listarProtocolos, normalizarTexto } from '../api';
 import { FARMACOS_POR_PROTOCOLO, CATEGORIAS_POR_PROTOCOLO } from '../catalog_protocolos';
 import { MarkdownSimples } from './MarkdownSimples';
+import { LinkMedicamento } from './LinkMedicamento';
 
 /** "Atencao_Primaria_e_Urgencia" -> "Atenção Primária e Urgência" */
 function formatarNivelAtencao(nivel: string): string {
@@ -299,7 +300,7 @@ export const ProtocolsView: React.FC<ProtocolsViewProps> = ({ protocoloSeleciona
                         }`}
                       >
                         <Pill className="w-2.5 h-2.5 opacity-70" />
-                        <span>{f}</span>
+                        <LinkMedicamento nome={f} />
                       </span>
                     );
                   })}

@@ -30,14 +30,17 @@ const PublicDatabasesView = lazy(() =>
 // Formulário Terapêutico Nacional (~3 MB de monografias): também carregado sob demanda
 const FormularioView = lazy(() => import('./components/FormularioView').then((m) => ({ default: m.FormularioView })));
 import { DetalheMedicamentoCompleto } from './types';
-import { obterDetalheMedicamento, isTauri } from './api';
+import { obterDetalheMedicamento, isTauri, buscarGeral, normalizarTexto, aoAtualizarBases } from './api';
+import { AbrirMedicamentoContext } from './components/LinkMedicamento';
+import { carregarFormulario } from './formulario_utils';
+import { chaveSubstanciaCmed, monografiasDoPrincipio } from './ligacao_ftn';
 
 type SecaoApp = 'medicamentos' | 'formulario' | 'precos' | 'protocolos' | 'pcdt' | 'pediatria' | 'interacoes' | 'calculadoras';
 
 const SECOES: { id: SecaoApp; label: string; icon: React.ComponentType<{ className?: string }>; badge: string }[] = [
   { id: 'formulario', label: 'Medicamentos & Receitas', icon: BookMarked, badge: 'FTN · 346' },
   { id: 'medicamentos', label: 'Bulas Estruturadas', icon: Pill, badge: '10 DCB' },
-  { id: 'precos', label: 'Preços em Farmácias', icon: Store, badge: 'Redes & SUS' },
+  { id: 'precos', label: 'Preço & Farmácia Popular', icon: Store, badge: 'PMC · SUS' },
   { id: 'protocolos', label: 'Receitas & Prescrições', icon: BookOpen, badge: '45 Protocolos' },
   { id: 'pcdt', label: 'Bases Públicas', icon: FileCheck, badge: 'CMED · PCDT · ANVISA' },
   { id: 'pediatria', label: 'Calculadora Pediátrica', icon: Baby, badge: 'Teto de dose' },
@@ -48,6 +51,7 @@ const SECOES: { id: SecaoApp; label: string; icon: React.ComponentType<{ classNa
 export const App: React.FC = () => {
   const modoNativo = isTauri();
   const [buscaAberta, setBuscaAberta] = useState(false);
+  const [termoBuscaInicial, setTermoBuscaInicial] = useState<string | undefined>(undefined);
   // "?secao=pediatria" abre direto uma seção (usado pelo atalho do ícone do app no celular)
   const [secaoAtiva, setSecaoAtiva] = useState<SecaoApp>(() => {
     const pedida = new URLSearchParams(window.location.search).get('secao');
@@ -70,11 +74,12 @@ export const App: React.FC = () => {
     teto: number | null;
     fracionamento?: number;
     referencia?: string;
+    idMonografia?: number;
   }>({
-    nome: 'Amoxicilina 250mg/5mL',
-    doseMin: 50,
-    conc: 50,
-    teto: 3000,
+    // Aberta pelo atalho: em branco, com a busca de medicamento do FTN
+    nome: '',
+    conc: null,
+    teto: null,
   });
 
   // Atalho global do teclado (Ctrl+K / Cmd+K ou '/') para abrir a busca instantânea
@@ -89,6 +94,16 @@ export const App: React.FC = () => {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // Atualizador diário do app desktop: avisa quando houver dado novo da ANVISA
+  useEffect(() => {
+    let cancelar: (() => void) | undefined;
+    aoAtualizarBases((resultados) => {
+      const novas = resultados.filter((r) => r.situacao === 'atualizada').map((r) => r.descricao);
+      if (novas.length > 0) mostrarToast(`Bases da ANVISA atualizadas: ${novas.join('; ')}`);
+    }).then((fn) => (cancelar = fn));
+    return () => cancelar?.();
   }, []);
 
   // Carga inicial do medicamento de referência
@@ -146,21 +161,69 @@ export const App: React.FC = () => {
     window.scrollTo({ top: 0 });
   };
 
+  /**
+   * Clique no nome de um medicamento em qualquer tela. Ordem: bula estruturada do app (mesmo princípio ativo),
+   * monografia do FTN, apresentação da CMED com esse nome e, por fim, a busca já preenchida.
+   */
+  const abrirMedicamentoPorNome = async (nomeExibido: string) => {
+    // "Amoxicilina 500mg" / "Dipirona Gotas 500mg/mL" / "Budesonida Spray Nasal" -> nome do fármaco
+    const nome =
+      nomeExibido
+        .replace(/\(.*?\)/g, ' ')
+        .replace(/\s+\d.*$/, '')
+        .replace(/\b(gotas|xarope|suspens[aã]o|comprimidos?|c[aá]psulas?|spray|nasal|injet[aá]vel|solu[cç][aã]o|oral|creme|pomada|col[ií]rio|ampola)\b/gi, ' ')
+        .replace(/\s+/g, ' ')
+        .trim() || nomeExibido;
+    const chave = chaveSubstanciaCmed(nome);
+    try {
+      const resultados = await buscarGeral(nome);
+      if (!chave.includes('+')) {
+        const bula = resultados.find(
+          (r) => r.tipo_registro === 'medicamento' && normalizarTexto(`${r.titulo_primario} ${r.subtitulo}`).includes(chave)
+        );
+        if (bula && typeof bula.id_referencia === 'number') {
+          await abrirMedicamentoPorId(bula.id_referencia);
+          return;
+        }
+      }
+      const { MONOGRAFIAS_FTN } = await carregarFormulario();
+      const [monografia] = monografiasDoPrincipio(nome, MONOGRAFIAS_FTN);
+      if (monografia) {
+        abrirFormularioPorId(monografia.id_monografia);
+        return;
+      }
+      const produto = resultados.find(
+        (r) => r.tipo_registro === 'cmed_comercial' && normalizarTexto(r.titulo_primario).startsWith(normalizarTexto(nome))
+      );
+      if (produto && typeof produto.id_referencia === 'number') {
+        abrirBasePublica('cmed', produto.id_referencia);
+        return;
+      }
+    } catch (e) {
+      mostrarToast(`Não foi possível abrir ${nome}: ${e instanceof Error ? e.message : String(e)}`, true);
+      return;
+    }
+    setTermoBuscaInicial(nome);
+    setBuscaAberta(true);
+  };
+
   const abrirCalculadoraPediatricaComDados = (
     nome: string,
     doseMin: number | undefined,
     conc: number | null,
     teto: number | null,
     fracionamento?: number,
-    referencia?: string
+    referencia?: string,
+    idMonografia?: number
   ) => {
-    setPedProps({ nome, doseMin, conc, teto, fracionamento, referencia });
+    setPedProps({ nome, doseMin, conc, teto, fracionamento, referencia, idMonografia });
     setSecaoAtiva('pediatria');
     window.scrollTo({ top: 0 });
     mostrarToast(conc === null ? `${nome}: informe a concentração da formulação` : `Dose de ${nome} carregada na calculadora`);
   };
 
   return (
+    <AbrirMedicamentoContext.Provider value={abrirMedicamentoPorNome}>
     <div className="min-h-screen bg-[#060b13] text-slate-100 flex flex-col font-sans selection:bg-teal-500 selection:text-white">
       {/* Toast Notificação Flutuante */}
       {toastMensagem && (
@@ -314,6 +377,7 @@ export const App: React.FC = () => {
 
         {secaoAtiva === 'precos' && (
           <PharmacyPriceFinder
+            key={String(medicamentoPrecoInicial)}
             medicamentoInicial={medicamentoPrecoInicial}
             onSelecionarMedicamento={abrirMedicamentoPorId}
           />
@@ -321,8 +385,9 @@ export const App: React.FC = () => {
 
         {secaoAtiva === 'pediatria' && (
           <PediatricCalculator
-            key={`${pedProps.nome}-${pedProps.conc}-${pedProps.doseMin}-${pedProps.fracionamento}`}
+            key={`${pedProps.nome}-${pedProps.conc}-${pedProps.doseMin}-${pedProps.fracionamento}-${pedProps.referencia}`}
             nomeMedicamento={pedProps.nome}
+            idMonografiaInicial={pedProps.idMonografia}
             doseAlvoInicial={pedProps.doseMin}
             concentracaoInicial={pedProps.conc}
             tetoMaximoInicial={pedProps.teto}
@@ -333,7 +398,11 @@ export const App: React.FC = () => {
 
         {secaoAtiva === 'formulario' && (
           <Suspense fallback={<div className="py-16 text-center text-sm text-slate-400">Carregando o Formulário Terapêutico...</div>}>
-            <FormularioView selecao={selecaoFormulario} onAbrirCalculadoraPediatrica={abrirCalculadoraPediatricaComDados} />
+            <FormularioView
+              selecao={selecaoFormulario}
+              onAbrirCalculadoraPediatrica={abrirCalculadoraPediatricaComDados}
+              onAbrirProdutoCmed={(id) => abrirBasePublica('cmed', id)}
+            />
           </Suspense>
         )}
 
@@ -347,7 +416,11 @@ export const App: React.FC = () => {
 
         {secaoAtiva === 'pcdt' && (
           <Suspense fallback={<div className="py-16 text-center text-sm text-slate-400">Carregando bases públicas...</div>}>
-            <PublicDatabasesView selecao={selecaoBasePublica} onCompararPrecos={abrirComparadorPrecos} />
+            <PublicDatabasesView
+              selecao={selecaoBasePublica}
+              onCompararPrecos={abrirComparadorPrecos}
+              onAbrirMonografia={abrirFormularioPorId}
+            />
           </Suspense>
         )}
       </main>
@@ -355,7 +428,11 @@ export const App: React.FC = () => {
       {/* Modal de Busca Rápida Unificada */}
       <SearchModal
         aberto={buscaAberta}
-        onFechar={() => setBuscaAberta(false)}
+        termoInicial={termoBuscaInicial}
+        onFechar={() => {
+          setBuscaAberta(false);
+          setTermoBuscaInicial(undefined);
+        }}
         onSelecionarMedicamento={abrirMedicamentoPorId}
         onSelecionarProtocolo={abrirProtocoloPorId}
         onSelecionarBasePublica={abrirBasePublica}
@@ -376,5 +453,6 @@ export const App: React.FC = () => {
         </div>
       </footer>
     </div>
+    </AbrirMedicamentoContext.Provider>
   );
 };

@@ -8,12 +8,23 @@ use clinical_engine::models::{
     ProtocoloClinico,
 };
 use clinical_engine::pediatric::calcular_dose_pediatrica;
-use clinical_engine::pharmacy_pricing::{cotar_precos_farmacias, AnalisePrecoMedicamento};
+use clinical_engine::pharmacy_pricing::{analisar_preco_medicamento as analisar_preco, AnalisePrecoMedicamento};
 use clinical_engine::protocols::analisar_protocolo_markdown;
+use clinical_engine::api_anvisa::{
+    mascarar_client_id, normalizar_credenciais, testar_conexao, CredenciaisAnvisa, ResultadoTesteAnvisa,
+    URL_GERENCIAR_CREDENCIAIS,
+};
+use clinical_engine::atualizador::{
+    atualizar_bases, precisa_atualizar, BulaAnvisaIndice, EstadoFonte, ResultadoAtualizacao,
+    INTERVALO_ATUALIZACAO_HORAS,
+};
 use serde_json::{json, Value};
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
+use std::time::Duration;
+use tauri::{AppHandle, Emitter};
 
 pub struct EstadoAplicacao {
     pub caminho_banco: Mutex<Option<String>>,
@@ -49,6 +60,95 @@ pub fn resolver_caminho_banco(diretorio_recursos: Option<PathBuf>) -> Option<Str
         .map(|candidato| candidato.to_string())
 }
 
+/// O banco empacotado fica numa pasta somente leitura (Arquivos de Programas): o atualizador diário
+/// trabalha numa cópia na pasta de dados do app, refeita quando a versão do app muda.
+pub fn preparar_banco_gravavel(caminho: String, diretorio_recursos: Option<&Path>, diretorio_dados: Option<PathBuf>) -> String {
+    let empacotado = diretorio_recursos.is_some_and(|recursos| Path::new(&caminho).starts_with(recursos));
+    let (true, Some(dados)) = (empacotado, diretorio_dados) else {
+        return caminho; // desenvolvimento ou OPENCLINICAL_DB_PATH: usa o arquivo direto
+    };
+    let copia = dados.join("openclinical_core.sqlite");
+    let marcador = dados.join("versao_banco.txt");
+    let versao = env!("CARGO_PKG_VERSION");
+    let atual = copia.exists() && fs::read_to_string(&marcador).is_ok_and(|v| v.trim() == versao);
+    if !atual {
+        let copiado = fs::create_dir_all(&dados)
+            .and_then(|_| fs::copy(&caminho, &copia))
+            .and_then(|_| fs::write(&marcador, versao));
+        if let Err(erro) = copiado {
+            eprintln!("Não foi possível copiar o banco para {}: {erro}; atualização automática desativada.", dados.display());
+            return caminho;
+        }
+    }
+    copia.to_string_lossy().into_owned()
+}
+
+static ATUALIZANDO: AtomicBool = AtomicBool::new(false);
+
+/// Roda o atualizador se nenhum outro estiver rodando; avisa a interface pelo evento `bases-atualizadas`.
+fn executar_atualizacao(app: &AppHandle, caminho: &str, forcar: bool) -> Result<Vec<ResultadoAtualizacao>, String> {
+    if ATUALIZANDO.swap(true, Ordering::SeqCst) {
+        return Err("Uma atualização das bases já está em andamento.".to_string());
+    }
+    let resultado = atualizar_bases(caminho, forcar).map_err(|e| e.to_string());
+    ATUALIZANDO.store(false, Ordering::SeqCst);
+    if let Ok(resultados) = &resultado {
+        let _ = app.emit("bases-atualizadas", resultados);
+    }
+    resultado
+}
+
+/// Verifica a cada hora se passou um dia desde a última consulta às fontes da ANVISA e, se passou, atualiza.
+pub fn iniciar_atualizador_diario(app: AppHandle, caminho: String) {
+    std::thread::spawn(move || {
+        // Deixa a interface abrir antes do primeiro download
+        std::thread::sleep(Duration::from_secs(30));
+        loop {
+            if precisa_atualizar(&caminho, INTERVALO_ATUALIZACAO_HORAS) {
+                match executar_atualizacao(&app, &caminho, false) {
+                    Ok(resultados) => {
+                        for r in resultados {
+                            println!("[atualizador] {}: {} - {}", r.fonte, r.situacao, r.mensagem);
+                        }
+                    }
+                    Err(erro) => eprintln!("[atualizador] {erro}"),
+                }
+            }
+            std::thread::sleep(Duration::from_secs(60 * 60));
+        }
+    });
+}
+
+fn caminho_banco(estado: &EstadoAplicacao) -> Result<String, String> {
+    estado
+        .caminho_banco
+        .lock()
+        .map_err(|e| format!("Erro ao obter trava do estado do banco: {e}"))?
+        .clone()
+        .ok_or_else(|| "Banco de dados clínico (openclinical_core.sqlite) não encontrado.".to_string())
+}
+
+#[tauri::command]
+pub fn estado_atualizacao_bases(estado: tauri::State<'_, EstadoAplicacao>) -> Result<Vec<EstadoFonte>, String> {
+    Ok(obter_conexao_banco(&estado)?.estado_atualizacao())
+}
+
+#[tauri::command]
+pub async fn atualizar_bases_agora(app: AppHandle, estado: tauri::State<'_, EstadoAplicacao>) -> Result<Vec<ResultadoAtualizacao>, String> {
+    let caminho = caminho_banco(&estado)?;
+    tauri::async_runtime::spawn_blocking(move || executar_atualizacao(&app, &caminho, false))
+        .await
+        .map_err(|e| format!("Falha na tarefa de atualização: {e}"))?
+}
+
+#[tauri::command]
+pub fn consultar_bula_anvisa(
+    numero_registro: String,
+    estado: tauri::State<'_, EstadoAplicacao>,
+) -> Result<Option<BulaAnvisaIndice>, String> {
+    obter_conexao_banco(&estado)?.consultar_bula_anvisa(&numero_registro).map_err(|e| e.to_string())
+}
+
 fn obter_conexao_banco(estado: &EstadoAplicacao) -> Result<BancoDadosClinico, String> {
     let caminho = estado
         .caminho_banco
@@ -66,7 +166,7 @@ pub fn buscar_geral(
     estado: tauri::State<'_, EstadoAplicacao>,
 ) -> Result<Vec<ItemBuscaFts>, String> {
     let banco = obter_conexao_banco(&estado)?;
-    banco.buscar_geral(&termo, 30).map_err(|e| e.to_string())
+    banco.buscar_geral(&termo, 50).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -89,69 +189,23 @@ pub fn obter_registro_cmed(
     banco.obter_registro_cmed(id_cmed).map_err(|e| e.to_string())
 }
 
+/// PMC oficial, situação no Farmácia Popular e links de busca de preço de uma apresentação da CMED.
+/// A apresentação é escolhida pelo usuário na lista da busca (`buscar_geral`, registros `cmed_comercial`).
 #[tauri::command]
-pub fn cotar_precos_medicamento(
-    id_cmed: Option<i64>,
-    id_medicamento: Option<i64>,
-    termo: Option<String>,
+pub fn analisar_preco_medicamento(
+    id_cmed: i64,
     estado: tauri::State<'_, EstadoAplicacao>,
 ) -> Result<AnalisePrecoMedicamento, String> {
     let banco = obter_conexao_banco(&estado)?;
-
-    if let Some(id) = id_cmed {
-        let med = banco.obter_registro_cmed(id).map_err(|e| e.to_string())?;
-        return Ok(cotar_precos_farmacias(
-            &med.nome_produto,
-            &med.substancia,
-            &med.tipo_produto,
-            &med.apresentacao,
-            &med.codigo_ean,
-            med.preco_maximo_consumidor,
-        ));
-    }
-
-    if let Some(id) = id_medicamento {
-        let detalhe = banco.obter_detalhe_medicamento(id).map_err(|e| e.to_string())?;
-        return Ok(cotar_precos_farmacias(
-            &detalhe.medicamento.nome_comercial,
-            &detalhe.principio_ativo.nome_dcb,
-            "Referência / Padronizado",
-            &detalhe.medicamento.apresentacao_comercial,
-            &detalhe.medicamento.numero_registro_anvisa,
-            detalhe.medicamento.preco_maximo_consumidor,
-        ));
-    }
-
-    if let Some(t) = termo {
-        let achados = banco.buscar_geral(&t, 10).map_err(|e| e.to_string())?;
-        if let Some(item_cmed) = achados
-            .into_iter()
-            .find(|item| item.tipo_registro == "cmed_comercial")
-            .and_then(|item| item.id_referencia.as_i64())
-        {
-            let med = banco.obter_registro_cmed(item_cmed).map_err(|e| e.to_string())?;
-            return Ok(cotar_precos_farmacias(
-                &med.nome_produto,
-                &med.substancia,
-                &med.tipo_produto,
-                &med.apresentacao,
-                &med.codigo_ean,
-                med.preco_maximo_consumidor,
-            ));
-        }
-
-        // Simulação com base no termo
-        return Ok(cotar_precos_farmacias(
-            &t,
-            &t,
-            "Genérico",
-            "Apresentação Comercial Farmacêutica",
-            "",
-            25.0,
-        ));
-    }
-
-    Err("Nenhum parâmetro de identificação do medicamento fornecido para cotação.".to_string())
+    let med = banco.obter_registro_cmed(id_cmed).map_err(|e| e.to_string())?;
+    Ok(analisar_preco(
+        &med.nome_produto,
+        &med.substancia,
+        &med.tipo_produto,
+        &med.apresentacao,
+        &med.codigo_ean,
+        med.preco_maximo_consumidor,
+    ))
 }
 
 #[tauri::command]
@@ -322,9 +376,11 @@ pub fn executar_calculo_clinico(
             let dose_alvo_mg_kg_dia = parametros["dose_alvo_mg_kg_dia"]
                 .as_f64()
                 .ok_or("Parâmetro 'dose_alvo_mg_kg_dia' ausente ou inválido")?;
-            let concentracao_mg_ml = parametros["concentracao_mg_ml"]
-                .as_f64()
-                .ok_or("Parâmetro 'concentracao_mg_ml' ausente ou inválido")?;
+            // Ausente/null = forma sólida (resultado só em mg)
+            let concentracao_mg_ml = match &parametros["concentracao_mg_ml"] {
+                Value::Null => None,
+                valor => Some(valor.as_f64().ok_or("Parâmetro 'concentracao_mg_ml' inválido")?),
+            };
             let fracionamento_diario = parametros["fracionamento_diario"]
                 .as_u64()
                 .ok_or("Parâmetro 'fracionamento_diario' ausente ou inválido")? as u8;
@@ -344,4 +400,97 @@ pub fn executar_calculo_clinico(
 
         _ => Err(format!("Tipo de cálculo clínico desconhecido: '{tipo}'")),
     }
+}
+
+// -----------------------------------------------------------------------------
+// Portal de APIs da ANVISA: credenciais no cofre do sistema operacional
+// -----------------------------------------------------------------------------
+
+const SERVICO_COFRE: &str = "org.openclinical.app.api-anvisa";
+
+#[derive(serde::Serialize)]
+pub struct EstadoCredenciaisAnvisa {
+    pub configurado: bool,
+    /// CPF mascarado ("123.***.***-09"); o secret nunca volta para a interface
+    pub client_id_mascarado: Option<String>,
+    pub url_gerenciar_credenciais: &'static str,
+}
+
+fn entrada_cofre(nome: &str) -> Result<keyring::Entry, String> {
+    keyring::Entry::new(SERVICO_COFRE, nome).map_err(|e| format!("Cofre de credenciais indisponível: {e}"))
+}
+
+fn ler_cofre(nome: &str) -> Result<Option<String>, String> {
+    match entrada_cofre(nome)?.get_password() {
+        Ok(valor) => Ok(Some(valor)),
+        Err(keyring::Error::NoEntry) => Ok(None),
+        Err(e) => Err(format!("Falha ao ler o cofre de credenciais: {e}")),
+    }
+}
+
+fn credenciais_salvas() -> Result<Option<CredenciaisAnvisa>, String> {
+    match (ler_cofre("client_id")?, ler_cofre("client_secret")?) {
+        (Some(client_id), Some(client_secret)) => Ok(Some(CredenciaisAnvisa { client_id, client_secret })),
+        _ => Ok(None),
+    }
+}
+
+#[tauri::command]
+pub fn estado_credenciais_anvisa() -> Result<EstadoCredenciaisAnvisa, String> {
+    let salvas = credenciais_salvas()?;
+    Ok(EstadoCredenciaisAnvisa {
+        configurado: salvas.is_some(),
+        client_id_mascarado: salvas.map(|c| mascarar_client_id(&c.client_id)),
+        url_gerenciar_credenciais: URL_GERENCIAR_CREDENCIAIS,
+    })
+}
+
+#[tauri::command]
+pub fn salvar_credenciais_anvisa(client_id: String, client_secret: String) -> Result<EstadoCredenciaisAnvisa, String> {
+    let credenciais = normalizar_credenciais(&client_id, &client_secret)?;
+    entrada_cofre("client_id")?
+        .set_password(&credenciais.client_id)
+        .map_err(|e| format!("Não foi possível gravar no cofre de credenciais: {e}"))?;
+    entrada_cofre("client_secret")?
+        .set_password(&credenciais.client_secret)
+        .map_err(|e| format!("Não foi possível gravar no cofre de credenciais: {e}"))?;
+    estado_credenciais_anvisa()
+}
+
+#[tauri::command]
+pub fn remover_credenciais_anvisa() -> Result<EstadoCredenciaisAnvisa, String> {
+    for nome in ["client_id", "client_secret"] {
+        match entrada_cofre(nome)?.delete_credential() {
+            Ok(()) | Err(keyring::Error::NoEntry) => {}
+            Err(e) => return Err(format!("Não foi possível remover do cofre: {e}")),
+        }
+    }
+    estado_credenciais_anvisa()
+}
+
+#[tauri::command]
+pub async fn testar_api_anvisa() -> Result<ResultadoTesteAnvisa, String> {
+    let credenciais = credenciais_salvas()?.ok_or("Cadastre o Client ID e o Client Secret antes de testar.")?;
+    tauri::async_runtime::spawn_blocking(move || testar_conexao(&credenciais))
+        .await
+        .map_err(|e| format!("Falha na tarefa de teste: {e}"))
+}
+
+// -----------------------------------------------------------------------------
+// Apresentações comerciais de um fármaco (a interface escolhe as substâncias pela chave do princípio ativo)
+// -----------------------------------------------------------------------------
+
+#[tauri::command]
+pub fn listar_substancias_cmed(estado: tauri::State<'_, EstadoAplicacao>) -> Result<Vec<String>, String> {
+    obter_conexao_banco(&estado)?.listar_substancias_cmed().map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn apresentacoes_cmed_por_substancias(
+    substancias: Vec<String>,
+    estado: tauri::State<'_, EstadoAplicacao>,
+) -> Result<Vec<MedicamentoComercialCmed>, String> {
+    obter_conexao_banco(&estado)?
+        .apresentacoes_cmed_por_substancias(&substancias)
+        .map_err(|e| e.to_string())
 }

@@ -97,6 +97,10 @@ conda activate openclinical
 # Compilar o banco de dados e aplicar o seed inicial (10 princípios ativos, 13 apresentações)
 python openclinical/etl_pipeline/seed_dados_iniciais.py
 
+# Baixar e instalar a posologia oficial do Ministério da Saúde: 346 medicamentos do Formulário
+# Terapêutico Nacional 2010 e as 875 apresentações da RENAME 2024 (banco + frontend)
+python openclinical/etl_pipeline/extrator_formulario_terapeutico.py
+
 # Rodar os testes unitários do pipeline Python
 python -m pytest openclinical/etl_pipeline/tests/test_etl_pipeline.py
 ```
@@ -105,7 +109,12 @@ python -m pytest openclinical/etl_pipeline/tests/test_etl_pipeline.py
 ```bash
 cargo test --package clinical_engine --manifest-path openclinical/core_rust/clinical_engine/Cargo.toml
 ```
-*18 testes determinísticos (CKD-EPI 2021, Cockcroft-Gault, CURB-65, Wells TEP, vazão de noradrenalina, dose pediátrica com teto, combinatória de interações, parser de protocolos, busca FTS5, consulta CMED, entradas inválidas e consultas no banco empacotado).*
+*24 testes determinísticos (credencial do Portal de APIs da ANVISA, CKD-EPI 2021, Cockcroft-Gault, CURB-65, Wells TEP, vazão de noradrenalina, dose pediátrica com teto e em forma sólida, combinatória de interações, parser de protocolos, busca FTS5, consulta CMED, preço oficial e Farmácia Popular, atualizador das bases da ANVISA, entradas inválidas e consultas no banco empacotado).*
+
+```bash
+# Atualizar preços CMED, registros e índice de bulas da ANVISA (o app desktop faz isso sozinho uma vez por dia)
+cargo run --release --manifest-path openclinical/core_rust/clinical_engine/Cargo.toml --bin openclinical_cli -- atualizar
+```
 
 ### 4. Executar a Interface do Usuário (Frontend Web / PWA)
 ```bash
@@ -129,9 +138,14 @@ cargo tauri dev --manifest-path openclinical/core_rust/openclinical_desktop/Carg
 ---
 
 ## ⚠️ Aviso
-Projeto em estágio de protótipo. O conteúdo clínico (protocolos, bulas, interações, resumos de PCDT) **não passou por revisão clínica formal** e não substitui julgamento profissional nem as fontes oficiais. Os modelos de receita dos catálogos CMED/ANVISA não trazem posologia.
+Projeto em estágio de protótipo. O conteúdo clínico (protocolos, bulas, interações, resumos de PCDT) **não passou por revisão clínica formal** e não substitui julgamento profissional nem as fontes oficiais. Nos catálogos CMED/ANVISA, a posologia aparece quando o princípio ativo e a via têm monografia no FTN 2010 (5.877 das 26.635 apresentações); para os demais produtos, cada registro tem link para a bula oficial no Bulário Eletrônico da ANVISA (requer internet).
 
 ## 🛡️ Segurança Clínica e Determinismo
 - Todos os cálculos médicos são estritamente matemáticos e determinísticos, auditados por testes unitários e nunca delegados a LLMs em tempo de execução.
-- As doses pediátricas contam com alerta visual imediato e limitação ao teto diário de segurança da ANVISA.
+- A calculadora de dose pediátrica serve para qualquer medicamento: busca os 346 do FTN, mostra os esquemas pediátricos e aceita dose em mg/kg por dia ou por tomada; o que o FTN não diz sem ambiguidade fica para o médico preencher. Tem alerta e limitação ao teto diário, atalho fixo no topo (ícone de bebê) e, no app instalado no celular, um atalho próprio ("Dose infantil").
+- No app desktop, preços da CMED, registros e o índice de bulas da ANVISA são atualizados automaticamente uma vez por dia, sem apagar dados se o download falhar.
+- A credencial do Portal de APIs da ANVISA (Client ID = CPF, Client Secret gerado em api.anvisa.gov.br/client-manage) é cadastrada no app desktop, com tutorial, e fica no cofre de credenciais do sistema operacional.
+- Cada medicamento do Formulário mostra se está disponível no SUS (RENAME 2024) e todas as apresentações comerciais da CMED do mesmo princípio ativo; a calculadora pediátrica aceita associações (ex.: amoxicilina + clavulanato) e marca as formulações do SUS e as comerciais.
+- Clicar no nome de um medicamento (protocolos, interações, PCDT, registros) abre a bula estruturada ou a monografia do FTN.
+- A posologia das receitas da tela "Medicamentos & Receitas" vem do Formulário Terapêutico Nacional 2010 (MS), com página de origem; o FTN é de 2010 e deve ser conferido com o PCDT/diretriz vigente.
 - A classificação renal KDIGO 2023 utiliza a equação CKD-EPI 2021 sem viés racial.

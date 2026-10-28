@@ -204,7 +204,7 @@ export function calcularVazaoInfusao(doseMcgKgMin: number, pesoKg: number, conce
 export function calcularDosePediatrica(
   pesoKg: number,
   doseAlvoMgKgDia: number,
-  concentracaoMgMl: number,
+  concentracaoMgMl: number | null,
   fracionamentoDiario: number,
   doseMaximaDiariaMg: number | null,
 ): ResultadoDosePediatrica {
@@ -214,7 +214,7 @@ export function calcularDosePediatrica(
   if (doseAlvoMgKgDia <= 0) {
     throw parametroInvalido('dose_alvo_mg_kg_dia', doseAlvoMgKgDia, 'A dose alvo em mg/kg/dia deve ser maior que zero.');
   }
-  if (concentracaoMgMl <= 0) {
+  if (concentracaoMgMl !== null && concentracaoMgMl <= 0) {
     throw new ErroClinico(`Concentração do fármaco não pode ser menor ou igual a zero: ${concentracaoMgMl}`);
   }
   if (!Number.isInteger(fracionamentoDiario) || fracionamentoDiario < 1 || fracionamentoDiario > 24) {
@@ -226,7 +226,8 @@ export function calcularDosePediatrica(
   const doseTetoAplicada = tetoExcedido ? (doseMaximaDiariaMg as number) : doseTotalCalculada;
 
   const doseTomada = doseTetoAplicada / fracionamentoDiario;
-  const volumeMl = doseTomada / concentracaoMgMl;
+  // Sem formulação líquida (comprimido, cápsula) a dose fica só em mg, como no motor Rust
+  const volumeMl = concentracaoMgMl === null ? null : doseTomada / concentracaoMgMl;
 
   return {
     peso_kg: arredondar2(pesoKg),
@@ -236,8 +237,8 @@ export function calcularDosePediatrica(
     fracionamento_diario: fracionamentoDiario,
     intervalo_horas: Math.floor(24 / fracionamentoDiario),
     dose_por_tomada_mg: arredondar2(doseTomada),
-    volume_ml_por_tomada: arredondar2(volumeMl),
-    numero_gotas_por_tomada: Math.round(volumeMl * GOTAS_POR_MILILITRO),
+    volume_ml_por_tomada: volumeMl === null ? null : arredondar2(volumeMl),
+    numero_gotas_por_tomada: volumeMl === null ? null : Math.round(volumeMl * GOTAS_POR_MILILITRO),
     alerta_teto_ultrapassado: tetoExcedido,
     justificativa_seguranca: tetoExcedido
       ? `Alerta Clínico: A dose calculada de ${doseTotalCalculada.toFixed(2)} mg/dia excedeu a dose máxima diária recomendada de ${(doseMaximaDiariaMg as number).toFixed(2)} mg/dia. O regime foi limitado com segurança ao teto máximo diário.`
@@ -299,10 +300,11 @@ export function executarCalculoLocal(tipo: string, parametros: Record<string, un
     }
     case 'dose_pediatrica': {
       const teto = parametros.dose_maxima_diaria_mg;
+      const concentracao = parametros.concentracao_mg_ml;
       return calcularDosePediatrica(
         exigirNumero('peso_kg', parametros.peso_kg),
         exigirNumero('dose_alvo_mg_kg_dia', parametros.dose_alvo_mg_kg_dia),
-        exigirNumero('concentracao_mg_ml', parametros.concentracao_mg_ml),
+        concentracao === null || concentracao === undefined ? null : exigirNumero('concentracao_mg_ml', concentracao),
         exigirNumero('fracionamento_diario', parametros.fracionamento_diario),
         teto === null || teto === undefined || teto === '' ? null : exigirNumero('dose_maxima_diaria_mg', teto),
       );

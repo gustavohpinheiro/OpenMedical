@@ -19,6 +19,10 @@ import { LISTA_PCDT_OFICIAL_MS, ProtocoloPCDTOficial } from '../data/pcdt_oficia
 import { LISTA_MEDICAMENTOS_ANVISA_OFICIAL, MedicamentoAnvisaOficial } from '../data/anvisa_medicamentos_publicos';
 import { CATALOGO_CMED_NACIONAL, MedicamentoComercialCMED } from '../data/catalogo_cmed_nacional';
 import { normalizarTexto, obterRegistroCmed } from '../api';
+import { BotaoBulaAnvisa, BulaVigenteAnvisa, PosologiaFtnProduto } from './PosologiaFtnProduto';
+import { AtualizacaoBases } from './AtualizacaoBases';
+import { IntegracaoApiAnvisa } from './IntegracaoApiAnvisa';
+import { LinkMedicamento } from './LinkMedicamento';
 
 /** Registro aberto a partir da busca global; `versao` muda a cada clique para reabrir o mesmo item. */
 export interface SelecaoBasePublica {
@@ -29,12 +33,13 @@ export interface SelecaoBasePublica {
 
 interface PublicDatabasesViewProps {
   selecao?: SelecaoBasePublica | null;
-  onCompararPrecos?: (termo: string) => void;
+  onCompararPrecos?: (termoOuIdCmed: string | number) => void;
+  onAbrirMonografia?: (idMonografia: number) => void;
 }
 
 const LIMITE_ITENS_LISTA = 150;
 
-export const PublicDatabasesView: React.FC<PublicDatabasesViewProps> = ({ selecao, onCompararPrecos }) => {
+export const PublicDatabasesView: React.FC<PublicDatabasesViewProps> = ({ selecao, onCompararPrecos, onAbrirMonografia }) => {
   const [abaAtiva, setAbaAtiva] = useState<'cmed' | 'pcdt' | 'anvisa'>('cmed');
 
   // Estado CMED (Remédios Registrados no Brasil)
@@ -234,6 +239,8 @@ export const PublicDatabasesView: React.FC<PublicDatabasesViewProps> = ({ seleca
             </button>
           </div>
         </div>
+        <AtualizacaoBases />
+        <IntegracaoApiAnvisa />
       </div>
 
       {/* ABA 1: CATÁLOGO NACIONAL CMED / ANVISA (TODOS OS REMÉDIOS DO BRASIL) */}
@@ -360,18 +367,24 @@ export const PublicDatabasesView: React.FC<PublicDatabasesViewProps> = ({ seleca
                       <h3 className="text-lg font-bold text-slate-100 leading-tight">
                         {cmedSelecionado.nome_produto}
                       </h3>
-                      <p className="text-xs text-teal-400 font-medium mt-0.5">{cmedSelecionado.substancia}</p>
+                      <p className="text-xs text-teal-400 font-medium mt-0.5">
+                        <LinkMedicamento nome={cmedSelecionado.substancia} />
+                      </p>
                     </div>
 
                     <div className="flex items-center gap-2 flex-wrap">
+                      <BotaoBulaAnvisa
+                        numeroRegistro={cmedSelecionado.numero_registro}
+                        nomeProduto={cmedSelecionado.nome_produto}
+                      />
                       {onCompararPrecos && (
                         <button
-                          onClick={() => onCompararPrecos(cmedSelecionado.nome_produto)}
+                          onClick={() => onCompararPrecos(cmedSelecionado.id_cmed)}
                           className="flex items-center gap-2 bg-emerald-950/70 hover:bg-emerald-900 border border-emerald-600/50 text-emerald-300 hover:text-white px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all shadow-md flex-shrink-0"
-                          title="Localizar preços desta apresentação nas farmácias e Farmácia Popular"
+                          title="Preço máximo, Farmácia Popular e busca de preço nas farmácias"
                         >
                           <Store className="w-4 h-4 text-emerald-400" />
-                          <span>Cotar em Farmácias</span>
+                          <span>Preço & Farmácia Popular</span>
                         </button>
                       )}
                       <button
@@ -397,12 +410,19 @@ export const PublicDatabasesView: React.FC<PublicDatabasesViewProps> = ({ seleca
                     <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 space-y-1">
                       <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Registro ANVISA</span>
                       <p className="text-slate-200 font-mono font-medium">{cmedSelecionado.numero_registro}</p>
+                      <BulaVigenteAnvisa numeroRegistro={cmedSelecionado.numero_registro} />
                     </div>
                     <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 space-y-1">
                       <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Preço Teto Consumidor (PMC)</span>
                       <p className="text-emerald-400 font-mono font-bold text-sm">R$ {cmedSelecionado.preco_maximo_consumidor.toFixed(2)}</p>
                     </div>
                   </div>
+
+                  <PosologiaFtnProduto
+                    substancia={cmedSelecionado.substancia}
+                    apresentacao={cmedSelecionado.apresentacao}
+                    onAbrirMonografia={onAbrirMonografia}
+                  />
 
                   {/* Bloco de Receituário Copiável */}
                   <div className="space-y-2">
@@ -413,7 +433,8 @@ export const PublicDatabasesView: React.FC<PublicDatabasesViewProps> = ({ seleca
                       <span className="text-[10px] text-slate-500 font-mono">PEC e-SUS / MV / Tasy</span>
                     </div>
                     <p className="text-[11px] text-amber-300/90">
-                      A base CMED não traz posologia: preencha os campos [PREENCHER] antes de usar.
+                      A base CMED não traz posologia: preencha os campos [PREENCHER] antes de usar, ou monte a receita
+                      com posologia pela monografia do FTN, quando houver.
                     </p>
                     <pre className="p-4 bg-slate-950 border border-slate-800 rounded-xl text-xs text-teal-300 font-mono whitespace-pre-wrap leading-relaxed overflow-x-auto selection:bg-teal-700 selection:text-white">
                       {cmedSelecionado.receita_padrao_copiavel}
@@ -590,7 +611,7 @@ export const PublicDatabasesView: React.FC<PublicDatabasesViewProps> = ({ seleca
                       {pcdtSelecionado.farmacos_principais.map((farmaco, i) => (
                         <span key={i} className="bg-slate-800 text-slate-200 border border-slate-700/80 px-2.5 py-1 rounded-lg text-xs font-medium flex items-center gap-1.5">
                           <Pill className="w-3 h-3 text-teal-400 opacity-80" />
-                          <span>{farmaco}</span>
+                          <LinkMedicamento nome={farmaco} />
                         </span>
                       ))}
                     </div>
@@ -655,13 +676,18 @@ export const PublicDatabasesView: React.FC<PublicDatabasesViewProps> = ({ seleca
                     <th className="p-3.5">Nº Registro ANVISA</th>
                     <th className="p-3.5">Fabricante</th>
                     <th className="p-3.5">Categoria</th>
+                    <th className="p-3.5">Bula</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/60">
                   {anvisaFiltrados.slice(0, 50).map((m) => (
                     <tr key={m.id_anvisa} className="hover:bg-slate-850/80 transition-colors">
-                      <td className="p-3.5 font-bold text-slate-100">{m.nome_produto}</td>
-                      <td className="p-3.5 text-teal-300">{m.principio_ativo}</td>
+                      <td className="p-3.5 font-bold text-slate-100">
+                        <LinkMedicamento nome={m.principio_ativo}>{m.nome_produto}</LinkMedicamento>
+                      </td>
+                      <td className="p-3.5 text-teal-300">
+                        <LinkMedicamento nome={m.principio_ativo} />
+                      </td>
                       <td className="p-3.5">{m.classe_terapeutica}</td>
                       <td className="p-3.5 font-mono text-[11px] text-slate-400">{m.numero_registro_anvisa}</td>
                       <td className="p-3.5 text-slate-400">{m.laboratorio_fabricante}</td>
@@ -669,6 +695,9 @@ export const PublicDatabasesView: React.FC<PublicDatabasesViewProps> = ({ seleca
                         <span className="bg-slate-800 text-slate-300 px-2 py-0.5 rounded text-[10px] font-mono">
                           {m.categoria_regulatoria}
                         </span>
+                      </td>
+                      <td className="p-3.5">
+                        <BotaoBulaAnvisa numeroRegistro={m.numero_registro_anvisa} nomeProduto={m.nome_produto} compacto />
                       </td>
                     </tr>
                   ))}

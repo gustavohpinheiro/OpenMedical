@@ -9,6 +9,12 @@ import {
   ResultadoWells,
   CodigoDiagnostico,
   AnalisePrecoMedicamento,
+  ApresentacaoCmedResumo,
+  BulaAnvisaIndice,
+  EstadoFonteAtualizacao,
+  ResultadoAtualizacaoBase,
+  EstadoCredenciaisAnvisa,
+  ResultadoTesteApiAnvisa,
 } from './types';
 
 import { executarCalculoLocal } from './clinical_fallback';
@@ -33,15 +39,15 @@ export const MOCK_MEDICAMENTOS: Record<number, DetalheMedicamentoCompleto> = {
     medicamento: {
       id_medicamento: 1,
       id_principio_ativo: 1,
-      numero_registro_anvisa: '1010701140024',
+      numero_registro_anvisa: '1010700030665',
       nome_comercial: 'Amoxil 500mg',
-      laboratorio_fabricante: 'GlaxoSmithKline Brasil Ltda',
+      laboratorio_fabricante: 'Glaxosmithkline Brasil Ltda',
       apresentacao_comercial: 'Cápsula dura 500 mg - Embalagem com 21 cápsulas',
       concentracao_valor: 500.0,
       concentracao_unidade: 'mg',
       forma_farmaceutica: 'capsula',
       tipo_receituario: 'antimicrobiano',
-      preco_maximo_consumidor: 35.5,
+      preco_maximo_consumidor: 130.08,
     },
     principio_ativo: {
       id_principio_ativo: 1,
@@ -76,15 +82,15 @@ export const MOCK_MEDICAMENTOS: Record<number, DetalheMedicamentoCompleto> = {
     medicamento: {
       id_medicamento: 2,
       id_principio_ativo: 1,
-      numero_registro_anvisa: '1023506720031',
+      numero_registro_anvisa: '1004307270023',
       nome_comercial: 'Amoxicilina 250mg/5mL Suspensão Oral',
-      laboratorio_fabricante: 'EMS S/A',
+      laboratorio_fabricante: 'Eurofarma Laboratorios S.A.',
       apresentacao_comercial: 'Frasco com pó para preparação de 150 mL (50 mg/mL)',
       concentracao_valor: 50.0,
       concentracao_unidade: 'mg/mL',
       forma_farmaceutica: 'suspensao_oral',
       tipo_receituario: 'antimicrobiano',
-      preco_maximo_consumidor: 22.8,
+      preco_maximo_consumidor: 37.77,
     },
     principio_ativo: {
       id_principio_ativo: 1,
@@ -115,15 +121,15 @@ export const MOCK_MEDICAMENTOS: Record<number, DetalheMedicamentoCompleto> = {
     medicamento: {
       id_medicamento: 3,
       id_principio_ativo: 2,
-      numero_registro_anvisa: '1130001830018',
+      numero_registro_anvisa: '1862000180102',
       nome_comercial: 'Novalgina Gotas 500mg/mL',
-      laboratorio_fabricante: 'Sanofi Medley Farmacêutica Ltda',
+      laboratorio_fabricante: 'Opella Healthcare Brazil Ltda',
       apresentacao_comercial: 'Frasco gotejador de 20 mL com 500 mg/mL (1 gota = 25 mg)',
       concentracao_valor: 500.0,
       concentracao_unidade: 'mg/mL',
       forma_farmaceutica: 'solucao_oral',
       tipo_receituario: 'simples',
-      preco_maximo_consumidor: 18.2,
+      preco_maximo_consumidor: 32.44,
     },
     principio_ativo: {
       id_principio_ativo: 2,
@@ -154,7 +160,7 @@ export const MOCK_MEDICAMENTOS: Record<number, DetalheMedicamentoCompleto> = {
     medicamento: {
       id_medicamento: 4,
       id_principio_ativo: 2,
-      numero_registro_anvisa: '1558400070014',
+      numero_registro_anvisa: '',
       nome_comercial: 'Dipirona Monoidratada 500mg Comprimido',
       laboratorio_fabricante: 'Brainfarma Indústria Química e Farmacêutica S.A.',
       apresentacao_comercial: 'Comprimido simples 500 mg - Blister com 10 unidades',
@@ -162,7 +168,7 @@ export const MOCK_MEDICAMENTOS: Record<number, DetalheMedicamentoCompleto> = {
       concentracao_unidade: 'mg',
       forma_farmaceutica: 'comprimido',
       tipo_receituario: 'simples',
-      preco_maximo_consumidor: 8.5,
+      preco_maximo_consumidor: 0.00,
     },
     principio_ativo: {
       id_principio_ativo: 2,
@@ -193,15 +199,15 @@ export const MOCK_MEDICAMENTOS: Record<number, DetalheMedicamentoCompleto> = {
     medicamento: {
       id_medicamento: 5,
       id_principio_ativo: 3,
-      numero_registro_anvisa: '1017100860012',
+      numero_registro_anvisa: '1002900070074',
       nome_comercial: 'Cozaar 50mg',
-      laboratorio_fabricante: 'Organon Farmacêutica Ltda',
+      laboratorio_fabricante: 'Organon Farmaceutica Ltda.',
       apresentacao_comercial: 'Comprimido revestido 50 mg - Caixa com 30 unidades',
       concentracao_valor: 50.0,
       concentracao_unidade: 'mg',
       forma_farmaceutica: 'comprimido',
       tipo_receituario: 'simples',
-      preco_maximo_consumidor: 42.1,
+      preco_maximo_consumidor: 73.14,
     },
     principio_ativo: {
       id_principio_ativo: 3,
@@ -235,15 +241,15 @@ export const MOCK_MEDICAMENTOS: Record<number, DetalheMedicamentoCompleto> = {
     medicamento: {
       id_medicamento: 6,
       id_principio_ativo: 3,
-      numero_registro_anvisa: '1832600210023',
+      numero_registro_anvisa: '1004309110041',
       nome_comercial: 'Losartana Potássica 50mg Genérico',
-      laboratorio_fabricante: 'Medley Farmacêutica Ltda',
+      laboratorio_fabricante: 'Eurofarma Laboratorios S.A.',
       apresentacao_comercial: 'Comprimido revestido 50 mg - Caixa com 30 unidades',
       concentracao_valor: 50.0,
       concentracao_unidade: 'mg',
       forma_farmaceutica: 'comprimido',
       tipo_receituario: 'simples',
-      preco_maximo_consumidor: 12.3,
+      preco_maximo_consumidor: 26.82,
     },
     principio_ativo: {
       id_principio_ativo: 3,
@@ -274,15 +280,15 @@ export const MOCK_MEDICAMENTOS: Record<number, DetalheMedicamentoCompleto> = {
     medicamento: {
       id_medicamento: 7,
       id_principio_ativo: 4,
-      numero_registro_anvisa: '1017100120019',
+      numero_registro_anvisa: '1002900310504',
       nome_comercial: 'Renitec 10mg',
-      laboratorio_fabricante: 'Organon Farmacêutica Ltda',
+      laboratorio_fabricante: 'Organon Farmaceutica Ltda.',
       apresentacao_comercial: 'Comprimido sulcado 10 mg - Caixa com 30 unidades',
       concentracao_valor: 10.0,
       concentracao_unidade: 'mg',
       forma_farmaceutica: 'comprimido',
       tipo_receituario: 'simples',
-      preco_maximo_consumidor: 28.4,
+      preco_maximo_consumidor: 28.48,
     },
     principio_ativo: {
       id_principio_ativo: 4,
@@ -317,7 +323,7 @@ export const MOCK_MEDICAMENTOS: Record<number, DetalheMedicamentoCompleto> = {
     medicamento: {
       id_medicamento: 8,
       id_principio_ativo: 5,
-      numero_registro_anvisa: '1029800180016',
+      numero_registro_anvisa: '',
       nome_comercial: 'Losec Mups 20mg',
       laboratorio_fabricante: 'AstraZeneca do Brasil Ltda',
       apresentacao_comercial: 'Comprimido revestido 20 mg - Embalagem com 28 comprimidos',
@@ -325,7 +331,7 @@ export const MOCK_MEDICAMENTOS: Record<number, DetalheMedicamentoCompleto> = {
       concentracao_unidade: 'mg',
       forma_farmaceutica: 'comprimido',
       tipo_receituario: 'simples',
-      preco_maximo_consumidor: 58.7,
+      preco_maximo_consumidor: 0.00,
     },
     principio_ativo: {
       id_principio_ativo: 5,
@@ -356,7 +362,7 @@ export const MOCK_MEDICAMENTOS: Record<number, DetalheMedicamentoCompleto> = {
     medicamento: {
       id_medicamento: 9,
       id_principio_ativo: 6,
-      numero_registro_anvisa: '1010000850021',
+      numero_registro_anvisa: '1211003590023',
       nome_comercial: 'Zitromax 500mg',
       laboratorio_fabricante: 'Pfizer Brasil Ltda',
       apresentacao_comercial: 'Comprimido revestido 500 mg - Embalagem com 3 comprimidos',
@@ -364,7 +370,7 @@ export const MOCK_MEDICAMENTOS: Record<number, DetalheMedicamentoCompleto> = {
       concentracao_unidade: 'mg',
       forma_farmaceutica: 'comprimido',
       tipo_receituario: 'antimicrobiano',
-      preco_maximo_consumidor: 46.3,
+      preco_maximo_consumidor: 51.07,
     },
     principio_ativo: {
       id_principio_ativo: 6,
@@ -395,7 +401,7 @@ export const MOCK_MEDICAMENTOS: Record<number, DetalheMedicamentoCompleto> = {
     medicamento: {
       id_medicamento: 10,
       id_principio_ativo: 7,
-      numero_registro_anvisa: '1021600140018',
+      numero_registro_anvisa: '',
       nome_comercial: 'Levophed 2mg/mL',
       laboratorio_fabricante: 'Pfizer Brasil Ltda',
       apresentacao_comercial: 'Solução injetável estéril 2 mg/mL - Ampola 4 mL',
@@ -403,7 +409,7 @@ export const MOCK_MEDICAMENTOS: Record<number, DetalheMedicamentoCompleto> = {
       concentracao_unidade: 'mg/mL',
       forma_farmaceutica: 'solucao_injetavel',
       tipo_receituario: 'simples',
-      preco_maximo_consumidor: 62.0,
+      preco_maximo_consumidor: 0.00,
     },
     principio_ativo: {
       id_principio_ativo: 7,
@@ -439,15 +445,15 @@ export const MOCK_MEDICAMENTOS: Record<number, DetalheMedicamentoCompleto> = {
     medicamento: {
       id_medicamento: 11,
       id_principio_ativo: 8,
-      numero_registro_anvisa: '1010000780015',
+      numero_registro_anvisa: '1010001320461',
       nome_comercial: 'Rocefin 1g IV',
-      laboratorio_fabricante: 'Produtos Roche Químicos e Farmacêuticos S.A.',
+      laboratorio_fabricante: 'Produtos Roche Químicos E Farmacêuticos S.A.',
       apresentacao_comercial: 'Frasco-ampola com 1000 mg pó liofilizado + ampola diluente 10 mL',
       concentracao_valor: 1000.0,
       concentracao_unidade: 'mg',
       forma_farmaceutica: 'po_para_solucao_injetavel',
       tipo_receituario: 'antimicrobiano',
-      preco_maximo_consumidor: 74.2,
+      preco_maximo_consumidor: 0.00,
     },
     principio_ativo: {
       id_principio_ativo: 8,
@@ -486,15 +492,15 @@ export const MOCK_MEDICAMENTOS: Record<number, DetalheMedicamentoCompleto> = {
     medicamento: {
       id_medicamento: 12,
       id_principio_ativo: 9,
-      numero_registro_anvisa: '1008900450017',
+      numero_registro_anvisa: '1008903400031',
       nome_comercial: 'Glifage XR 500mg',
-      laboratorio_fabricante: 'Merck S.A.',
+      laboratorio_fabricante: 'Merck S/A',
       apresentacao_comercial: 'Comprimido de liberação prolongada 500 mg - Caixa com 30 comprimidos',
       concentracao_valor: 500.0,
       concentracao_unidade: 'mg',
       forma_farmaceutica: 'comprimido',
       tipo_receituario: 'simples',
-      preco_maximo_consumidor: 14.8,
+      preco_maximo_consumidor: 12.20,
     },
     principio_ativo: {
       id_principio_ativo: 9,
@@ -530,7 +536,7 @@ export const MOCK_MEDICAMENTOS: Record<number, DetalheMedicamentoCompleto> = {
     medicamento: {
       id_medicamento: 13,
       id_principio_ativo: 10,
-      numero_registro_anvisa: '1017100440014',
+      numero_registro_anvisa: '',
       nome_comercial: 'Zocor 20mg',
       laboratorio_fabricante: 'Organon Farmacêutica Ltda',
       apresentacao_comercial: 'Comprimido revestido 20 mg - Caixa com 30 unidades',
@@ -538,7 +544,7 @@ export const MOCK_MEDICAMENTOS: Record<number, DetalheMedicamentoCompleto> = {
       concentracao_unidade: 'mg',
       forma_farmaceutica: 'comprimido',
       tipo_receituario: 'simples',
-      preco_maximo_consumidor: 48.9,
+      preco_maximo_consumidor: 0.00,
     },
     principio_ativo: {
       id_principio_ativo: 10,
@@ -632,6 +638,7 @@ export const MOCK_INTERACOES: MatrizInteracao[] = [
 import { CATALOGO_PROTOCOLOS } from './catalog_protocolos';
 import { LISTA_PCDT_OFICIAL_MS } from './data/pcdt_oficial_ms';
 import type { MedicamentoComercialCMED } from './data/catalogo_cmed_nacional';
+import type { MonografiaFtn } from './data/formulario_terapeutico';
 
 // A amostra CMED (~2 MB) só é carregada quando a busca ou a tela de bases públicas precisa dela
 const carregarCatalogoCmed = () => import('./data/catalogo_cmed_nacional').then((m) => m.CATALOGO_CMED_NACIONAL);
@@ -879,38 +886,96 @@ export async function executarCalculoClinico<T>(tipo: string, parametros: Record
 }
 
 
-export async function cotarPrecosMedicamento(parametros: {
-  id_cmed?: number;
-  id_medicamento?: number;
-  termo?: string;
-}): Promise<AnalisePrecoMedicamento> {
+/** Apresentações comerciais (CMED) para o termo: índice completo no desktop, amostra offline no navegador. */
+export async function buscarApresentacoesPreco(termo: string): Promise<ApresentacaoCmedResumo[]> {
+  if (!termo.trim()) return [];
   if (isTauri()) {
-    return invokeTauri<AnalisePrecoMedicamento>('cotar_precos_medicamento', {
-      idCmed: parametros.id_cmed,
-      idMedicamento: parametros.id_medicamento,
-      termo: parametros.termo,
+    const itens = await invokeTauri<ItemBuscaFts[]>('buscar_geral', { termo });
+    return itens
+      .filter((item) => item.tipo_registro === 'cmed_comercial')
+      .map((item) => ({ id_cmed: Number(item.id_referencia), titulo: item.titulo_primario, subtitulo: item.subtitulo }));
+  }
+  const { buscarApresentacoesLocal } = await import('./pharmacy_pricing');
+  return buscarApresentacoesLocal(termo);
+}
+
+/** PMC oficial, situação no Farmácia Popular e links de busca de preço de uma apresentação CMED. */
+export async function analisarPrecoMedicamento(idCmed: number): Promise<AnalisePrecoMedicamento> {
+  if (isTauri()) {
+    return invokeTauri<AnalisePrecoMedicamento>('analisar_preco_medicamento', { idCmed });
+  }
+  const { analisarPrecoLocal } = await import('./pharmacy_pricing');
+  return analisarPrecoLocal(idCmed);
+}
+
+// -----------------------------------------------------------------------------
+// Atualização diária das bases da ANVISA e índice do Bulário (somente no app desktop)
+// -----------------------------------------------------------------------------
+
+/** Bula vigente pelo registro; no navegador o índice não é empacotado e a resposta é null. */
+export async function consultarBulaAnvisa(numeroRegistro: string): Promise<BulaAnvisaIndice | null> {
+  if (!isTauri() || numeroRegistro.replace(/\D/g, '').length < 9) return null;
+  return invokeTauri<BulaAnvisaIndice | null>('consultar_bula_anvisa', { numeroRegistro });
+}
+
+export async function estadoAtualizacaoBases(): Promise<EstadoFonteAtualizacao[]> {
+  if (!isTauri()) return [];
+  return invokeTauri<EstadoFonteAtualizacao[]>('estado_atualizacao_bases');
+}
+
+export async function atualizarBasesAgora(): Promise<ResultadoAtualizacaoBase[]> {
+  if (!isTauri()) throw new Error('A atualização das bases da ANVISA roda no app desktop.');
+  return invokeTauri<ResultadoAtualizacaoBase[]>('atualizar_bases_agora');
+}
+
+/** Avisa quando o atualizador diário termina (evento `bases-atualizadas` do app desktop). Devolve a função de cancelamento. */
+export async function aoAtualizarBases(callback: (resultados: ResultadoAtualizacaoBase[]) => void): Promise<() => void> {
+  if (!isTauri()) return () => {};
+  const { listen } = await import('@tauri-apps/api/event');
+  return listen<ResultadoAtualizacaoBase[]>('bases-atualizadas', (evento) => callback(evento.payload));
+}
+
+// -----------------------------------------------------------------------------
+// Portal de APIs da ANVISA (Client ID + Client Secret no cofre do sistema; só no app desktop)
+// -----------------------------------------------------------------------------
+
+export async function estadoCredenciaisAnvisa(): Promise<EstadoCredenciaisAnvisa | null> {
+  if (!isTauri()) return null;
+  return invokeTauri<EstadoCredenciaisAnvisa>('estado_credenciais_anvisa');
+}
+
+export async function salvarCredenciaisAnvisa(clientId: string, clientSecret: string): Promise<EstadoCredenciaisAnvisa> {
+  return invokeTauri<EstadoCredenciaisAnvisa>('salvar_credenciais_anvisa', { clientId, clientSecret });
+}
+
+export async function removerCredenciaisAnvisa(): Promise<EstadoCredenciaisAnvisa> {
+  return invokeTauri<EstadoCredenciaisAnvisa>('remover_credenciais_anvisa');
+}
+
+export async function testarApiAnvisa(): Promise<ResultadoTesteApiAnvisa> {
+  return invokeTauri<ResultadoTesteApiAnvisa>('testar_api_anvisa');
+}
+
+// -----------------------------------------------------------------------------
+// Apresentações comerciais (CMED) de um fármaco do FTN, pelo princípio ativo (sal e associação normalizados)
+// -----------------------------------------------------------------------------
+
+let cacheSubstanciasCmed: Promise<string[]> | null = null;
+
+export async function apresentacoesComerciaisDoFarmaco(monografia: MonografiaFtn): Promise<MedicamentoComercialCMED[]> {
+  const { chavesMonografia, chaveSubstanciaCmed } = await import('./ligacao_ftn');
+  const chaves = new Set(chavesMonografia(monografia.nome));
+  const ordenar = (lista: MedicamentoComercialCMED[]) =>
+    [...lista].sort((a, b) => a.nome_produto.localeCompare(b.nome_produto) || a.apresentacao.localeCompare(b.apresentacao));
+  if (isTauri()) {
+    cacheSubstanciasCmed ??= invokeTauri<string[]>('listar_substancias_cmed').catch((erro) => {
+      cacheSubstanciasCmed = null;
+      throw erro;
     });
+    const substancias = (await cacheSubstanciasCmed).filter((s) => chaves.has(chaveSubstanciaCmed(s)));
+    if (substancias.length === 0) return [];
+    return ordenar(await invokeTauri<MedicamentoComercialCMED[]>('apresentacoes_cmed_por_substancias', { substancias }));
   }
-
-  // Fallback web / PWA offline
-  const { buscarCotacaoLocal } = await import('./pharmacy_pricing');
-  if (parametros.id_cmed) {
-    return buscarCotacaoLocal(parametros.id_cmed);
-  }
-  if (parametros.id_medicamento) {
-    const med = MOCK_MEDICAMENTOS[parametros.id_medicamento];
-    if (med) {
-      const { cotarPrecosFarmacias } = await import('./pharmacy_pricing');
-      return cotarPrecosFarmacias(
-        med.medicamento.nome_comercial,
-        med.principio_ativo.nome_dcb,
-        'Referência / Padronizado',
-        med.medicamento.apresentacao_comercial,
-        med.medicamento.numero_registro_anvisa,
-        med.medicamento.preco_maximo_consumidor
-      );
-    }
-  }
-
-  return buscarCotacaoLocal(parametros.termo || 'Dipirona');
+  const { CATALOGO_CMED_NACIONAL } = await import('./data/catalogo_cmed_nacional');
+  return ordenar(CATALOGO_CMED_NACIONAL.filter((m) => chaves.has(chaveSubstanciaCmed(m.substancia))));
 }

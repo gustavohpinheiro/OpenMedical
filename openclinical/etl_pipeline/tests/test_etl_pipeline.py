@@ -246,3 +246,41 @@ def test_formulario_terapeutico_extraido_do_pdf_oficial():
     # Esquemas de adultos nunca recebem dose em mg/kg estruturada
     assert all(e.dose_mg_kg_dia_min is None for m in monografias for e in m.esquemas if e.populacao == "Adultos")
     assert sum(len(m.interacoes) for m in monografias) > 1000
+
+    por_nome = {m.nome: m for m in monografias}
+    # Rótulo de população fora do negrito puro ("• Adultos", "Adultos" em fonte regular) não pode deixar
+    # doses de adulto rotuladas como pediátricas
+    losartana = por_nome["losartana potássica"].esquemas
+    assert [e.populacao for e in losartana] == ["Crianças, com seis anos ou mais"] + ["Adultos"] * 4
+    assert not any(e.texto == "Adultos" for m in monografias for e in m.esquemas)
+    azitromicina = por_nome["azitromicina"].esquemas
+    assert next(e for e in azitromicina if e.texto.startswith("500 mg")).populacao == "Adultos"
+    # "––" usado como marcador principal (medroxiprogesterona) gera um item por dose
+    medroxi = por_nome["acetato de medroxiprogesterona"].esquemas
+    assert {e.indicacao for e in medroxi} >= {"Contracepção", "Endometriose", "Menopausa"}
+    # Indicação em itálico com parênteses regulares e população inline ("Neonatos: ...")
+    rifampicina = por_nome["rifampicina"].esquemas
+    assert any(e.indicacao.startswith("Tratamento da hanseníase") and e.populacao == "Adultos e adolescentes" for e in rifampicina)
+    assert any(e.populacao == "Neonatos" and e.texto.startswith("Neonatos: 5 mg/kg") for e in rifampicina)
+    # Nome científico em itálico no fim da frase continua no texto da apresentação
+    assert por_nome["soro antibotrópico (pentavalente)"].apresentacoes[1].endswith("Bothrops jararaca.")
+
+@pytest.mark.skipif(
+    not os.path.exists(os.path.join(diretorio_etl, "dados_publicos", "relacao_nacional_medicamentos_2024.pdf")),
+    reason="PDF da RENAME 2024 não baixado",
+)
+def test_rename_2024_lida_por_tabela_sem_cabecalhos_no_nome():
+    import extrator_formulario_terapeutico as f
+
+    itens = f.extrair_itens_rename_2024()
+    assert len(itens) >= 900
+    # A leitura sequencial antiga colava cabeçalhos de página e concentrações no nome e perdia a metformina
+    assert not any(re.search(r"MINIST|continua|\(DCB\)|\*", i.denominacao) for i in itens)
+    metformina = [i for i in itens if i.denominacao == "cloridrato de metformina"]
+    assert {i.concentracao for i in metformina} == {"500 mg", "850 mg"}
+    dapsona = [i for i in itens if i.denominacao == "dapsona"]
+    assert dapsona and dapsona[0].codigo_atc == "J04BA02"
+
+    # Títulos do FTN com sais alternativos ("... ou ...") encontram os itens dos dois sais
+    assert set(f.chaves_associacao("succinato de metoprolol ou tartarato de metoprolol")) == {"metoprolol"}
+    assert f.chaves_associacao("artesunato de sódio e cloridrato de mefloquina") == ["artesunato de sodio e cloridrato de mefloquina"]

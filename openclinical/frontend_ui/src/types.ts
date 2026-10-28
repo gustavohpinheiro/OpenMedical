@@ -92,8 +92,9 @@ export interface ResultadoDosePediatrica {
   fracionamento_diario: number;
   intervalo_horas: number;
   dose_por_tomada_mg: number;
-  volume_ml_por_tomada: number;
-  numero_gotas_por_tomada: number;
+  /** null quando não há formulação líquida (comprimido/cápsula): dose só em mg */
+  volume_ml_por_tomada: number | null;
+  numero_gotas_por_tomada: number | null;
   alerta_teto_ultrapassado: boolean;
   justificativa_seguranca?: string | null;
 }
@@ -130,28 +131,87 @@ export interface ProtocoloClinico {
   bloco_prescricao_copiavel: string;
 }
 
-export interface CotacaoFarmacia {
+export interface LinkPesquisaPreco {
   nome_farmacia: string;
-  tipo_rede: string;
-  preco_estimado: number;
-  desconto_percentual: number;
-  link_busca: string;
-  disponibilidade: string;
+  descricao: string;
+  url: string;
 }
 
+export interface SituacaoFarmaciaPopular {
+  gratuito: boolean;
+  substancia_no_programa: boolean;
+  indicacao: string | null;
+  doses_no_programa: string | null;
+  mensagem: string;
+}
+
+/** O único valor monetário é o PMC oficial da CMED; o preço praticado é pesquisado nos links das farmácias. */
 export interface AnalisePrecoMedicamento {
   nome_comercial: string;
   substancia: string;
   tipo_produto: string;
   apresentacao: string;
   codigo_ean: string;
-  preco_pmc_teto: number;
-  menor_preco_estimado: number;
-  maior_preco_estimado: number;
-  preco_medio: number;
-  preco_por_unidade?: number | null;
-  quantidade_unidades?: number | null;
-  elegivel_farmacia_popular: boolean;
-  faixa_farmacia_popular?: string | null;
-  cotacoes: CotacaoFarmacia[];
+  preco_pmc_teto: number | null;
+  quantidade_unidades: number | null;
+  pmc_por_unidade: number | null;
+  farmacia_popular: SituacaoFarmaciaPopular;
+  links_pesquisa: LinkPesquisaPreco[];
+}
+
+export interface ApresentacaoCmedResumo {
+  id_cmed: number;
+  titulo: string;
+  subtitulo: string;
+}
+
+/** Bula vigente de um produto no índice oficial do Bulário Eletrônico (dados abertos da ANVISA) */
+export interface BulaAnvisaIndice {
+  numero_registro: string;
+  nome_produto: string;
+  empresa: string;
+  expediente: string;
+  /** AAAA-MM-DD */
+  data_publicacao: string;
+  url_bulario: string;
+}
+
+/** Situação de uma fonte do atualizador diário (app desktop) */
+export interface EstadoFonteAtualizacao {
+  fonte: string;
+  descricao: string;
+  verificado_em: string | null;
+  atualizado_em: string | null;
+  registros: number | null;
+  situacao: string | null;
+  mensagem: string | null;
+}
+
+export interface ResultadoAtualizacaoBase {
+  fonte: string;
+  descricao: string;
+  situacao: 'atualizada' | 'sem_mudanca' | 'erro';
+  registros: number | null;
+  mensagem: string;
+}
+
+/** Credenciais do Portal de APIs da ANVISA guardadas no cofre do sistema (o secret nunca volta à interface) */
+export interface EstadoCredenciaisAnvisa {
+  configurado: boolean;
+  client_id_mascarado: string | null;
+  url_gerenciar_credenciais: string;
+}
+
+export interface ServicoApiAnvisa {
+  nome: string;
+  situacao: 'acessivel' | 'sem_permissao' | 'nao_publicado' | 'bloqueado_firewall' | 'erro';
+  detalhe: string;
+  operacoes: string[];
+}
+
+export interface ResultadoTesteApiAnvisa {
+  autenticado: boolean;
+  mensagem: string;
+  token_expira_em_segundos: number | null;
+  servicos: ServicoApiAnvisa[];
 }

@@ -169,7 +169,8 @@ def compilar_cmed_sqlite() -> int:
     # Indexa também no FTS5 para busca textual ultra-rápida
     print("\nAtualizando índice FTS5 de busca com todos os medicamentos comerciais...")
     with con:
-        # Pega uma amostra representativa dos medicamentos comerciais únicos para o FTS5
+        # Uma linha por apresentação: agrupar por produto escondia as demais concentrações e embalagens
+        # da busca e da tela de preço (ex.: Losartana 100 mg quando o laboratório também vende 50 mg)
         con.execute("DELETE FROM indice_busca_fts WHERE tipo_registro = 'cmed_comercial';")
         con.execute("""
             INSERT INTO indice_busca_fts (tipo_registro, id_referencia, titulo_primario, subtitulo, conteudo_textual)
@@ -179,8 +180,7 @@ def compilar_cmed_sqlite() -> int:
                 nome_produto || ' (' || apresentacao || ')',
                 substancia || ' - ' || laboratorio || ' | Reg. ' || numero_registro || ' | PMC R$ ' || ROUND(preco_maximo_consumidor, 2),
                 nome_produto || ' ' || substancia || ' ' || apresentacao || ' ' || classe_terapeutica || ' ' || laboratorio || ' ' || tipo_produto || ' ' || numero_registro
-            FROM catalogo_nacional_medicamentos_cmed
-            GROUP BY nome_produto, substancia;
+            FROM catalogo_nacional_medicamentos_cmed;
         """)
 
     con.close()

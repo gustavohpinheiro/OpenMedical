@@ -8,6 +8,11 @@ export const carregarFormulario = () => {
   return cacheFormulario;
 };
 
+/** Componentes da Assistência Farmacêutica (Básico, Estratégico, Especializado) em que o fármaco está na RENAME 2024. */
+export function componentesSus(monografia: MonografiaFtn): string {
+  return Array.from(new Set(monografia.rename_2024.map((r) => r.componente))).join(', ');
+}
+
 export const capitalizar = (texto: string) => texto.charAt(0).toUpperCase() + texto.slice(1);
 
 /** Via de administração deduzida da apresentação, para o cabeçalho "USO ..." da receita. */
@@ -21,16 +26,6 @@ export function inferirVia(apresentacao: string): string {
   if (/vaginal|ovulo/.test(a)) return 'USO VAGINAL';
   if (/supositorio|retal|enema/.test(a)) return 'USO RETAL';
   return 'USO ORAL';
-}
-
-/** Concentração em mg/mL de uma apresentação líquida ("50 mg/mL", "250 mg/5 mL"); null se não houver. */
-export function concentracaoMgPorMl(apresentacao: string): number | null {
-  const a = apresentacao.toLowerCase().replace(/,/g, '.');
-  const porMl = /(\d+(?:\.\d+)?)\s*mg\s*\/\s*ml/.exec(a);
-  if (porMl) return parseFloat(porMl[1]);
-  const porVolume = /(\d+(?:\.\d+)?)\s*mg\s*\/\s*(\d+(?:\.\d+)?)\s*ml/.exec(a);
-  if (porVolume) return parseFloat(porVolume[1]) / parseFloat(porVolume[2]);
-  return null;
 }
 
 /** Apresentações oferecidas para a receita: FTN 2010 + itens da RENAME 2024 (sem repetir). */

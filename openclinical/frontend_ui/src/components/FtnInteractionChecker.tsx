@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { AlertOctagon, AlertTriangle, BookMarked, Info, Plus, Search, X } from 'lucide-react';
 import type { MonografiaFtn } from '../data/formulario_terapeutico';
 import { capitalizar, carregarFormulario, cruzarInteracoesFtn, filtrarMonografias, rotuloConduta } from '../formulario_utils';
+import { LinkMedicamento } from './LinkMedicamento';
 
 /** Verificador de interações sobre as seções "Interações de medicamentos" das 346 monografias do FTN 2010. */
 export const FtnInteractionChecker: React.FC = () => {
@@ -144,7 +145,8 @@ export const FtnInteractionChecker: React.FC = () => {
                     ) : (
                       <Info className="w-5 h-5 text-sky-400" />
                     )}
-                    {capitalizar(item.origem.nome)} &times; {capitalizar(item.alvo.nome)}
+                    <LinkMedicamento nome={item.origem.nome}>{capitalizar(item.origem.nome)}</LinkMedicamento> &times;{' '}
+                    <LinkMedicamento nome={item.alvo.nome}>{capitalizar(item.alvo.nome)}</LinkMedicamento>
                   </div>
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-900/80 text-slate-200 border border-slate-700">
                     {conduta.rotulo}

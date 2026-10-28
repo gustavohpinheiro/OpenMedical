@@ -111,15 +111,15 @@ fn test_pediatrico_amoxicilina_dentro_do_teto() {
     // Criança de 15 kg, Amoxicilina 50 mg/kg/dia, frasco 50 mg/mL (250mg/5mL)
     // Fracionamento de 8 em 8 horas (3 tomadas/dia)
     // Teto de segurança: 3000 mg/dia
-    let res = calcular_dose_pediatrica(15.0, 50.0, 50.0, 3, Some(3000.0));
+    let res = calcular_dose_pediatrica(15.0, 50.0, Some(50.0), 3, Some(3000.0));
     assert!(res.is_ok());
     let dose = res.unwrap();
 
     assert_eq!(dose.dose_total_calculada_mg_dia, 750.0);
     assert_eq!(dose.dose_teto_aplicada_mg_dia, 750.0);
     assert_eq!(dose.dose_por_tomada_mg, 250.0);
-    assert_eq!(dose.volume_ml_por_tomada, 5.0);
-    assert_eq!(dose.numero_gotas_por_tomada, 100);
+    assert_eq!(dose.volume_ml_por_tomada, Some(5.0));
+    assert_eq!(dose.numero_gotas_por_tomada, Some(100));
     assert_eq!(dose.intervalo_horas, 8);
     assert!(!dose.alerta_teto_ultrapassado);
     assert!(dose.justificativa_seguranca.is_none());
@@ -129,16 +129,26 @@ fn test_pediatrico_amoxicilina_dentro_do_teto() {
 fn test_pediatrico_teto_maximo_ultrapassado() {
     // Criança de 40 kg, dose 90 mg/kg/dia -> 3600 mg/dia
     // Teto estabelecido: 3000 mg/dia
-    let res = calcular_dose_pediatrica(40.0, 90.0, 50.0, 3, Some(3000.0));
+    let res = calcular_dose_pediatrica(40.0, 90.0, Some(50.0), 3, Some(3000.0));
     assert!(res.is_ok());
     let dose = res.unwrap();
 
     assert_eq!(dose.dose_total_calculada_mg_dia, 3600.0);
     assert_eq!(dose.dose_teto_aplicada_mg_dia, 3000.0);
     assert_eq!(dose.dose_por_tomada_mg, 1000.0);
-    assert_eq!(dose.volume_ml_por_tomada, 20.0);
+    assert_eq!(dose.volume_ml_por_tomada, Some(20.0));
     assert!(dose.alerta_teto_ultrapassado);
     assert!(dose.justificativa_seguranca.is_some());
+}
+
+#[test]
+fn test_pediatrico_forma_solida_sem_volume() {
+    // Comprimido: sem concentração líquida o resultado fica em mg, sem volume nem gotas
+    let dose = calcular_dose_pediatrica(20.0, 10.0, None, 2, None).unwrap();
+    assert_eq!(dose.dose_por_tomada_mg, 100.0);
+    assert_eq!(dose.volume_ml_por_tomada, None);
+    assert_eq!(dose.numero_gotas_por_tomada, None);
+    assert!(calcular_dose_pediatrica(20.0, 10.0, Some(0.0), 2, None).is_err());
 }
 
 #[test]
@@ -259,8 +269,8 @@ fn test_entradas_invalidas_nao_geram_resultado() {
     assert!(calcular_clearance_cockcroft_gault(1.0, -5.0, 50, false).is_err());
     assert!(calcular_vazao_infusao(0.1, 70.0, 0.0).is_err());
     assert!(calcular_vazao_infusao(0.0, 70.0, 0.064).is_err());
-    assert!(calcular_dose_pediatrica(0.0, 50.0, 50.0, 3, None).is_err());
-    assert!(calcular_dose_pediatrica(15.0, 50.0, 50.0, 0, None).is_err());
+    assert!(calcular_dose_pediatrica(0.0, 50.0, Some(50.0), 3, None).is_err());
+    assert!(calcular_dose_pediatrica(15.0, 50.0, Some(50.0), 0, None).is_err());
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -338,6 +348,26 @@ fn test_banco_empacotado_consultas_principais() {
         .and_then(|item| item.id_referencia.as_i64())
         .unwrap();
     assert!(banco.obter_registro_cmed(id_cmed).is_ok());
+
+    // Todas as apresentações estão indexadas, e as embalagens CMED não empurram a monografia do FTN para fora do limite
+    let losartana = banco.buscar_geral("losartana", 50).unwrap();
+    let primeira_cmed = losartana.iter().position(|item| item.tipo_registro == "cmed_comercial").unwrap();
+    let monografia = losartana.iter().position(|item| item.tipo_registro == "ftn_monografia");
+    assert!(monografia.is_some_and(|posicao| posicao < primeira_cmed));
+    // Apresentações comerciais por substância (a interface escolhe as substâncias pela chave do princípio ativo)
+    let substancias = banco.listar_substancias_cmed().unwrap();
+    let amox_clav: Vec<String> = substancias
+        .into_iter()
+        .filter(|s| s.contains("AMOXICILINA") && s.contains("CLAVUL"))
+        .collect();
+    let apresentacoes = banco.apresentacoes_cmed_por_substancias(&amox_clav).unwrap();
+    assert!(apresentacoes.len() > 50, "{} apresentações", apresentacoes.len());
+    assert!(banco.apresentacoes_cmed_por_substancias(&[]).unwrap().is_empty());
+
+    let losartana_100 = banco.buscar_geral("losartana 100 mg", 50).unwrap();
+    assert!(losartana_100
+        .iter()
+        .any(|item| item.tipo_registro == "cmed_comercial" && item.titulo_primario.contains("100 MG")));
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -373,94 +403,56 @@ fn test_obter_registro_cmed() {
 }
 
 #[test]
-fn test_cotacao_farmacia_dipirona_sempre_com_valor() {
-    use clinical_engine::pharmacy_pricing::cotar_precos_farmacias;
+fn test_analise_de_preco_so_usa_valores_oficiais() {
+    use clinical_engine::pharmacy_pricing::analisar_preco_medicamento;
 
-    let analise = cotar_precos_farmacias(
+    let analise = analisar_preco_medicamento(
         "NOVALGINA",
         "DIPIRONA MONOIDRATADA",
-        "Referência",
+        "Novo",
         "500 MG COM CT BL AL PLAS INC X 20",
         "7891058001234",
         28.50,
     );
-
-    // O valor deve sempre existir e ser positivo
-    assert_eq!(analise.nome_comercial, "NOVALGINA");
-    assert_eq!(analise.preco_pmc_teto, 28.50);
-    assert!(analise.menor_preco_estimado > 0.0);
-    assert!(analise.menor_preco_estimado <= analise.maior_preco_estimado);
-    assert!(analise.maior_preco_estimado <= analise.preco_pmc_teto);
-    assert!(analise.preco_medio > 0.0);
-
-    // Todas as farmácias parceiras devem ter preço cotado válido menor ou igual ao teto regulatório
-    assert!(!analise.cotacoes.is_empty());
-    for cotacao in &analise.cotacoes {
-        assert!(cotacao.preco_estimado >= 0.0);
-        assert!(cotacao.preco_estimado <= analise.preco_pmc_teto);
-        assert!(!cotacao.nome_farmacia.is_empty());
-        assert!(!cotacao.link_busca.is_empty());
-    }
-
-    // Deve extrair 20 unidades e calcular o preço por comprimido
+    assert_eq!(analise.preco_pmc_teto, Some(28.50));
     assert_eq!(analise.quantidade_unidades, Some(20));
-    assert!(analise.preco_por_unidade.is_some());
-    let preco_unidade = analise.preco_por_unidade.unwrap();
-    assert!(preco_unidade > 0.0 && preco_unidade < 2.0);
+    assert_eq!(analise.pmc_por_unidade, Some(1.43));
+    assert!(!analise.farmacia_popular.gratuito);
+    assert!(analise.links_pesquisa.iter().all(|l| l.url.starts_with("https://") && l.url.contains("NOVALGINA")));
+
+    // Sem PMC publicado não há valor inventado
+    let hospitalar = analisar_preco_medicamento("X", "NOREPINEFRINA", "Similar", "2 MG/ML SOL INJ X 4 ML", "", 0.0);
+    assert_eq!(hospitalar.preco_pmc_teto, None);
+    assert_eq!(hospitalar.pmc_por_unidade, None);
 }
 
 #[test]
-fn test_farmacia_popular_losartana_gratuita() {
-    use clinical_engine::pharmacy_pricing::{cotar_precos_farmacias, verificar_elegibilidade_farmacia_popular};
+fn test_farmacia_popular_confere_substancia_e_dose() {
+    use clinical_engine::pharmacy_pricing::verificar_farmacia_popular;
 
-    let (elegivel, detalhe) = verificar_elegibilidade_farmacia_popular("LOSARTANA POTÁSSICA");
-    assert!(elegivel);
-    assert!(detalhe.unwrap().contains("100% Gratuito"));
+    let losartana = verificar_farmacia_popular("LOSARTANA POTÁSSICA", "50 MG COM REV CT BL AL PLAS OPC X 30");
+    assert!(losartana.gratuito);
+    assert_eq!(losartana.indicacao.as_deref(), Some("Hipertensão"));
 
-    let analise = cotar_precos_farmacias(
-        "LOSARTANA POTÁSSICA",
-        "LOSARTANA POTÁSSICA",
-        "Genérico",
-        "50 MG COM REV CT BL AL PLAS OPC X 30",
-        "7896714200000",
-        18.00,
-    );
+    // Mesma substância em dose fora do elenco não é gratuita
+    let losartana_100 = verificar_farmacia_popular("LOSARTANA POTÁSSICA", "100 MG COM REV CT BL AL PLAS OPC X 50");
+    assert!(!losartana_100.gratuito);
+    assert!(losartana_100.substancia_no_programa);
 
-    assert!(analise.elegivel_farmacia_popular);
-    // Deve incluir a cotação do programa Farmácia Popular com R$ 0,00
-    let cotacao_fp = analise
-        .cotacoes
-        .iter()
-        .find(|c| c.nome_farmacia.contains("Farmácia Popular"));
-    assert!(cotacao_fp.is_some());
-    assert_eq!(cotacao_fp.unwrap().preco_estimado, 0.00);
-    assert_eq!(cotacao_fp.unwrap().desconto_percentual, 100.0);
-}
+    // Associação com outro princípio ativo não entra
+    let associacao = verificar_farmacia_popular("LOSARTANA POTÁSSICA;HIDROCLOROTIAZIDA", "(50 + 12,5) MG COM REV X 30");
+    assert!(!associacao.gratuito);
+    assert!(!associacao.substancia_no_programa);
 
-#[test]
-fn test_farmacia_popular_sinvastatina_copagamento() {
-    use clinical_engine::pharmacy_pricing::{cotar_precos_farmacias, verificar_elegibilidade_farmacia_popular};
+    // Desde 02/2025 não existe mais copagamento: sinvastatina 20 mg é gratuita
+    assert!(verificar_farmacia_popular("SINVASTATINA", "20 MG COM REV CT BL AL PLAS INC X 30").gratuito);
 
-    let (elegivel, detalhe) = verificar_elegibilidade_farmacia_popular("SINVASTATINA");
-    assert!(elegivel);
-    assert!(detalhe.unwrap().contains("Copagamento"));
+    // Anticoncepcional: só a combinação e as doses do elenco
+    assert!(verificar_farmacia_popular("LEVONORGESTREL;ETINILESTRADIOL", "(0,15 + 0,03) MG COM CT BL AL PLAS TRANS X 21").gratuito);
+    assert!(!verificar_farmacia_popular("GESTODENO;ETINILESTRADIOL", "(0,075 + 0,03) MG COM X 21").gratuito);
 
-    let analise = cotar_precos_farmacias(
-        "ZOCOR",
-        "SINVASTATINA",
-        "Referência",
-        "20 MG COM REV CT BL AL PLAS INC X 30",
-        "7890000000000",
-        50.00,
-    );
-
-    assert!(analise.elegivel_farmacia_popular);
-    let cotacao_fp = analise
-        .cotacoes
-        .iter()
-        .find(|c| c.nome_farmacia.contains("Farmácia Popular"));
-    assert!(cotacao_fp.is_some());
-    assert_eq!(cotacao_fp.unwrap().preco_estimado, 5.00); // 90% desconto sobre 50.00 = 5.00
+    // Insulina análoga não é a insulina humana do programa
+    assert!(!verificar_farmacia_popular("INSULINA GLARGINA", "100 UI/ML SOL INJ X 3 ML").gratuito);
 }
 
 #[test]
@@ -470,4 +462,97 @@ fn test_extrair_quantidade_unidades() {
     assert_eq!(extrair_quantidade_unidades("500 MG COM CT BL AL PLAS INC X 30"), Some(30));
     assert_eq!(extrair_quantidade_unidades("10 MG/ML SOL ORAL CT FR GTS X 20 ML"), Some(20));
     assert_eq!(extrair_quantidade_unidades("20 MG COM REV X 60"), Some(60));
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+#[test]
+fn test_atualizador_le_arquivos_da_anvisa_e_protege_os_dados() {
+    use clinical_engine::atualizador::{
+        aplicar_arquivo, consultar_bula, decodificar_texto, garantir_esquema, ler_indice_bulas, ler_precos_cmed,
+        precisa_atualizar, FonteDados, TipoFonte, FONTES,
+    };
+    use rusqlite::Connection;
+
+    // Cabeçalho real da CMED (com BOM), reduzido às colunas que importam
+    let mut cmed = String::from("\u{feff}SUBSTÂNCIA;CNPJ;LABORATÓRIO;CÓDIGO GGREM;REGISTRO;EAN 1;EAN 2;EAN 3;PRODUTO;APRESENTAÇÃO;CLASSE TERAPÊUTICA;TIPO DE PRODUTO (STATUS DO PRODUTO);REGIME DE PREÇO;PMC 18 %;TARJA\n");
+    for i in 0..3 {
+        cmed.push_str(&format!(
+            "LOSARTANA POTÁSSICA;00;EMS S/A;1;100290007{i:04};789{i};;;COZAAR;50 MG COM REV CT BL X {};C9C;Novo;Regulado;\"107,85\";Tarja Vermelha\n",
+            30 + i
+        ));
+    }
+    let linhas = ler_precos_cmed(&decodificar_texto(cmed.as_bytes())).unwrap();
+    assert_eq!(linhas.len(), 3);
+    assert_eq!(linhas[0].preco_maximo_consumidor, 107.85);
+    assert_eq!(linhas[0].substancia, "LOSARTANA POTÁSSICA");
+
+    // Índice de bulas: Windows-1252, sem cabeçalho, data em mês/dia/ano
+    let bulas_cp1252: Vec<u8> = b"336699;\"COZAAR\";\"100290007\";6;\"250000052239411\";\"45987013000134\";\"ORGANON FARMAC\xcaUTICA LTDA.\";34428002;\"1454152257\";\"11/03/2025 16:59:21\";\"15987262025\";\"10/12/2026 00:00:00\"\n".to_vec();
+    let bulas = ler_indice_bulas(&decodificar_texto(&bulas_cp1252)).unwrap();
+    assert_eq!(bulas[0].empresa, "ORGANON FARMACÊUTICA LTDA.");
+    assert_eq!(bulas[0].data_publicacao, "2025-11-03");
+
+    let mut con = Connection::open_in_memory().unwrap();
+    garantir_esquema(&con).unwrap();
+    let fonte_teste = FonteDados { minimo_linhas: 1, ..FONTES[0] };
+    assert_eq!(aplicar_arquivo(&mut con, &fonte_teste, cmed.as_bytes()).unwrap(), 3);
+    let busca: i64 = con
+        .query_row("SELECT COUNT(*) FROM indice_busca_fts WHERE tipo_registro = 'cmed_comercial'", [], |r| r.get(0))
+        .unwrap();
+    assert_eq!(busca, 3);
+
+    // Arquivo truncado (menos da metade das linhas atuais) não substitui a tabela
+    let truncado: String = cmed.lines().take(2).map(|l| format!("{l}\n")).collect();
+    assert!(aplicar_arquivo(&mut con, &fonte_teste, truncado.as_bytes()).is_err());
+    let restantes: i64 = con.query_row("SELECT COUNT(*) FROM catalogo_nacional_medicamentos_cmed", [], |r| r.get(0)).unwrap();
+    assert_eq!(restantes, 3);
+    // Formato desconhecido também é recusado sem apagar nada
+    assert!(aplicar_arquivo(&mut con, &fonte_teste, b"COLUNA;OUTRA\n1;2\n").is_err());
+
+    let fonte_bulas = FonteDados { minimo_linhas: 1, tipo: TipoFonte::IndiceBulas, ..FONTES[2] };
+    aplicar_arquivo(&mut con, &fonte_bulas, &bulas_cp1252).unwrap();
+    let bula = consultar_bula(&con, "1002900070066").unwrap().unwrap();
+    assert_eq!(bula.nome_produto, "COZAAR");
+    assert!(bula.url_bulario.ends_with("numeroRegistro=100290007"));
+    assert!(consultar_bula(&con, "999999999").unwrap().is_none());
+
+    // Banco que nunca foi verificado precisa de atualização
+    let arquivo = std::env::temp_dir().join(format!("openclinical_atualizador_{}.sqlite", std::process::id()));
+    let _ = std::fs::remove_file(&arquivo);
+    assert!(precisa_atualizar(arquivo.to_str().unwrap(), 24.0));
+    let _ = std::fs::remove_file(&arquivo);
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+#[test]
+fn test_api_anvisa_credenciais_e_respostas() {
+    use clinical_engine::api_anvisa::{descrever_erro_http, mascarar_client_id, normalizar_credenciais, operacoes_openapi};
+
+    // CPF com pontuação vira só dígitos; o secret perde só os espaços das pontas
+    let credenciais = normalizar_credenciais(" 123.456.789-09 ", "  abcDEF123  ").unwrap();
+    assert_eq!(credenciais.client_id, "12345678909");
+    assert_eq!(credenciais.client_secret, "abcDEF123");
+    assert!(normalizar_credenciais("1234", "x").is_err());
+    assert!(normalizar_credenciais("12345678909", "").is_err());
+    assert!(normalizar_credenciais("12345678909", "abc def").is_err());
+    assert_eq!(mascarar_client_id("12345678909"), "123.***.***-09");
+
+    // Recusa do Keycloak e bloqueio do firewall são explicados de forma diferente
+    let (situacao, mensagem) = descrever_erro_http(400, r#"{"error":"invalid_client","error_description":"Invalid client credentials"}"#);
+    assert_eq!(situacao, "sem_permissao");
+    assert!(mensagem.contains("Regenere"));
+    let (situacao, mensagem) = descrever_erro_http(403, "<title>Bloqueado · Ray ID a519f937ad69c03f · IP x</title>");
+    assert_eq!(situacao, "bloqueado_firewall");
+    assert!(mensagem.contains("a519f937ad69c03f"));
+
+    // 404 do serviço (corpo JSON do Spring) não é recusa de login
+    let (situacao, mensagem) = descrever_erro_http(
+        404,
+        r#"{"timestamp":"2026-10-28T13:00:48Z","status":404,"error":"Not Found","path":"/v3/api-docs"}"#,
+    );
+    assert_eq!(situacao, "nao_publicado");
+    assert!(!mensagem.contains("autenticação"));
+
+    let especificacao = serde_json::json!({"paths": {"/api/v1/lista": {"get": {}, "post": {}}}});
+    assert_eq!(operacoes_openapi(&especificacao), vec!["GET /api/v1/lista", "POST /api/v1/lista"]);
 }

@@ -1,15 +1,18 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Baby, BookMarked, Check, ClipboardCopy, Copy, FileText, Search, ShieldAlert, Stethoscope, Pill, Info } from 'lucide-react';
+import { Store, Baby, BookMarked, Check, ClipboardCopy, Copy, FileText, Search, ShieldAlert, Stethoscope, Pill, Info } from 'lucide-react';
 import type { EsquemaAdministracaoFtn, MonografiaFtn } from '../data/formulario_terapeutico';
 import {
   apresentacoesDisponiveis,
   capitalizar,
   carregarFormulario,
-  concentracaoMgPorMl,
+  componentesSus,
   filtrarMonografias,
   montarReceita,
 } from '../formulario_utils';
 import { MarkdownSimples } from './MarkdownSimples';
+import { ApresentacoesComerciaisFtn } from './ApresentacoesComerciaisFtn';
+import { esquemasPediatricos, interpretarEsquemaPediatrico } from '../pediatria_ftn';
+import { LinkMedicamento } from './LinkMedicamento';
 
 interface FormularioViewProps {
   /** Monografia aberta pela busca global (id_monografia); `versao` muda a cada clique */
@@ -20,16 +23,25 @@ interface FormularioViewProps {
     conc: number | null,
     teto: number | null,
     fracionamento?: number,
-    referencia?: string
+    referencia?: string,
+    idMonografia?: number
   ) => void;
+  /** Abre a apresentação CMED (registro, bula oficial, preço) */
+  onAbrirProdutoCmed?: (idCmed: number) => void;
 }
 
-type Aba = 'posologia' | 'clinica' | 'seguranca' | 'orientacoes';
+/** Esquema pediátrico com dose em mg/kg legível pela calculadora */
+const doseCalculavel = (monografia: MonografiaFtn, item: EsquemaAdministracaoFtn) =>
+  esquemasPediatricos(monografia).includes(item) ? interpretarEsquemaPediatrico(item) : null;
+const temDoseCalculavel = (monografia: MonografiaFtn) =>
+  esquemasPediatricos(monografia).some((item) => interpretarEsquemaPediatrico(item) !== null);
+
+type Aba = 'posologia' | 'comerciais' | 'clinica' | 'seguranca' | 'orientacoes';
 type FiltroLista = 'todos' | 'pediatricos' | 'rename';
 
 const LIMITE_LISTA = 200;
 
-export const FormularioView: React.FC<FormularioViewProps> = ({ selecao, onAbrirCalculadoraPediatrica }) => {
+export const FormularioView: React.FC<FormularioViewProps> = ({ selecao, onAbrirCalculadoraPediatrica, onAbrirProdutoCmed }) => {
   const [monografias, setMonografias] = useState<MonografiaFtn[]>([]);
   const [fonte, setFonte] = useState('');
   const [erroCarga, setErroCarga] = useState<string | null>(null);
@@ -61,6 +73,10 @@ export const FormularioView: React.FC<FormularioViewProps> = ({ selecao, onAbrir
       setTermo('');
       setFiltro('todos');
       setSelecionada(achada);
+      // Em telas estreitas o detalhe fica abaixo da lista: leva direto à monografia aberta de fora
+      if (window.innerWidth < 1024) {
+        setTimeout(() => painelDetalheRef.current?.scrollIntoView({ block: 'start' }), 0);
+      }
     }
   }, [selecao, monografias]);
 
@@ -78,7 +94,7 @@ export const FormularioView: React.FC<FormularioViewProps> = ({ selecao, onAbrir
 
   const listaFiltrada = useMemo(() => {
     const porTermo = filtrarMonografias(monografias, termo);
-    if (filtro === 'pediatricos') return porTermo.filter((m) => m.esquemas.some((e) => e.dose_mg_kg_dia_min !== null));
+    if (filtro === 'pediatricos') return porTermo.filter(temDoseCalculavel);
     if (filtro === 'rename') return porTermo.filter((m) => m.rename_2024.length > 0);
     return porTermo;
   }, [monografias, termo, filtro]);
@@ -106,19 +122,18 @@ export const FormularioView: React.FC<FormularioViewProps> = ({ selecao, onAbrir
   };
 
   const abrirNaCalculadora = (item: EsquemaAdministracaoFtn) => {
-    if (!selecionada || item.dose_mg_kg_dia_min === null) return;
-    // Só preenche a concentração quando há exatamente uma apresentação líquida em mg/mL
-    const liquidas = apresentacoesDisponiveis(selecionada)
-      .map(concentracaoMgPorMl)
-      .filter((valor): valor is number => valor !== null);
-    const concentracoes = Array.from(new Set(liquidas));
+    if (!selecionada) return;
+    const lido = doseCalculavel(selecionada, item);
+    if (!lido) return;
+    // A calculadora relê o esquema e oferece as formulações líquidas do FTN/RENAME
     onAbrirCalculadoraPediatrica(
-      concentracoes.length === 1 ? `${capitalizar(selecionada.nome)} ${concentracoes[0]} mg/mL` : `${capitalizar(selecionada.nome)} (formulação líquida)`,
-      item.dose_mg_kg_dia_min,
-      concentracoes.length === 1 ? concentracoes[0] : null,
-      item.dose_maxima_diaria_mg,
-      item.fracionamento_diario ?? undefined,
-      `${item.populacao}${item.indicacao ? ` - ${item.indicacao}` : ''}: ${item.texto} (FTN 2010, p. ${selecionada.pagina})`
+      capitalizar(selecionada.nome),
+      lido.modo === 'dia' ? lido.doseMin : undefined,
+      null,
+      lido.tetoDiarioMg,
+      lido.fracionamento ?? undefined,
+      `${item.populacao}${item.indicacao ? ` · ${item.indicacao}` : ''}: ${item.texto}`,
+      selecionada.id_monografia
     );
   };
 
@@ -210,7 +225,7 @@ export const FormularioView: React.FC<FormularioViewProps> = ({ selecao, onAbrir
           )}
           {listaFiltrada.slice(0, LIMITE_LISTA).map((m) => {
             const ativo = selecionada?.id_monografia === m.id_monografia;
-            const temPediatrico = m.esquemas.some((e) => e.dose_mg_kg_dia_min !== null);
+            const temPediatrico = temDoseCalculavel(m);
             return (
               <button
                 key={m.id_monografia}
@@ -224,9 +239,13 @@ export const FormularioView: React.FC<FormularioViewProps> = ({ selecao, onAbrir
                 <div className="text-xs font-bold text-slate-100 leading-snug">{capitalizar(m.nome)}</div>
                 <div className="text-[10px] text-slate-400 line-clamp-1 mt-0.5">{m.apresentacoes.join(' · ')}</div>
                 <div className="flex flex-wrap gap-1 mt-1.5">
-                  {m.rename_2024.length > 0 && (
+                  {m.rename_2024.length > 0 ? (
                     <span className="text-[9px] bg-emerald-950 text-emerald-300 border border-emerald-700/60 px-1.5 py-px rounded font-semibold">
-                      RENAME 2024
+                      SUS · {componentesSus(m)}
+                    </span>
+                  ) : (
+                    <span className="text-[9px] bg-slate-800 text-slate-400 border border-slate-700 px-1.5 py-px rounded font-semibold">
+                      Fora do SUS
                     </span>
                   )}
                   {temPediatrico && (
@@ -265,12 +284,18 @@ export const FormularioView: React.FC<FormularioViewProps> = ({ selecao, onAbrir
                     {selecionada.tipo_receituario}
                   </span>
                   {selecionada.rename_2024.length > 0 ? (
-                    <span className="px-2 py-0.5 rounded-full border bg-emerald-950 text-emerald-300 border-emerald-700/60 font-semibold">
-                      RENAME 2024: {Array.from(new Set(selecionada.rename_2024.map((r) => r.componente))).join(', ')}
+                    <span
+                      title="Princípio ativo na RENAME 2024: as apresentações dispensadas pelo SUS estão na lista de apresentações (RENAME 2024)."
+                      className="px-2 py-0.5 rounded-full border bg-emerald-950 text-emerald-300 border-emerald-700/60 font-semibold"
+                    >
+                      Disponível no SUS (RENAME 2024 · {componentesSus(selecionada)})
                     </span>
                   ) : (
-                    <span className="px-2 py-0.5 rounded-full border bg-slate-800 text-slate-400 border-slate-700">
-                      Não localizado na RENAME 2024 pelo nome
+                    <span
+                      title="Não consta da RENAME 2024 (lista ambulatorial). Medicamentos de uso hospitalar ou oncológico podem ser fornecidos por outras vias do SUS."
+                      className="px-2 py-0.5 rounded-full border bg-slate-800 text-slate-300 border-slate-700"
+                    >
+                      Fora do SUS ambulatorial (não está na RENAME 2024)
                     </span>
                   )}
                   <span className="px-2 py-0.5 rounded-full border bg-slate-800 text-slate-400 border-slate-700 font-mono">
@@ -288,6 +313,7 @@ export const FormularioView: React.FC<FormularioViewProps> = ({ selecao, onAbrir
                 {(
                   [
                     { id: 'posologia', label: 'Posologia & Receita', icone: Stethoscope },
+                    { id: 'comerciais', label: 'Apresentações comerciais', icone: Store },
                     { id: 'clinica', label: 'Indicações & Contraindicações', icone: FileText },
                     { id: 'seguranca', label: 'Efeitos adversos & Interações', icone: ShieldAlert },
                     { id: 'orientacoes', label: 'Orientações & Farmacêutica', icone: Info },
@@ -340,19 +366,21 @@ export const FormularioView: React.FC<FormularioViewProps> = ({ selecao, onAbrir
                                   <ClipboardCopy className="w-3.5 h-3.5" />
                                   {ativo ? 'Na receita' : 'Usar na receita'}
                                 </button>
-                                {item.dose_mg_kg_dia_min !== null && (
-                                  <button
-                                    onClick={() => abrirNaCalculadora(item)}
-                                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-sky-700/80 hover:bg-sky-600 text-white font-semibold"
-                                  >
-                                    <Baby className="w-3.5 h-3.5" />
-                                    Calcular dose ({item.dose_mg_kg_dia_min}
-                                    {item.dose_mg_kg_dia_max !== null && item.dose_mg_kg_dia_max !== item.dose_mg_kg_dia_min
-                                      ? `–${item.dose_mg_kg_dia_max}`
-                                      : ''}{' '}
-                                    mg/kg/dia)
-                                  </button>
-                                )}
+                                {(() => {
+                                  const lido = doseCalculavel(selecionada, item);
+                                  if (!lido) return null;
+                                  const faixa = lido.doseMax !== lido.doseMin ? `${lido.doseMin}–${lido.doseMax}` : `${lido.doseMin}`;
+                                  const unidade = lido.modo === 'tomada' ? 'mg/kg/dose' : lido.modo === 'dia' ? 'mg/kg/dia' : 'mg/kg';
+                                  return (
+                                    <button
+                                      onClick={() => abrirNaCalculadora(item)}
+                                      className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-sky-700/80 hover:bg-sky-600 text-white font-semibold"
+                                    >
+                                      <Baby className="w-3.5 h-3.5" />
+                                      Calcular dose ({faixa} {unidade})
+                                    </button>
+                                  );
+                                })()}
                               </div>
                             </div>
                           );
@@ -360,6 +388,10 @@ export const FormularioView: React.FC<FormularioViewProps> = ({ selecao, onAbrir
                       </div>
                     ))}
                   </>
+                )}
+
+                {aba === 'comerciais' && (
+                  <ApresentacoesComerciaisFtn monografia={selecionada} onAbrirProduto={onAbrirProdutoCmed} />
                 )}
 
                 {aba === 'clinica' && (
@@ -380,7 +412,9 @@ export const FormularioView: React.FC<FormularioViewProps> = ({ selecao, onAbrir
                       {selecionada.interacoes.length === 0 && <p className="text-xs text-slate-400">Nenhuma descrita no FTN.</p>}
                       {selecionada.interacoes.map((item, indice) => (
                         <div key={indice} className="p-3 bg-slate-950/60 border border-slate-800 rounded-xl text-xs">
-                          <span className="font-semibold text-amber-300">{item.farmaco}: </span>
+                          <span className="font-semibold text-amber-300">
+                            <LinkMedicamento nome={item.farmaco} />:{' '}
+                          </span>
                           <span className="text-slate-300">{item.texto}</span>
                         </div>
                       ))}

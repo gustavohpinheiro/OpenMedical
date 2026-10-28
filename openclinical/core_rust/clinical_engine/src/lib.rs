@@ -1,3 +1,7 @@
+#[cfg(not(target_arch = "wasm32"))]
+pub mod api_anvisa;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod atualizador;
 pub mod calculators;
 pub mod database;
 pub mod errors;
@@ -18,8 +22,8 @@ pub use interactions::{gerar_pares_combinatorios, verificar_interacoes_em_memori
 pub use models::*;
 pub use pediatric::calcular_dose_pediatrica;
 pub use pharmacy_pricing::{
-    cotar_precos_farmacias, extrair_quantidade_unidades, verificar_elegibilidade_farmacia_popular,
-    AnalisePrecoMedicamento, CotacaoFarmacia,
+    analisar_preco_medicamento, extrair_quantidade_unidades, verificar_farmacia_popular,
+    AnalisePrecoMedicamento, LinkPesquisaPreco, SituacaoFarmaciaPopular,
 };
 pub use protocols::analisar_protocolo_markdown;
 

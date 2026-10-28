@@ -3,6 +3,7 @@ import { ShieldAlert, AlertOctagon, AlertTriangle, Info, Plus, X } from 'lucide-
 import { MatrizInteracao } from '../types';
 import { verificarInteracoes } from '../api';
 import { FtnInteractionChecker } from './FtnInteractionChecker';
+import { LinkMedicamento } from './LinkMedicamento';
 
 const LISTA_FARMACOS = [
   { id: 1, nome: 'Amoxicilina' },
@@ -153,7 +154,8 @@ export const InteractionChecker: React.FC = () => {
                         <Info className="w-5 h-5 text-yellow-400 flex-shrink-0" />
                       )}
                       <span className="font-bold text-slate-100 text-sm">
-                        {item.nome_principio_a || 'Princípio A'} &times; {item.nome_principio_b || 'Princípio B'}
+                        {item.nome_principio_a ? <LinkMedicamento nome={item.nome_principio_a} /> : 'Princípio A'} &times;{' '}
+                        {item.nome_principio_b ? <LinkMedicamento nome={item.nome_principio_b} /> : 'Princípio B'}
                       </span>
                     </div>
 

@@ -64,8 +64,86 @@ impl BancoDadosClinico {
         .map_err(|e| ClinicalError::ErroBancoDados {
             mensagem: format!("Falha ao abrir banco SQLite em modo somente leitura: {e}"),
         })?;
+        // O atualizador diário grava em transação: as consultas esperam o fim dela em vez de falhar
+        conexao
+            .busy_timeout(std::time::Duration::from_secs(15))
+            .map_err(|e| ClinicalError::ErroBancoDados {
+                mensagem: format!("Falha ao configurar espera do banco: {e}"),
+            })?;
 
         Ok(Self { conexao })
+    }
+
+    /// Substâncias distintas da CMED: a interface normaliza sal e associação e escolhe as que correspondem a um fármaco.
+    pub fn listar_substancias_cmed(&self) -> Result<Vec<String>, ClinicalError> {
+        let mut stmt = self
+            .conexao
+            .prepare("SELECT DISTINCT substancia FROM catalogo_nacional_medicamentos_cmed ORDER BY substancia")
+            .map_err(|e| ClinicalError::ErroBancoDados { mensagem: format!("Erro ao listar substâncias CMED: {e}") })?;
+        let linhas = stmt
+            .query_map([], |row| row.get::<_, String>(0))
+            .map_err(|e| ClinicalError::ErroBancoDados { mensagem: format!("Erro ao listar substâncias CMED: {e}") })?;
+        linhas
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| ClinicalError::ErroBancoDados { mensagem: format!("Erro ao ler substâncias CMED: {e}") })
+    }
+
+    /// Todas as apresentações comerciais das substâncias informadas (texto exato da CMED).
+    pub fn apresentacoes_cmed_por_substancias(
+        &self,
+        substancias: &[String],
+    ) -> Result<Vec<MedicamentoComercialCmed>, ClinicalError> {
+        if substancias.is_empty() {
+            return Ok(Vec::new());
+        }
+        let marcadores = vec!["?"; substancias.len()].join(", ");
+        let sql = format!(
+            "SELECT id_cmed, substancia, nome_produto, apresentacao,
+                    COALESCE(classe_terapeutica, ''), COALESCE(tipo_produto, ''), COALESCE(laboratorio, ''),
+                    COALESCE(numero_registro, ''), COALESCE(codigo_ean, ''), COALESCE(tarja, ''),
+                    COALESCE(preco_maximo_consumidor, 0.0), COALESCE(receita_padrao_copiavel, '')
+             FROM catalogo_nacional_medicamentos_cmed
+             WHERE substancia IN ({marcadores})
+             ORDER BY nome_produto, apresentacao"
+        );
+        let mut stmt = self
+            .conexao
+            .prepare(&sql)
+            .map_err(|e| ClinicalError::ErroBancoDados { mensagem: format!("Erro ao preparar consulta CMED: {e}") })?;
+        let linhas = stmt
+            .query_map(rusqlite::params_from_iter(substancias.iter()), |row| {
+                Ok(MedicamentoComercialCmed {
+                    id_cmed: row.get(0)?,
+                    substancia: row.get(1)?,
+                    nome_produto: row.get(2)?,
+                    apresentacao: row.get(3)?,
+                    classe_terapeutica: row.get(4)?,
+                    tipo_produto: row.get(5)?,
+                    laboratorio: row.get(6)?,
+                    numero_registro: row.get(7)?,
+                    codigo_ean: row.get(8)?,
+                    tarja: row.get(9)?,
+                    preco_maximo_consumidor: row.get(10)?,
+                    receita_padrao_copiavel: row.get(11)?,
+                })
+            })
+            .map_err(|e| ClinicalError::ErroBancoDados { mensagem: format!("Erro ao consultar apresentações CMED: {e}") })?;
+        linhas
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| ClinicalError::ErroBancoDados { mensagem: format!("Erro ao ler apresentações CMED: {e}") })
+    }
+
+    /// Bula vigente do produto no índice oficial do Bulário Eletrônico (atualizado diariamente).
+    pub fn consultar_bula_anvisa(
+        &self,
+        numero_registro: &str,
+    ) -> Result<Option<crate::atualizador::BulaAnvisaIndice>, ClinicalError> {
+        crate::atualizador::consultar_bula(&self.conexao, numero_registro)
+    }
+
+    /// Situação de cada fonte do atualizador diário.
+    pub fn estado_atualizacao(&self) -> Vec<crate::atualizador::EstadoFonte> {
+        crate::atualizador::estado_atualizacao(&self.conexao)
     }
 
     /// Busca textual rápida com ranqueamento BM25 na tabela virtual FTS5.
@@ -99,7 +177,9 @@ impl BancoDadosClinico {
             SELECT tipo_registro, id_referencia, titulo_primario, subtitulo, bm25(indice_busca_fts) as score
             FROM indice_busca_fts
             WHERE indice_busca_fts MATCH ?1
-            ORDER BY score ASC
+            -- As 26 mil apresentações CMED vêm depois de monografias, bulas e protocolos,
+            -- senão as embalagens de um mesmo produto ocupam todo o limite
+            ORDER BY CASE tipo_registro WHEN 'cmed_comercial' THEN 1 ELSE 0 END, score ASC
             LIMIT ?2
         "#;
 

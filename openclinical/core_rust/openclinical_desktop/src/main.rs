@@ -3,9 +3,12 @@
 mod commands;
 
 use commands::{
-    buscar_geral, cotar_precos_medicamento, executar_calculo_clinico, listar_protocolos_clinicos,
-    obter_detalhe_medicamento, obter_registro_cmed, resolver_caminho_banco, verificar_interacoes,
-    EstadoAplicacao,
+    analisar_preco_medicamento, atualizar_bases_agora, buscar_geral, consultar_bula_anvisa,
+    estado_atualizacao_bases, executar_calculo_clinico, iniciar_atualizador_diario,
+    listar_protocolos_clinicos, obter_detalhe_medicamento, obter_registro_cmed,
+    preparar_banco_gravavel, resolver_caminho_banco, verificar_interacoes, EstadoAplicacao,
+    estado_credenciais_anvisa, remover_credenciais_anvisa, salvar_credenciais_anvisa, testar_api_anvisa,
+    apresentacoes_cmed_por_substancias, listar_substancias_cmed,
 };
 use std::sync::Mutex;
 use tauri::Manager;
@@ -18,9 +21,16 @@ fn main() {
         })
         .setup(|app| {
             // No app instalado o banco vem como recurso empacotado (bundle.resources do tauri.conf.json)
-            let caminho_banco = resolver_caminho_banco(app.path().resource_dir().ok());
+            let diretorio_recursos = app.path().resource_dir().ok();
+            let caminho_banco = resolver_caminho_banco(diretorio_recursos.clone()).map(|caminho| {
+                preparar_banco_gravavel(caminho, diretorio_recursos.as_deref(), app.path().app_data_dir().ok())
+            });
             match &caminho_banco {
-                Some(caminho) => println!("Iniciando OpenClinical Desktop. Banco de dados em: {caminho}"),
+                Some(caminho) => {
+                    println!("Iniciando OpenClinical Desktop. Banco de dados em: {caminho}");
+                    // Preços CMED, registros e índice de bulas da ANVISA: verificados uma vez por dia
+                    iniciar_atualizador_diario(app.handle().clone(), caminho.clone());
+                }
                 None => eprintln!("Banco de dados openclinical_core.sqlite não encontrado; as consultas retornarão erro."),
             }
 
@@ -36,10 +46,19 @@ fn main() {
             buscar_geral,
             obter_detalhe_medicamento,
             obter_registro_cmed,
-            cotar_precos_medicamento,
+            analisar_preco_medicamento,
             verificar_interacoes,
             listar_protocolos_clinicos,
-            executar_calculo_clinico
+            executar_calculo_clinico,
+            estado_atualizacao_bases,
+            atualizar_bases_agora,
+            consultar_bula_anvisa,
+            estado_credenciais_anvisa,
+            salvar_credenciais_anvisa,
+            remover_credenciais_anvisa,
+            testar_api_anvisa,
+            listar_substancias_cmed,
+            apresentacoes_cmed_por_substancias
         ])
         .run(tauri::generate_context!());
 
