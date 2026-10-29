@@ -141,6 +141,27 @@ impl BancoDadosClinico {
         crate::atualizador::consultar_bula(&self.conexao, numero_registro)
     }
 
+    /// Bulas em PDF importadas para o produto (profissional e/ou paciente).
+    pub fn obter_bulas_importadas(
+        &self,
+        numero_registro: &str,
+    ) -> Result<Vec<crate::bulas_importadas::BulaImportada>, ClinicalError> {
+        crate::bulas_importadas::obter(&self.conexao, numero_registro)
+    }
+
+    pub fn listar_bulas_importadas(&self) -> Result<Vec<crate::bulas_importadas::BulaImportadaResumo>, ClinicalError> {
+        crate::bulas_importadas::listar(&self.conexao)
+    }
+
+    /// PCDT da CONITEC na lista oficial vigente (sem o texto das seções).
+    pub fn listar_pcdt_conitec(&self) -> Result<Vec<crate::pcdt_conitec::PcdtResumo>, ClinicalError> {
+        crate::pcdt_conitec::listar(&self.conexao)
+    }
+
+    pub fn obter_pcdt_conitec(&self, id_pcdt: i64) -> Result<Option<crate::pcdt_conitec::PcdtDetalhe>, ClinicalError> {
+        crate::pcdt_conitec::obter(&self.conexao, id_pcdt)
+    }
+
     /// Situação de cada fonte do atualizador diário.
     pub fn estado_atualizacao(&self) -> Vec<crate::atualizador::EstadoFonte> {
         crate::atualizador::estado_atualizacao(&self.conexao)

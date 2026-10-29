@@ -1,12 +1,15 @@
 ---
 id_protocolo: "vertigem_posicional_paroxistica_labirintopatia"
 titulo: "Abordagem da Vertigem Posicional Paroxística Benigna (VPPB) e Labirintite"
+categoria: "neurologia"
 cids_relacionados: ["H81.1", "H81.0"]
 ciaps_relacionados: ["H82"]
+farmacos_principais: ["Dimenidrinato + Piridoxina", "Dicloridrato de Flunarizina 10mg"]
 nivel_atencao: "Atencao_Primaria_e_Pronto_Atendimento"
 diretrizes_referencia: "Academia Americana de Otorrinolaringologia (AAO-HNS), ABORL-CCF"
 data_revisao: "2026-10-26"
 status_revisao_clinica: "pendente_revisao_por_profissional_habilitado"
+ordem_catalogo: 43
 ---
 
 # Diretrizes Clínicas: Vertigem Aguda

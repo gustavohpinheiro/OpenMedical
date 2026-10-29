@@ -1,12 +1,15 @@
 ---
 id_protocolo: "manejo_dengue_ms"
 titulo: "Protocolo de Manejo Clínico da Dengue (MS / OMS)"
+categoria: "infectologia"
 cids_relacionados: ["A90"]
 ciaps_relacionados: ["A77"]
+farmacos_principais: ["Sais de Reidratação Oral (SRO)", "Dipirona 500mg", "Paracetamol 500mg"]
 nivel_atencao: "Atencao_Primaria_e_Urgencia"
 diretrizes_referencia: "Ministério da Saúde do Brasil (2024), Organização Pan-Americana da Saúde (OPAS/OMS)"
 data_revisao: "2026-10-26"
 status_revisao_clinica: "pendente_revisao_por_profissional_habilitado"
+ordem_catalogo: 2
 ---
 
 # Protocolo de Manejo Clínico da Dengue (Diretrizes MS / OPAS)

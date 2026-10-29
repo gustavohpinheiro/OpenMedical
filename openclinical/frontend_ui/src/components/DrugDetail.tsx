@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { DetalheMedicamentoCompleto, FaixaAjusteRenal, GuiaDiluicao } from '../types';
 import { BotaoBulaAnvisa, BulaVigenteAnvisa } from './PosologiaFtnProduto';
+import { BulaImportadaDoProduto } from './BulaImportada';
 
 interface DrugDetailProps {
   detalhe: DetalheMedicamentoCompleto;
@@ -354,6 +355,10 @@ Receituário: ${medicamento.tipo_receituario.toUpperCase()}`;
                   <span>Comparar Preços</span>
                 </button>
               </div>
+            )}
+
+            {medicamento.numero_registro_anvisa && (
+              <BulaImportadaDoProduto numeroRegistro={medicamento.numero_registro_anvisa} nomeProduto={medicamento.nome_comercial} />
             )}
           </div>
         )}

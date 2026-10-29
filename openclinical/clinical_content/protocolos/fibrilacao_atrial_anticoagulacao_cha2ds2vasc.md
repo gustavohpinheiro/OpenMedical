@@ -1,12 +1,15 @@
 ---
 id_protocolo: "fibrilacao_atrial_anticoagulacao_cha2ds2vasc"
 titulo: "Fibrilação Atrial: Prevenção de AVC e Estratificação CHA2DS2-VASc"
+categoria: "cardiovascular"
 cids_relacionados: ["I48.0", "I48.9"]
 ciaps_relacionados: ["K78"]
+farmacos_principais: ["Rivaroxabana 20mg", "Apixabana 5mg", "Atenolol 50mg"]
 nivel_atencao: "Atencao_Primaria_e_Cardiologia"
 diretrizes_referencia: "Sociedade Brasileira de Cardiologia (SBC), ESC, AHA/ACC"
 data_revisao: "2026-10-26"
 status_revisao_clinica: "pendente_revisao_por_profissional_habilitado"
+ordem_catalogo: 22
 ---
 
 # Diretrizes Clínicas: Anticoagulação na Fibrilação Atrial

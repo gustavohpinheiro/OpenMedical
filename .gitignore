@@ -17,6 +17,10 @@ __pycache__/
 .pytest_cache/
 # Banco gerado pelo ETL (a cópia empacotada pelo app fica em core_rust/openclinical_desktop)
 openclinical/etl_pipeline/openclinical_core.sqlite
+# PDFs dos PCDT baixados da CONITEC (centenas de MB; o conteúdo extraído vai para o banco e para o frontend)
+openclinical/etl_pipeline/dados_publicos/pcdt/
+# Estado do coletor de bulas dos laboratórios (ETag/hash por PDF)
+openclinical/etl_pipeline/dados_publicos/bulas_laboratorios/
 *.sqlite-wal
 *.sqlite-shm
 

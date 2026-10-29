@@ -1,12 +1,15 @@
 ---
 id_protocolo: "sinusite_bacteriana_aguda"
 titulo: "Rinossinusite Bacteriana Aguda no Adulto"
+categoria: "infectologia"
 cids_relacionados: ["J01.9", "J01.0"]
 ciaps_relacionados: ["R75"]
+farmacos_principais: ["Amoxicilina 500mg", "Budesonida Spray Nasal", "Soro Fisiológico 0.9%"]
 nivel_atencao: "Atencao_Primaria"
 diretrizes_referencia: "Associação Brasileira de Otorrinolaringologia (ABORL-CCF), IDSA"
 data_revisao: "2026-10-26"
 status_revisao_clinica: "pendente_revisao_por_profissional_habilitado"
+ordem_catalogo: 6
 ---
 
 # Diretrizes Clínicas: Rinossinusite Aguda

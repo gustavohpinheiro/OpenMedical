@@ -1,12 +1,15 @@
 ---
 id_protocolo: "diabetes_mellitus_tipo2"
 titulo: "Manejo Farmacológico Inicial do Diabetes Mellitus Tipo 2 no SUS"
+categoria: "endocrinologia"
 cids_relacionados: ["E11", "E11.9"]
 ciaps_relacionados: ["T90"]
+farmacos_principais: ["Cloridrato de Metformina 850mg", "Gliclazida MR 30mg"]
 nivel_atencao: "Atencao_Primaria"
 diretrizes_referencia: "Diretrizes da Sociedade Brasileira de Diabetes (SBD 2024), ADA"
 data_revisao: "2026-10-26"
 status_revisao_clinica: "pendente_revisao_por_profissional_habilitado"
+ordem_catalogo: 34
 ---
 
 # Diretrizes Clínicas: Início do Tratamento do DM2

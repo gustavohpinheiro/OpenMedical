@@ -1,12 +1,15 @@
 ---
 id_protocolo: "gastrite_drge"
 titulo: "Manejo da Doença do Refluxo Gastroesofágico (DRGE) e Dispepsia"
+categoria: "gastroenterologia"
 cids_relacionados: ["K21.9", "K29.7"]
 ciaps_relacionados: ["D84", "D87"]
+farmacos_principais: ["Omeprazol 20mg cápsula", "Domperidona 10mg"]
 nivel_atencao: "Atencao_Primaria"
 diretrizes_referencia: "Federação Brasileira de Gastroenterologia (FBG), ACG"
 data_revisao: "2026-10-26"
 status_revisao_clinica: "pendente_revisao_por_profissional_habilitado"
+ordem_catalogo: 30
 ---
 
 # Diretrizes Clínicas: DRGE e Doença Péptica

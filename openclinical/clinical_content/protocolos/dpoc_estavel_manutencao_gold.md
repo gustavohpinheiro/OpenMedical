@@ -1,12 +1,15 @@
 ---
 id_protocolo: "dpoc_estavel_manutencao_gold"
 titulo: "Doença Pulmonar Obstrutiva Crônica (DPOC): Tratamento Estável (GOLD)"
+categoria: "respiratorio"
 cids_relacionados: ["J44.0", "J44.9"]
 ciaps_relacionados: ["R95"]
+farmacos_principais: ["Brometo de Tiotrópio 2.5mcg (LAMA)", "Salmeterol 50mcg (LABA)", "Sulfato de Salbutamol 100mcg"]
 nivel_atencao: "Atencao_Primaria_e_Pneumologia"
 diretrizes_referencia: "Global Initiative for Chronic Obstructive Lung Disease (GOLD 2024), SBPT"
 data_revisao: "2026-10-26"
 status_revisao_clinica: "pendente_revisao_por_profissional_habilitado"
+ordem_catalogo: 28
 ---
 
 # Diretrizes Clínicas: DPOC (GOLD 2024)

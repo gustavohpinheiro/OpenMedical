@@ -15,7 +15,7 @@ Para conciliar **agilidade na ingestão de dados heterogêneos** e **segurança 
 ```mermaid
 flowchart TD
     subgraph Camada_Ingestao [Camada de Dados & ETL - Python 3.11+]
-        PCDT_MS["ckan.saude.gov.br (83 PCDT CSV/ZIP)"]
+        PCDT_MS["gov.br/conitec (141 PCDT, API ++api++ + PDFs)"]
         ANVISA["dados.anvisa.gov.br (Medicamentos CSV)"]
         ETL["compilador_bases_publicas.py + schemas Pydantic v2"]
         PCDT_MS --> ETL
@@ -84,13 +84,15 @@ OpenMedical/
 │   ├── etl_pipeline/                  # CAMADA PYTHON (Ingestão, Dados Abertos e Compilação)
 │   │   ├── dados_publicos/            # Repositório de arquivos públicos oficiais baixados
 │   │   │   ├── pcdt.csv.zip           # Download oficial de ckan.saude.gov.br
-│   │   │   ├── pcdt.csv               # 83 Protocolos Oficiais CONITEC / Ministério da Saúde
+│   │   │   ├── pcdt.csv               # Lista antiga de 83 PCDT (CKAN); substituída pela lista da CONITEC
+│   │   │   ├── pcdt/                  # 141 PDFs de PCDT baixados da CONITEC (ignorados pelo git)
 │   │   │   └── anvisa_medicamentos.csv# Amostra de produtos registrados da ANVISA
 │   │   ├── schemas_dominio.py         # Schemas Pydantic v2 (sem @dataclass, tipagem estrita)
 │   │   ├── baixar_bases_publicas.py   # Baixa e extrai arquivos públicos via HTTPS
 │   │   ├── baixar_anvisa_e_pcdt.py    # Inspeciona e extrai registros de medicamentos
 │   │   ├── compilador_bases_publicas.py # Compila dados para SQLite e gera módulos TypeScript
-│   │   ├── gerador_receitas_completas.py# Fonte única dos 45 protocolos: gera os .md e o módulo TS do frontend
+│   │   ├── cadastrar_receitas.py      # Valida clinical_content/protocolos/*.md (fonte única das receitas) e regenera o TS e a busca
+│   │   ├── gerador_receitas_completas.py# Compatibilidade: lê as receitas dos .md
 │   │   ├── openclinical_core.sqlite   # Banco relacional com FTS5 BM25
 │   │   └── tests/
 │   │       └── test_etl_pipeline.py   # Testes automatizados do pipeline (pytest)
@@ -130,12 +132,13 @@ OpenMedical/
 │       │   ├── clinical_fallback.ts   # Porte TS do motor para navegador/PWA (testado por paridade)
 │       │   ├── data/
 │       │   │   ├── protocolos_gerados.ts # GERADO: 45 protocolos, fármacos e categorias
-│       │   │   ├── pcdt_oficial_ms.ts # Lista de 83 PCDT/DDT do MS (nome, status, tipo) + resumos curados
+│       │   │   ├── pcdt_oficial_ms.ts # Lista antiga de 83 PCDT; só os 23 resumos curados ainda são usados
+│       │   │   ├── pcdt_conitec.ts    # 141 PCDT da CONITEC: CIDs, medicamentos e trechos (gerado)
 │       │   │   └── anvisa_medicamentos_publicos.ts # Registros da base aberta da ANVISA
 │       │   ├── components/
 │       │   │   ├── DrugDetail.tsx     # Ficha completa do medicamento e bula
 │       │   │   ├── ProtocolsView.tsx  # Central de 45 Receitas Clínicas com filtro Dipirona
-│       │   │   ├── PublicDatabasesView.tsx # CMED, 83 PCDT e ANVISA (amostras offline + seleção pela busca)
+│       │   │   ├── PublicDatabasesView.tsx # CMED, PCDT da CONITEC, ANVISA e bulas importadas (seleção pela busca)
 │       │   │   ├── MarkdownSimples.tsx # Renderização segura do Markdown dos protocolos (sem innerHTML)
 │       │   │   ├── PediatricCalculator.tsx # Calculadora com verificação de teto
 │       │   │   ├── ClinicalCalculators.tsx # Calculadoras CKD-EPI, Wells e CURB-65
@@ -161,8 +164,15 @@ Desenvolvido com foco no atendimento em atenção primária e pronto-atendimento
 * **Neurologia & Saúde Mental (5):** Lombalgia mecânica aguda, Cefaleia tensional / Enxaqueca, Profilaxia de enxaqueca, Depressão e ansiedade (mhGAP OMS / ABP), Vertigem e VPPB.
 * **Urgência & Pediatria Geral (2):** Anafilaxia grave (Adrenalina IM), Desidratação pediátrica (Planos A, B e C da OMS).
 
-### 4.2. Lista de PCDT/DDT do Ministério da Saúde / CONITEC (83 itens)
-O CSV público (`ckan.saude.gov.br`) contém **apenas nome, status e tipo** de cada documento; vários itens estão "Em elaboração/atualização" e há diretrizes (DDT) que não são PCDT. Os campos clínicos (CIDs, fármacos, conduta, receita) existem somente para 23 itens (`conteudo_curado = true`), são **resumos escritos pelo projeto** (não o texto do PCDT) e estão pendentes de revisão clínica. Para os demais 60 itens esses campos ficam vazios.
+### 4.2. PCDT da CONITEC (141 protocolos, conteúdo extraído dos PDFs oficiais)
+A lista antiga (CSV do `ckan.saude.gov.br`, 83 itens só com nome, status e tipo) foi substituída pela lista oficial da página de PCDT da CONITEC em gov.br, lida pela API REST pública do portal (`++api++`, Plone/Volto; o `robots.txt` do gov.br permite robôs em `/conitec`).
+* **Extrator:** `etl_pipeline/extrator_pcdt_conitec.py` lê a "Tabela de PCDT" (PDF vigente, portaria com data de publicação, publicação do MS e PCDT resumido) e baixa os 141 PDFs para `dados_publicos/pcdt/` (237 MB, ignorados pelo git), com 2 s entre requisições, User-Agent identificado e download condicional (ETag/Last-Modified, manifesto por PCDT). `--sem-download` reprocessa os PDFs já baixados (~25 s).
+* **Seções:** títulos numerados do modelo atual (número às vezes em linha própria, títulos principais quebrados em duas linhas): CID-10, critérios de inclusão e exclusão, casos especiais, tratamento, fármacos/medicamentos, esquemas de administração, tempo de tratamento, critérios de interrupção e monitoramento, cada um com a página do PDF. Uma subseção termina na próxima seção de mesmo nível ou na próxima subseção com aba própria.
+* **Medicamentos:** lista oficial do cabeçalho do Termo de Esclarecimento e Responsabilidade (em maiúsculas), cruzada com a RENAME 2024 (selo SUS) e com o FTN (link para a monografia). Sem Termo, ficam os fármacos da RENAME/FTN citados na seção de medicamentos.
+* **Resultado (28/10/2026):** 141 PCDT com texto, 98 com esquemas de administração, 126 com medicamentos identificados. Os manuais de HIV/IST (documentos grandes, fora do modelo) ficam sem seções; quadros e tabelas saem desalinhados no texto.
+* **Banco e frontend:** tabela `pcdt_documentos` + itens `pcdt_conitec` no FTS5 (substituem `pcdt_governo`) nos dois bancos. `frontend_ui/src/data/pcdt_conitec.ts` (~440 KB, carregado sob demanda) leva para o navegador a lista, CIDs, medicamentos e trechos de esquemas (até 2.500 caracteres) e de medicamentos (até 1.200); o app desktop lê o texto completo do banco (`listar_pcdt_conitec`, `obter_pcdt_conitec`).
+* **Interface:** a aba PCDT (`PcdtConitecView.tsx`) tem links para o PDF, a portaria, o PCDT resumido e a publicação do MS, CIDs, medicamentos clicáveis com selo SUS e link para o FTN, e abas por seção com "Ver no PDF (p. N)". Os 23 resumos antigos escritos pelo projeto aparecem recolhidos, marcados como "não oficial". A monografia do FTN mostra "Citado nos PCDT (CONITEC)".
+* **Atualização diária:** o atualizador tem uma 4ª fonte, `conitec_pcdt` (ver 4.6): PCDT novos entram na lista, portarias e links são atualizados, e um PDF trocado marca `conteudo_desatualizado` (aviso na tela) até o ETL rodar de novo. Isso aconteceu no próprio dia do levantamento: a CONITEC trocou o PDF da Leucemia Mieloide Crônica do adulto entre duas execuções.
 
 ### 4.3. Formulário Terapêutico Nacional (FTN 2010) e RENAME 2024
 `etl_pipeline/extrator_formulario_terapeutico.py` baixa os PDFs oficiais do Ministério da Saúde (BVS/MS) para `dados_publicos/` e extrai:
@@ -199,13 +209,14 @@ O elenco do Farmácia Popular muda por portaria; a data de referência fica em `
 | Preços máximos e apresentações (CMED) | `dados.anvisa.gov.br/dados/TA_PRECO_MEDICAMENTO.csv` | `catalogo_nacional_medicamentos_cmed` + índice de busca |
 | Medicamentos registrados | `dados.anvisa.gov.br/dados/DADOS_ABERTOS_MEDICAMENTOS.csv` | `remedios_brasil_anvisa_completo` |
 | Índice do Bulário Eletrônico | `dados.anvisa.gov.br/dados/CONSULTAS/DOCUMENTOS/TA_CONSULTA_BULA_PRODUTO.CSV` | `bulas_anvisa_indice` (8.823 produtos) |
+| Lista de PCDT da CONITEC | API `gov.br/conitec/++api++/...` (JSON) | `pcdt_documentos` (lista, portarias, links) + índice de busca |
 
 * **Quando roda:** o app desktop verifica de hora em hora se passou um dia desde a última consulta e, se passou, atualiza em segundo plano; a tela de bases públicas mostra a situação de cada fonte e tem o botão "Verificar agora". Fora do app, `openclinical_cli atualizar [banco] [--forcar]` faz o mesmo e pode ir no agendador do sistema.
 * **Sem desperdício:** a requisição é condicional (ETag / Last-Modified); sem mudança na ANVISA nada é baixado de novo nem regravado.
 * **Sem perda de dados:** cada fonte é aplicada em uma transação, e o arquivo novo só substitui a tabela se tiver ao menos metade das linhas atuais (e um mínimo absoluto). Download truncado ou mudança de formato é registrado como erro, e os dados atuais são mantidos. As consultas do app esperam a transação terminar (`busy_timeout`).
 * **Banco gravável:** no app instalado o banco empacotado fica em pasta somente leitura; na primeira execução de cada versão ele é copiado para a pasta de dados do app, onde o atualizador grava. Em desenvolvimento, o atualizador grava no próprio arquivo do repositório.
 * **Bula vigente:** `consultar_bula_anvisa` devolve, pelo registro do produto, a data e o expediente da bula vigente e a empresa; a interface mostra "bula vigente de DD/MM/AAAA" junto ao botão do Bulário.
-* **Texto da bula:** a API interna do Bulário (`consultas.anvisa.gov.br/api`) recusa chamadas automatizadas (HTTP 403 do firewall da ANVISA), e o Portal de APIs oficial não publica endpoint de bula (ver 4.7). O projeto não contorna o bloqueio: o texto da bula é aberto no Bulário pelo navegador, e o índice oficial em dados abertos informa qual versão está vigente.
+* **Texto da bula:** a API interna do Bulário (`consultas.anvisa.gov.br/api`) recusa chamadas automatizadas (HTTP 403 do firewall da ANVISA), e o Portal de APIs oficial não publica endpoint de bula (ver 4.7). O projeto não contorna o bloqueio: o texto entra pela importação do PDF (4.8), pelo coletor dos sites dos laboratórios (4.9) ou, se a ANVISA atender, pelos pedidos formais (4.10); o índice oficial em dados abertos informa qual versão está vigente.
 
 ### 4.7. Portal de APIs da ANVISA (credencial do usuário)
 `clinical_engine::api_anvisa` integra o Portal de APIs da ANVISA (api.anvisa.gov.br):
@@ -217,6 +228,23 @@ O elenco do Farmácia Popular muda por portaria; a data de referência fica em `
 * **Firewall:** sem token, o firewall da ANVISA barra chamadas fora do navegador às Consultas Externas e à Lista CMED; com token válido as Consultas Externas respondem normalmente. Se houver bloqueio, o teste mostra o Ray ID para um chamado junto à ANVISA.
 * **Validado com credencial real (28/10/2026, teste rodado pelo titular):** token emitido; Consultas Externas acessíveis (59 operações). A Lista CMED respondeu 404 no endereço da especificação. A configuração pública do portal traz `FEATURE_FLAG_CMED: "false"`, o que indica que o serviço ainda não foi publicado; o teste tenta `/v3/api-docs`, `/v2/api-docs` e `/api-docs` e informa "Não publicado pela ANVISA" quando nenhum existe.
 
+### 4.8. Importação de bula em PDF
+A pessoa resolve a verificação do Bulário no próprio navegador, baixa o PDF e importa no app:
+* **Leitura:** `frontend_ui/src/leitor_pdf.ts` extrai o texto com o pdf.js (`pdfjs-dist` 4.10.38, carregado só na importação). `frontend_ui/src/bula_parser.ts` (função pura, também usada no Node) separa as seções da RDC 47/2009, da bula do profissional (Indicações a Superdose) e da do paciente (as nove perguntas), e extrai nome, princípios ativos, empresa, CNPJ, registro (9 dígitos, dos dizeres legais) e data de aprovação pela ANVISA. Desfaz a hifenização, junta linhas em parágrafos e remove marcas de diagramação repetidas e a caixa de aprovação da prova gráfica que alguns laboratórios deixam no PDF. PDF sem texto (digitalizado) ou sem as seções padronizadas é recusado com mensagem clara.
+* **Conferência antes de gravar:** a tela mostra as seções encontradas e avisa quando o registro do PDF é de outro produto, quando o PDF é mais antigo que a bula vigente no índice oficial, quando o mesmo arquivo (SHA-256) já foi importado e quando é a bula do paciente.
+* **Armazenamento:** no app desktop, `clinical_engine::bulas_importadas` grava na tabela `bulas_importadas` (chave registro + tipo: profissional e paciente lado a lado) da cópia gravável do banco e indexa no FTS5 (`bula_importada`); comandos `salvar_bula_importada`, `obter_bulas_importadas`, `listar_bulas_importadas` e `remover_bula_importada`. No navegador/PWA, IndexedDB (`frontend_ui/src/armazenamento_local.ts`).
+* **Interface (`BulaImportada.tsx`):** painel "Bula do produto (PDF importado)" no detalhe de cada apresentação CMED e na bula estruturada, com importação por arrastar e soltar; aba "Bulas importadas (PDF)" nas bases públicas; seções em abas, com a posologia primeiro. A busca global e o nome clicável consideram as bulas importadas.
+
+### 4.9. Bulas publicadas pelos laboratórios
+`frontend_ui/scripts/baixar_bulas_laboratorios.mjs` (Node 24, `node:sqlite`) coleta os PDFs de bula publicados nos sites dos fabricantes listados em `scripts/fontes_bulas_laboratorios.json`, lê com o mesmo `bula_parser.ts` e grava em `bulas_importadas` dos dois bancos, com origem `laboratorio:<id>`:
+* **Boa conduta:** respeita o `robots.txt` (grupo do User-Agent do app ou `*`), faz 1 requisição a cada 2 s por domínio e se identifica no User-Agent. Página de verificação antirrobô (Cloudflare, Incapsula) faz a fonte ser pulada, nunca contornada. PDFs já coletados só são relidos se mudaram (ETag/Last-Modified e hash, em `etl_pipeline/dados_publicos/bulas_laboratorios/estado.json`, que não deve ir para o git). PDF sem número de registro é descartado.
+* **Fontes:** Aché (API REST pública do WordPress do site) e Eurofarma (páginas de produto do sitemap, com bula do profissional e do paciente). A Eurofarma está configurada, mas não foi executada durante o desenvolvimento, porque o `robots.txt` dela bloqueia o robô do assistente de IA usado no projeto; o coletor roda com o User-Agent do app e segue o grupo `*`, que permite o uso como referência. Avaliadas e excluídas, com o motivo no JSON: EMS (Incapsula), Neo Química (Cloudflare), Medley (bula só no aplicativo sm.far.br), Cimed (sem listagem de bulas) e Prati-Donaduzzi (a reavaliar).
+* **Resultado da Aché (28/10/2026):** 41 PDFs listados, 14 bulas gravadas (11 produtos da CMED), 4 sem registro e 23 que não eram bula (dermocosméticos). As bulas publicadas são quase todas do paciente.
+* **Periodicidade:** semanal, pelo Agendador de Tarefas do Windows ou cron (`node scripts/baixar_bulas_laboratorios.mjs`; opções `--fonte ache`, `--limite N`, `--sem-gravar`).
+
+### 4.10. Pedidos formais à ANVISA
+`pedidos_anvisa.md` (raiz do repositório) traz os textos prontos de um pedido pela Lei de Acesso à Informação (Fala.BR) da base de bulas vigentes em lote e de um chamado no Portal de APIs pedindo um endpoint de bulas e a previsão da Lista CMED. O envio é feito pelo usuário, com o login gov.br; os protocolos ficam registrados no `todo.md`.
+
 ---
 
 ## 5. Garantia da Qualidade e Suíte de Testes
@@ -225,12 +253,12 @@ A integridade do software é validada em duas camadas determinísticas independe
 
 1. **Python (Engenharia de Dados e Schemas):**
    * Validação com `pytest` cobrindo instanciamento de modelos Pydantic v2, criação do banco SQLite, integridade de chaves estrangeiras e indexação FTS5.
-   * Resultado: **14 testes aprovados** (inclui banco isolado semeado do zero, consistência dos 45 protocolos com o gerador, ausência de posologia genérica nas receitas, PCDT sem CIDs inventados, leitura UTF-8 da CMED, igualdade entre os dados de demonstração do frontend e o seed, extração do FTN e da RENAME 2024 (por tabela) a partir dos PDFs oficiais, com regressões de população/indicação em losartana, azitromicina, medroxiprogesterona e rifampicina, e as regras de segurança da dose pediátrica estruturada).
+   * Resultado: **18 testes aprovados** (4 do extrator de PCDT da CONITEC: lista oficial a partir de amostra real da API, seções numeradas, medicamentos do Termo de Esclarecimento e parágrafos; inclui banco isolado semeado do zero, consistência dos 45 protocolos com o gerador, ausência de posologia genérica nas receitas, PCDT sem CIDs inventados, leitura UTF-8 da CMED, igualdade entre os dados de demonstração do frontend e o seed, extração do FTN e da RENAME 2024 (por tabela) a partir dos PDFs oficiais, com regressões de população/indicação em losartana, azitromicina, medroxiprogesterona e rifampicina, e as regras de segurança da dose pediátrica estruturada).
 2. **Rust (Motor Clínico e Fórmulas Médicas):**
    * Validação com `cargo test` cobrindo casos clínicos de referência para CKD-EPI 2021 (homens, mulheres, idosos e parâmetros fora de faixa), Cockcroft-Gault, Escore de Wells para TEP, CURB-65 para pneumonia comunitária, infusão de vasopressores, cruzamento de interações medicamentosas e cálculo pediátrico com detecção de extrapolação de dose teto máxima diária da ANVISA.
-   * Resultado: **24 testes aprovados** (inclui normalização, mascaramento e mensagens de erro da credencial do Portal de APIs da ANVISA, leitura dos arquivos da ANVISA pelo atualizador, recusa de arquivo truncado ou de formato desconhecido sem apagar dados, consulta ao índice de bulas, dose pediátrica de forma sólida sem volume, limites do escore de Wells, entradas inválidas, busca FTS5 sem acentos / termos só com pontuação, consulta CMED, gratuidade do Farmácia Popular por substância e dose, e um teste que exercita o banco realmente empacotado no app: bula, interações, busca por tipo de registro, todas as apresentações CMED indexadas e monografia do FTN antes das embalagens).
+   * Resultado: **26 testes aprovados** (inclui gravação, busca e remoção de bulas importadas; leitura da lista de PCDT da CONITEC com a mesma amostra do teste em Python e marcação de PDF trocado pelo atualizador; PCDT no banco empacotado; normalização, mascaramento e mensagens de erro da credencial do Portal de APIs da ANVISA, leitura dos arquivos da ANVISA pelo atualizador, recusa de arquivo truncado ou de formato desconhecido sem apagar dados, consulta ao índice de bulas, dose pediátrica de forma sólida sem volume, limites do escore de Wells, entradas inválidas, busca FTS5 sem acentos / termos só com pontuação, consulta CMED, gratuidade do Farmácia Popular por substância e dose, e um teste que exercita o banco realmente empacotado no app: bula, interações, busca por tipo de registro, todas as apresentações CMED indexadas e monografia do FTN antes das embalagens).
 3. **Frontend (Vite / TypeScript):**
-   * `npm run typecheck` (tsc estrito) sem erros; `npm test` executa 12 testes (disponibilidade no SUS pela RENAME, associações na calculadora, paridade dos cálculos e do Farmácia Popular com os casos de referência do Rust, a ligação produto → monografia do FTN por princípio ativo e via, e a leitura dos esquemas pediátricos do FTN pela calculadora); `npm run build` gera o bundle de produção.
+   * `npm run typecheck` (tsc estrito) sem erros; `npm test` executa os 23 testes de `tests/*.test.mjs`: 7 do leitor de bula (trechos reais de bulas da Aché e uma bula fictícia do profissional, prova gráfica, PDF que não é bula), 4 do coletor (robots.txt reais da Eurofarma e da Cimed, detecção de antirrobô, gravação no esquema do app) e 12 anteriores (disponibilidade no SUS pela RENAME, associações na calculadora, paridade dos cálculos e do Farmácia Popular com os casos de referência do Rust, a ligação produto → monografia do FTN por princípio ativo e via, e a leitura dos esquemas pediátricos do FTN pela calculadora); `npm run build` gera o bundle de produção.
    * Tailwind CSS e as fontes (Plus Jakarta Sans, JetBrains Mono) são empacotados no build: a interface não depende de CDN e renderiza igual offline (PWA e desktop).
 
 ## 6. Limitações Conhecidas
@@ -238,7 +266,8 @@ A integridade do software é validada em duas camadas determinísticas independe
 * **Sem validação clínica formal.** Protocolos, bulas, interações e resumos de PCDT foram redigidos pelo projeto; todos carregam `status_revisao_clinica: pendente_revisao_por_profissional_habilitado`.
 * **Cobertura farmacológica:** 346 medicamentos com posologia oficial do FTN 2010 (com 1.436 interações descritas, sem graduação de gravidade pela fonte) e bulas estruturadas próprias para 10 princípios ativos. A ausência de alerta de interação **não** significa ausência de interação (a interface informa isso).
 * **Produtos das bulas estruturadas:** 9 dos 13 produtos têm registro e PMC conferidos na tabela CMED; Losec Mups, Zocor, Levophed e o comprimido de dipirona do seed não constam da tabela atual e aparecem como "registro não localizado".
-* **Catálogo CMED/ANVISA** (26.635 apresentações CMED; ~85 mil registros ANVISA ativos) traz identificação e preço. Posologia só existe quando o princípio ativo e a via têm monografia no FTN 2010 (5.877 apresentações); para os demais (a maioria dos lançamentos recentes e das associações comerciais) a posologia está apenas na bula oficial, aberta pelo link do Bulário Eletrônico (requer internet). A ANVISA não oferece download em massa das bulas e bloqueia o acesso automatizado à API do Bulário, por isso o texto das bulas não é empacotado; o app sabe apenas qual versão está vigente (índice em dados abertos).
+* **Catálogo CMED/ANVISA** (26.635 apresentações CMED; ~85 mil registros ANVISA ativos) traz identificação e preço. Posologia só existe quando o princípio ativo e a via têm monografia no FTN 2010 (5.877 apresentações); para os demais (a maioria dos lançamentos recentes e das associações comerciais) a posologia está apenas na bula oficial, aberta pelo link do Bulário Eletrônico (requer internet). A ANVISA não oferece download em massa das bulas e bloqueia o acesso automatizado à API do Bulário, por isso o texto das bulas não é empacotado: ele entra pela importação do PDF pelo usuário ou pelo coletor dos sites dos laboratórios (14 bulas da Aché até agora), e o app sabe qual versão está vigente pelo índice em dados abertos.
+* **Bulas importadas, PCDT da CONITEC e coletor** foram testados com `cargo build`/`cargo test`, pytest, Node e no navegador; nada disso foi exercitado no app desktop empacotado. Nos PCDT, quadros e tabelas saem desalinhados e os manuais de HIV/IST não têm seções separadas; as bulas coletadas da Aché são quase todas do paciente.
 * **Atualizador diário** só no app desktop e na CLI; no navegador/PWA as amostras dos catálogos acompanham a versão do app. O atualizador foi validado pela CLI contra os arquivos reais da ANVISA; o ciclo dentro do app instalado (thread, evento para a interface) não foi exercitado num build empacotado.
 * **Dados de demonstração duplicados no frontend** (`MOCK_MEDICAMENTOS` e `MOCK_INTERACOES` em `api.ts`) repetem o seed Python. Um teste garante que gravidades e formas farmacêuticas coincidem, mas os textos ainda são cópias e o ideal é gerá-los a partir do seed.
 * **No navegador/PWA** os catálogos CMED e ANVISA são amostras (1.855 e 250 registros); o catálogo completo só é pesquisável no app desktop. No app instalado, a lista de protocolos vem do catálogo gerado embutido no frontend (os `.md` não são empacotados como recurso).

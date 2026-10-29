@@ -1,12 +1,15 @@
 ---
 id_protocolo: "lombalgia_aguda"
 titulo: "Abordagem da Lombalgia Mecânica Aguda (Lumbago)"
+categoria: "reumatologia"
 cids_relacionados: ["M54.5"]
 ciaps_relacionados: ["L03"]
+farmacos_principais: ["Dipirona Monoidratada 500mg", "Ciclobenzaprina 5mg"]
 nivel_atencao: "Atencao_Primaria"
 diretrizes_referencia: "Ministério da Saúde do Brasil, NICE, ACP"
 data_revisao: "2026-10-26"
 status_revisao_clinica: "pendente_revisao_por_profissional_habilitado"
+ordem_catalogo: 39
 ---
 
 # Diretrizes Clínicas: Lombalgia Aguda

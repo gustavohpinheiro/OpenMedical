@@ -1,12 +1,15 @@
 ---
 id_protocolo: "erisipela_celulite_infecciosa"
 titulo: "Manejo da Erisipela e Celulite Infecciosa de Membros Inferiores"
+categoria: "infectologia"
 cids_relacionados: ["A46", "L03.1"]
 ciaps_relacionados: ["S76"]
+farmacos_principais: ["Cefalexina 500mg", "Dipirona 500mg", "Permanganato de Potássio"]
 nivel_atencao: "Atencao_Primaria_e_Pronto_Atendimento"
 diretrizes_referencia: "Sociedade Brasileira de Dermatologia (SBD), IDSA"
 data_revisao: "2026-10-26"
 status_revisao_clinica: "pendente_revisao_por_profissional_habilitado"
+ordem_catalogo: 10
 ---
 
 # Diretrizes Clínicas: Infecções de Pele e Partes Moles

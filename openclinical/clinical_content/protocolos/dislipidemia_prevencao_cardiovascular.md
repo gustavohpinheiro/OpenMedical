@@ -1,12 +1,15 @@
 ---
 id_protocolo: "dislipidemia_prevencao_cardiovascular"
 titulo: "Prevenção Cardiovascular Primária e Manejo das Dislipidemias (SBC / AHA)"
+categoria: "cardiovascular"
 cids_relacionados: ["E78.0", "E78.2"]
 ciaps_relacionados: ["T93"]
+farmacos_principais: ["Sinvastatina 20mg a 40mg", "Atorvastatina 20mg", "Ezetimiba 10mg"]
 nivel_atencao: "Atencao_Primaria"
 diretrizes_referencia: "Diretrizes de Dislipidemia da Sociedade Brasileira de Cardiologia (SBC), AHA/ACC"
 data_revisao: "2026-10-26"
 status_revisao_clinica: "pendente_revisao_por_profissional_habilitado"
+ordem_catalogo: 24
 ---
 
 # Diretrizes Clínicas: Estratificação de Risco e Metas de LDL-colesterol

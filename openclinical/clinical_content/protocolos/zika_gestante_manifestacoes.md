@@ -1,12 +1,15 @@
 ---
 id_protocolo: "zika_gestante_manifestacoes"
 titulo: "Manejo da Infecção pelo Vírus Zika e Abordagem na Gestação"
+categoria: "infectologia"
 cids_relacionados: ["A92.8", "O35.3"]
 ciaps_relacionados: ["A77", "W78"]
+farmacos_principais: ["Paracetamol 500mg", "Loratadina 10mg", "Repelente com Icaridina"]
 nivel_atencao: "Atencao_Primaria_e_Pre_Natal"
 diretrizes_referencia: "Ministério da Saúde do Brasil, FEBRASGO, OMS"
 data_revisao: "2026-10-26"
 status_revisao_clinica: "pendente_revisao_por_profissional_habilitado"
+ordem_catalogo: 4
 ---
 
 # Protocolo: Zika Vírus e Rastreio de Síndrome Congênita

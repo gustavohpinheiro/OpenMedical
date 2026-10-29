@@ -122,33 +122,39 @@ def test_banco_isolado_semeado_com_fts5(tmp_path):
 
 
 def test_protocolos_markdown_consistentes_com_gerador():
+    """Os .md são a fonte única: todos válidos e o módulo TS gerado em dia com eles."""
+    import cadastrar_receitas as c
+
+    resultado = c.carregar_receitas()
+    assert resultado.erros == [], "\n".join(str(e) for e in resultado.erros)
+    ids = [r.id for r in resultado.receitas]
+    assert len(ids) == len(set(ids)) >= 45
+    for r in resultado.receitas:
+        assert r.bloco_prescricao, f"{r.id} sem bloco de receita"
+        assert r.conteudo_markdown, f"{r.id} sem corpo"
+        for cid in r.metadados["cids_relacionados"]:
+            assert re.fullmatch(r"[A-Z]\d{2}(\.\d{1,2})?", cid), f"CID inválido {cid} em {r.id}"
+
+    with open(c.CAMINHO_TS_PROTOCOLOS, encoding="utf-8") as f:
+        assert f.read() == c.gerar_conteudo_typescript(resultado.receitas), (
+            "protocolos_gerados.ts desatualizado: rode python openclinical/etl_pipeline/cadastrar_receitas.py"
+        )
+
+    # Módulo antigo continua expondo a mesma lista para quem ainda o importa
     import gerador_receitas_completas as g
 
-    ids = [p["id_protocolo"] for p in g.TODOS_PROTOCOLOS]
-    assert len(ids) == len(set(ids)) == 45
-    for p in g.TODOS_PROTOCOLOS:
-        corpo, receita = g.separar_corpo_e_receita(p["conteudo"])
-        assert receita, f"{p['id_protocolo']} sem bloco de receita"
-        assert corpo, f"{p['id_protocolo']} sem corpo"
-        for cid in p["cids"]:
-            assert re.fullmatch(r"[A-Z]\d{2}(\.\d{1,2})?", cid), f"CID inválido {cid} em {p['id_protocolo']}"
-
-    # Os .md versionados precisam refletir exatamente o gerador
-    for p in g.TODOS_PROTOCOLOS:
-        caminho = os.path.join(g.DIRETORIO_PROTOCOLOS, f"{p['id_protocolo']}.md")
-        texto = open(caminho, encoding="utf-8").read()
-        assert f'status_revisao_clinica: "{g.STATUS_REVISAO_CLINICA}"' in texto
-        assert g.separar_corpo_e_receita(p["conteudo"])[1] in texto
+    assert [p["id_protocolo"] for p in g.TODOS_PROTOCOLOS] == ids
 
 
 def test_receitas_nao_contem_pseudoposologia_generica():
-    import gerador_receitas_completas as g
+    import cadastrar_receitas as c
 
     proibidos = ["conforme prescrição médica", "a critério médico", "conforme orientação médica"]
-    for p in g.TODOS_PROTOCOLOS:
-        receita = g.separar_corpo_e_receita(p["conteudo"])[1].lower()
-        for frase in proibidos:
-            assert frase not in receita, f"{p['id_protocolo']} contém posologia genérica: {frase}"
+    assert set(proibidos) <= set(c.FRASES_PSEUDOPOSOLOGIA)
+    for r in c.carregar_receitas().receitas:
+        receita = r.bloco_prescricao.lower()
+        for frase in c.FRASES_PSEUDOPOSOLOGIA:
+            assert frase not in receita, f"{r.id} contém posologia genérica: {frase}"
 
 
 def test_pcdt_sem_cids_inventados_para_protocolos_nao_curados():

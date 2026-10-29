@@ -1,12 +1,15 @@
 ---
 id_protocolo: "otite_media_aguda_pediatrica"
 titulo: "Otite Média Aguda (OMA) na Infância"
+categoria: "pediatria"
 cids_relacionados: ["H65.0", "H66.0"]
 ciaps_relacionados: ["H71"]
+farmacos_principais: ["Amoxicilina 250mg/5mL", "Dipirona Gotas 500mg/mL", "Ibuprofeno Gotas"]
 nivel_atencao: "Atencao_Primaria_e_Pediatria"
 diretrizes_referencia: "Sociedade Brasileira de Pediatria (SBP), Academia Americana de Pediatria (AAP)"
 data_revisao: "2026-10-26"
 status_revisao_clinica: "pendente_revisao_por_profissional_habilitado"
+ordem_catalogo: 7
 ---
 
 # Diretrizes Clínicas: Otite Média Aguda Pediátrica

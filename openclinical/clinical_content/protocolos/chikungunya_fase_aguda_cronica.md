@@ -1,12 +1,15 @@
 ---
 id_protocolo: "chikungunya_fase_aguda_cronica"
 titulo: "Manejo da Febre de Chikungunya: Fases Aguda e Crônica"
+categoria: "infectologia"
 cids_relacionados: ["A92.0"]
 ciaps_relacionados: ["A77"]
+farmacos_principais: ["Dipirona Monoidratada", "Paracetamol 750mg", "Cloridrato de Tramadol"]
 nivel_atencao: "Atencao_Primaria_e_Especializada"
 diretrizes_referencia: "Ministério da Saúde do Brasil, OPAS/OMS"
 data_revisao: "2026-10-26"
 status_revisao_clinica: "pendente_revisao_por_profissional_habilitado"
+ordem_catalogo: 3
 ---
 
 # Diretrizes Clínicas: Manejo da Chikungunya

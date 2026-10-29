@@ -14,6 +14,8 @@ use clinical_engine::api_anvisa::{
     mascarar_client_id, normalizar_credenciais, testar_conexao, CredenciaisAnvisa, ResultadoTesteAnvisa,
     URL_GERENCIAR_CREDENCIAIS,
 };
+use clinical_engine::bulas_importadas::{self, BulaImportada, BulaImportadaResumo};
+use clinical_engine::pcdt_conitec::{PcdtDetalhe, PcdtResumo};
 use clinical_engine::atualizador::{
     atualizar_bases, precisa_atualizar, BulaAnvisaIndice, EstadoFonte, ResultadoAtualizacao,
     INTERVALO_ATUALIZACAO_HORAS,
@@ -247,7 +249,9 @@ pub fn listar_protocolos_clinicos() -> Result<Vec<ProtocoloClinico>, String> {
 
     for entrada in entradas.flatten() {
         let caminho = entrada.path();
-        if caminho.extension().and_then(|ext| ext.to_str()) == Some("md") {
+        // "_MODELO.md" e outros arquivos com "_" na frente são modelos, não receitas
+        let modelo = caminho.file_name().and_then(|n| n.to_str()).is_some_and(|n| n.starts_with('_'));
+        if !modelo && caminho.extension().and_then(|ext| ext.to_str()) == Some("md") {
             if let Ok(conteudo) = fs::read_to_string(&caminho) {
                 if let Ok(protocolo) = analisar_protocolo_markdown(&conteudo) {
                     protocolos.push(protocolo);
@@ -474,6 +478,54 @@ pub async fn testar_api_anvisa() -> Result<ResultadoTesteAnvisa, String> {
     tauri::async_runtime::spawn_blocking(move || testar_conexao(&credenciais))
         .await
         .map_err(|e| format!("Falha na tarefa de teste: {e}"))
+}
+
+// -----------------------------------------------------------------------------
+// Bulas em PDF importadas (texto separado em seções pela interface; gravadas na cópia gravável do banco)
+// -----------------------------------------------------------------------------
+
+#[tauri::command]
+pub fn salvar_bula_importada(
+    bula: BulaImportada,
+    estado: tauri::State<'_, EstadoAplicacao>,
+) -> Result<BulaImportadaResumo, String> {
+    bulas_importadas::salvar_no_banco(&caminho_banco(&estado)?, &bula).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn obter_bulas_importadas(
+    numero_registro: String,
+    estado: tauri::State<'_, EstadoAplicacao>,
+) -> Result<Vec<BulaImportada>, String> {
+    obter_conexao_banco(&estado)?.obter_bulas_importadas(&numero_registro).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn listar_bulas_importadas(estado: tauri::State<'_, EstadoAplicacao>) -> Result<Vec<BulaImportadaResumo>, String> {
+    obter_conexao_banco(&estado)?.listar_bulas_importadas().map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn remover_bula_importada(
+    registro: String,
+    tipo: String,
+    estado: tauri::State<'_, EstadoAplicacao>,
+) -> Result<bool, String> {
+    bulas_importadas::remover_do_banco(&caminho_banco(&estado)?, &registro, &tipo).map_err(|e| e.to_string())
+}
+
+// -----------------------------------------------------------------------------
+// PCDT da CONITEC (conteúdo extraído dos PDFs oficiais pelo ETL; lista atualizada pelo atualizador diário)
+// -----------------------------------------------------------------------------
+
+#[tauri::command]
+pub fn listar_pcdt_conitec(estado: tauri::State<'_, EstadoAplicacao>) -> Result<Vec<PcdtResumo>, String> {
+    obter_conexao_banco(&estado)?.listar_pcdt_conitec().map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn obter_pcdt_conitec(id_pcdt: i64, estado: tauri::State<'_, EstadoAplicacao>) -> Result<Option<PcdtDetalhe>, String> {
+    obter_conexao_banco(&estado)?.obter_pcdt_conitec(id_pcdt).map_err(|e| e.to_string())
 }
 
 // -----------------------------------------------------------------------------

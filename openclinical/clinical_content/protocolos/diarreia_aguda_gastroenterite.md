@@ -1,12 +1,15 @@
 ---
 id_protocolo: "diarreia_aguda_gastroenterite"
 titulo: "Gastroenterite Aguda e Diarreia no Adulto e Criança"
+categoria: "gastroenterologia"
 cids_relacionados: ["A09", "K52.9"]
 ciaps_relacionados: ["D11", "D73"]
+farmacos_principais: ["Sais de Reidratação Oral (SRO)", "Sulfato de Zinco", "Racecadotrila 100mg"]
 nivel_atencao: "Atencao_Primaria_e_Urgencia"
 diretrizes_referencia: "Ministério da Saúde do Brasil, OMS"
 data_revisao: "2026-10-26"
 status_revisao_clinica: "pendente_revisao_por_profissional_habilitado"
+ordem_catalogo: 33
 ---
 
 # Diretrizes Clínicas: Diarreia Aguda

@@ -326,11 +326,11 @@ fn test_banco_empacotado_consultas_principais() {
     let interacoes = banco.verificar_interacoes(&[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]).unwrap();
     assert!(!interacoes.is_empty());
 
-    for tipo in ["medicamento", "protocolo", "pcdt_governo", "cmed_comercial"] {
+    for tipo in ["medicamento", "protocolo", "pcdt_conitec", "cmed_comercial"] {
         let termo = match tipo {
             "medicamento" => "amoxicilina",
             "protocolo" => "hipertensao",
-            "pcdt_governo" => "acromegalia",
+            "pcdt_conitec" => "acromegalia",
             _ => "dipirona",
         };
         let achados = banco.buscar_geral(termo, 50).unwrap();
@@ -368,6 +368,22 @@ fn test_banco_empacotado_consultas_principais() {
     assert!(losartana_100
         .iter()
         .any(|item| item.tipo_registro == "cmed_comercial" && item.titulo_primario.contains("100 MG")));
+
+    // PCDT da CONITEC extraídos dos PDFs oficiais: lista completa, CIDs, medicamentos do Termo e esquemas
+    let pcdts = banco.listar_pcdt_conitec().unwrap();
+    assert!(pcdts.len() >= 100, "{} PCDT", pcdts.len());
+    let asma = pcdts.iter().find(|p| p.titulo.starts_with("Asma")).expect("PCDT de asma");
+    assert!(asma.cids.iter().any(|c| c.starts_with("J45")));
+    assert!(asma.farmacos.iter().any(|f| f.chave == "budesonida" && f.no_rename));
+    let detalhe = banco.obter_pcdt_conitec(asma.id_pcdt).unwrap().unwrap();
+    let esquemas = detalhe.secoes.iter().find(|s| s.chave == "esquemas").expect("esquemas de administração");
+    assert!(esquemas.pagina > 0 && esquemas.texto.to_lowercase().contains("budesonida"));
+    // Busca pelo medicamento citado no PCDT
+    assert!(banco
+        .buscar_geral("levotiroxina", 50)
+        .unwrap()
+        .iter()
+        .any(|item| item.tipo_registro == "pcdt_conitec"));
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -555,4 +571,134 @@ fn test_api_anvisa_credenciais_e_respostas() {
 
     let especificacao = serde_json::json!({"paths": {"/api/v1/lista": {"get": {}, "post": {}}}});
     assert_eq!(operacoes_openapi(&especificacao), vec!["GET /api/v1/lista", "POST /api/v1/lista"]);
+}
+
+#[test]
+fn test_bulas_importadas_grava_busca_e_remove() {
+    use clinical_engine::bulas_importadas::{self, BulaImportada, SecaoBulaImportada};
+    use clinical_engine::database::BancoDadosClinico;
+
+    let arquivo = std::env::temp_dir().join(format!("openclinical_bulas_{}.sqlite", std::process::id()));
+    let _ = std::fs::remove_file(&arquivo);
+    let caminho = arquivo.to_string_lossy().into_owned();
+
+    let secao = |chave: &str, texto: &str| SecaoBulaImportada { chave: chave.into(), titulo: chave.into(), texto: texto.into() };
+    let mut bula = BulaImportada {
+        registro: "1.0573.0574.001-1".into(),
+        tipo: "paciente".into(),
+        nome_produto: "albendazol".into(),
+        principios_ativos: vec!["albendazol".into()],
+        empresa: "Aché Laboratórios Farmacêuticos S.A.".into(),
+        cnpj: String::new(),
+        data_bula: "2023-12-18".into(),
+        origem: "manual".into(),
+        url_origem: String::new(),
+        data_importacao: String::new(),
+        hash_arquivo: "abc".into(),
+        cabecalho: "Comprimido mastigável de 400 mg".into(),
+        secoes: vec![secao("indicacoes", "Verminoses."), secao("posologia", "400 mg em dose única para ascaridíase.")],
+    };
+
+    let resumo = bulas_importadas::salvar_no_banco(&caminho, &bula).expect("grava");
+    assert_eq!(resumo.registro, "105730574", "registro normalizado para 9 dígitos");
+    assert_eq!(resumo.total_secoes, 2);
+
+    // Regravar substitui (não duplica) e a bula do profissional fica ao lado
+    bula.secoes.push(secao("superdose", "Lavagem gástrica."));
+    bulas_importadas::salvar_no_banco(&caminho, &bula).expect("regrava");
+    bula.tipo = "profissional".into();
+    bulas_importadas::salvar_no_banco(&caminho, &bula).expect("grava profissional");
+
+    let banco = BancoDadosClinico::abrir_somente_leitura(&caminho).expect("abre");
+    let bulas = banco.obter_bulas_importadas("1057305740011").expect("consulta");
+    assert_eq!(bulas.iter().map(|b| b.tipo.as_str()).collect::<Vec<_>>(), ["profissional", "paciente"]);
+    assert_eq!(bulas[1].secoes.len(), 3);
+    assert!(!bulas[1].data_importacao.is_empty());
+    assert_eq!(banco.listar_bulas_importadas().expect("lista").len(), 2);
+
+    // Busca global sem acento encontra pela posologia, uma vez por bula
+    let achados = banco.buscar_geral("ascaridiase", 10).expect("busca");
+    assert_eq!(achados.iter().filter(|r| r.tipo_registro == "bula_importada").count(), 2);
+    assert!(achados.iter().any(|r| r.id_referencia == serde_json::json!("105730574:paciente")));
+    drop(banco);
+
+    // Sem registro ou sem seção não grava
+    let mut sem_registro = bula.clone();
+    sem_registro.registro = "123".into();
+    assert!(matches!(bulas_importadas::salvar_no_banco(&caminho, &sem_registro), Err(ClinicalError::DadoInvalido { .. })));
+    let mut vazia = bula.clone();
+    vazia.secoes.clear();
+    assert!(bulas_importadas::salvar_no_banco(&caminho, &vazia).is_err());
+
+    assert!(bulas_importadas::remover_do_banco(&caminho, "105730574", "paciente").expect("remove"));
+    assert!(!bulas_importadas::remover_do_banco(&caminho, "105730574", "paciente").expect("remove de novo"));
+    let banco = BancoDadosClinico::abrir_somente_leitura(&caminho).expect("abre");
+    assert_eq!(banco.obter_bulas_importadas("105730574").expect("consulta").len(), 1);
+    assert_eq!(banco.buscar_geral("ascaridiase", 10).expect("busca").len(), 1);
+    drop(banco);
+    let _ = std::fs::remove_file(&arquivo);
+}
+
+#[test]
+fn test_pcdt_conitec_lista_oficial_e_atualizacao() {
+    use clinical_engine::pcdt_conitec::{self, ler_lista_api, slug_da_url};
+    use rusqlite::Connection;
+
+    // Mesma amostra da API usada pelo teste do ETL em Python: os dois lados geram os mesmos slugs e datas
+    let caminho_fixture = concat!(env!("CARGO_MANIFEST_DIR"), "/../../etl_pipeline/tests/fixtures/conitec_pcdt_amostra.json");
+    let json = std::fs::read_to_string(caminho_fixture).expect("fixture da CONITEC");
+    let itens = ler_lista_api(&json).expect("lista");
+    let resumo: Vec<(&str, &str, &str)> = itens.iter().map(|i| (i.slug.as_str(), i.titulo.as_str(), i.data_portaria.as_str())).collect();
+    assert_eq!(
+        resumo,
+        [
+            ("pcdt-acidentes-escorpionicos", "Acidentes Escorpiônicos", "2025-08-05"),
+            ("pcdt-acidentes-ofidicos-final", "Acidentes Ofídicos", "2025-10-09"),
+            ("tromb-lise-no-acidente-vascular-cerebral-isqu-mico-agudo", "Acidente Vascular Cerebral (AVC) Isquêmico Agudo", "2023-12-15"),
+            ("pcdt-diabete-melito-tipo-2", "Diabete Melito Tipo 2", "2026-02-24"),
+        ],
+        "linha da letra e linha repetida ficam de fora"
+    );
+    assert_eq!(itens[0].portaria, "Portaria SECTICS/MS nº 59 - 01/08/2025");
+    assert!(itens[0].url_resumido.contains("pcdt-resumido"));
+    assert!(itens[3].url_resumido.is_empty());
+    assert_eq!(slug_da_url("https://x/midias/Protocolos/PCDT_Asma.PDF/@@display-file/file"), "pcdt-asma");
+    assert!(ler_lista_api("{\"blocks\": {}}").is_err(), "sem a tabela, o formato mudou");
+
+    let con = Connection::open_in_memory().expect("banco");
+    con.execute_batch(
+        "CREATE VIRTUAL TABLE indice_busca_fts USING fts5(tipo_registro, id_referencia UNINDEXED, titulo_primario, subtitulo,
+         conteudo_textual, tokenize = 'unicode61 remove_diacritics 2');",
+    )
+    .expect("fts");
+    assert_eq!(pcdt_conitec::aplicar_lista(&con, &itens).expect("aplica"), 4);
+    // Conteúdo extraído pelo ETL para um deles
+    con.execute(
+        "UPDATE pcdt_documentos SET tem_texto = 1, conteudo_desatualizado = 0, cids_json = '[\"E11\"]',
+         secoes_json = '[{\"chave\":\"esquemas\",\"titulo\":\"Esquemas de administração\",\"pagina\":38,\"texto\":\"Metformina 500 mg\"}]'
+         WHERE slug = 'pcdt-diabete-melito-tipo-2'",
+        [],
+    )
+    .expect("conteúdo");
+
+    // Dia seguinte: a CONITEC troca o PDF do DM2 e tira o AVC da lista
+    let mut novos = itens.clone();
+    novos.retain(|i| !i.slug.starts_with("tromb"));
+    novos[2].url_pdf = "https://www.gov.br/conitec/pt-br/midias/protocolos/2027/pcdt-diabete-melito-tipo-2/@@display-file/file".into();
+    pcdt_conitec::aplicar_lista(&con, &novos).expect("reaplica");
+
+    let lista = pcdt_conitec::listar(&con).expect("lista");
+    assert_eq!(lista.len(), 3);
+    let dm2 = lista.iter().find(|p| p.titulo == "Diabete Melito Tipo 2").expect("dm2");
+    assert!(dm2.conteudo_desatualizado, "PDF trocado: conteúdo extraído fica marcado como antigo");
+    assert_eq!(dm2.cids, ["E11"]);
+    assert_eq!(dm2.secoes_disponiveis, ["esquemas"]);
+    let detalhe = pcdt_conitec::obter(&con, dm2.id_pcdt).expect("obtém").expect("existe");
+    assert_eq!(detalhe.secoes[0].pagina, 38);
+    let ids: Vec<i64> = lista.iter().map(|p| p.id_pcdt).collect();
+    assert!(ids.iter().all(|id| (1..=4).contains(id)), "ids estáveis entre execuções: {ids:?}");
+    let buscas: i64 = con
+        .query_row("SELECT COUNT(*) FROM indice_busca_fts WHERE indice_busca_fts MATCH 'diabete'", [], |r| r.get(0))
+        .expect("fts");
+    assert_eq!(buscas, 1);
 }

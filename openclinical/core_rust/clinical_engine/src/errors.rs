@@ -27,6 +27,9 @@ pub enum ClinicalError {
     #[error("Erro de persistência ou consulta no banco de dados SQLite: {mensagem}")]
     ErroBancoDados { mensagem: String },
 
+    #[error("Dado inválido em '{campo}': {motivo}")]
+    DadoInvalido { campo: String, motivo: String },
+
     #[error("Funcionalidade indisponível no ambiente de execução: {detalhe}")]
     AmbienteNaoSuportado { detalhe: String },
 }

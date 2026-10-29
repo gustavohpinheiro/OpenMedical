@@ -42,7 +42,7 @@ const SECOES: { id: SecaoApp; label: string; icon: React.ComponentType<{ classNa
   { id: 'medicamentos', label: 'Bulas Estruturadas', icon: Pill, badge: '10 DCB' },
   { id: 'precos', label: 'Preço & Farmácia Popular', icon: Store, badge: 'PMC · SUS' },
   { id: 'protocolos', label: 'Receitas & Prescrições', icon: BookOpen, badge: '45 Protocolos' },
-  { id: 'pcdt', label: 'Bases Públicas', icon: FileCheck, badge: 'CMED · PCDT · ANVISA' },
+  { id: 'pcdt', label: 'Bases Públicas', icon: FileCheck, badge: 'CMED · PCDT · Bulas' },
   { id: 'pediatria', label: 'Calculadora Pediátrica', icon: Baby, badge: 'Teto de dose' },
   { id: 'interacoes', label: 'Verificador de Interações', icon: ShieldAlert, badge: 'FTN · 1.436' },
   { id: 'calculadoras', label: 'Escores & Nefrologia', icon: Calculator, badge: 'CKD-EPI 2021' },
@@ -141,8 +141,10 @@ export const App: React.FC = () => {
     window.scrollTo({ top: 0 });
   };
 
-  const abrirBasePublica = (tipo: 'cmed' | 'pcdt', id: number) => {
-    setSelecaoBasePublica({ tipo, id, versao: Date.now() });
+  const abrirBasePublica = (tipo: 'cmed' | 'pcdt' | 'bula', id: number | string) => {
+    setSelecaoBasePublica(
+      tipo === 'cmed' ? { tipo, id: Number(id), versao: Date.now() } : tipo === 'bula' ? { tipo, id: String(id), versao: Date.now() } : { tipo, id, versao: Date.now() }
+    );
     setSecaoAtiva('pcdt');
     window.scrollTo({ top: 0 });
   };
@@ -163,7 +165,7 @@ export const App: React.FC = () => {
 
   /**
    * Clique no nome de um medicamento em qualquer tela. Ordem: bula estruturada do app (mesmo princípio ativo),
-   * monografia do FTN, apresentação da CMED com esse nome e, por fim, a busca já preenchida.
+   * monografia do FTN, bula em PDF importada, apresentação da CMED com esse nome e, por fim, a busca já preenchida.
    */
   const abrirMedicamentoPorNome = async (nomeExibido: string) => {
     // "Amoxicilina 500mg" / "Dipirona Gotas 500mg/mL" / "Budesonida Spray Nasal" -> nome do fármaco
@@ -190,6 +192,14 @@ export const App: React.FC = () => {
       const [monografia] = monografiasDoPrincipio(nome, MONOGRAFIAS_FTN);
       if (monografia) {
         abrirFormularioPorId(monografia.id_monografia);
+        return;
+      }
+      // Bula em PDF importada (Bulário ou site do laboratório) com esse nome ou princípio ativo
+      const bulaPdf = resultados.find(
+        (r) => r.tipo_registro === 'bula_importada' && normalizarTexto(r.titulo_primario).startsWith(normalizarTexto(nome))
+      );
+      if (bulaPdf) {
+        abrirBasePublica('bula', String(bulaPdf.id_referencia).split(':')[0]);
         return;
       }
       const produto = resultados.find(
@@ -402,6 +412,7 @@ export const App: React.FC = () => {
               selecao={selecaoFormulario}
               onAbrirCalculadoraPediatrica={abrirCalculadoraPediatricaComDados}
               onAbrirProdutoCmed={(id) => abrirBasePublica('cmed', id)}
+              onAbrirPcdt={(id) => abrirBasePublica('pcdt', id)}
             />
           </Suspense>
         )}

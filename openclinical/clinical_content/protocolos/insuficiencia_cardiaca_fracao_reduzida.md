@@ -1,12 +1,15 @@
 ---
 id_protocolo: "insuficiencia_cardiaca_fracao_reduzida"
 titulo: "Insuficiência Cardíaca com Fração de Ejeção Reduzida (IC-FEr: O Quarteto Fantástico)"
+categoria: "cardiovascular"
 cids_relacionados: ["I50.0", "I50.9"]
 ciaps_relacionados: ["K77"]
+farmacos_principais: ["Succinato de Metoprolol", "Maleato de Enalapril 5mg", "Espironolactona 25mg", "Dapagliflozina 10mg"]
 nivel_atencao: "Atencao_Primaria_e_Cardiologia"
 diretrizes_referencia: "Diretriz Brasileira de Insuficiência Cardíaca (SBC 2023), ESC, AHA/ACC"
 data_revisao: "2026-10-26"
 status_revisao_clinica: "pendente_revisao_por_profissional_habilitado"
+ordem_catalogo: 21
 ---
 
 # Diretrizes Clínicas: Terapia Modificadora de Prognóstico na IC-FEr

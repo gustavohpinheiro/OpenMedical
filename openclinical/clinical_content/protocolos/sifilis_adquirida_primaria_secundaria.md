@@ -1,12 +1,15 @@
 ---
 id_protocolo: "sifilis_adquirida_primaria_secundaria"
 titulo: "Manejo da Sífilis Adquirida (Primária, Secundária e Latente Recente)"
+categoria: "infectologia"
 cids_relacionados: ["A51.0", "A51.3", "A52.9"]
 ciaps_relacionados: ["Y70"]
+farmacos_principais: ["Penicilina G Benzatina 1.200.000 UI", "Doxiciclina 100mg"]
 nivel_atencao: "Atencao_Primaria_e_IST"
 diretrizes_referencia: "PCDT ISTs Ministério da Saúde do Brasil (2024), CDC, OMS"
 data_revisao: "2026-10-26"
 status_revisao_clinica: "pendente_revisao_por_profissional_habilitado"
+ordem_catalogo: 14
 ---
 
 # Diretrizes Clínicas: Protocolo Clínico da Sífilis (PCDT/MS)

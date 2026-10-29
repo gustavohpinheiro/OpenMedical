@@ -15,6 +15,10 @@ import {
   ResultadoAtualizacaoBase,
   EstadoCredenciaisAnvisa,
   ResultadoTesteApiAnvisa,
+  BulaImportada,
+  BulaImportadaResumo,
+  PcdtResumo,
+  PcdtDetalhe,
 } from './types';
 
 import { executarCalculoLocal } from './clinical_fallback';
@@ -636,7 +640,6 @@ export const MOCK_INTERACOES: MatrizInteracao[] = [
 // CATÁLOGO COMPLETO DE 45 RECEITAS E PROTOCOLOS CLÍNICOS (SUS E MUNDIAIS)
 // -----------------------------------------------------------------------------
 import { CATALOGO_PROTOCOLOS } from './catalog_protocolos';
-import { LISTA_PCDT_OFICIAL_MS } from './data/pcdt_oficial_ms';
 import type { MedicamentoComercialCMED } from './data/catalogo_cmed_nacional';
 import type { MonografiaFtn } from './data/formulario_terapeutico';
 
@@ -768,31 +771,38 @@ export async function buscarGeral(termo: string): Promise<ItemBuscaFts[]> {
     }
   }
 
-  // 4. Pesquisa nos 83 PCDT Oficiais do Ministério da Saúde / CONITEC
-  for (const pcdt of LISTA_PCDT_OFICIAL_MS) {
-    const nome = normalizarTexto(pcdt.nome_protocolo);
-    const cids = normalizarTexto(pcdt.cids_relacionados.join(' '));
-    const farmacos = normalizarTexto(pcdt.farmacos_principais.join(' '));
-    const conduta = normalizarTexto(pcdt.conduta_clinica);
-
-    if (
-      nome.includes(termoNormalizado) ||
-      cids.includes(termoNormalizado) ||
-      farmacos.includes(termoNormalizado) ||
-      conduta.includes(termoNormalizado)
-    ) {
-      const cidsTexto = pcdt.cids_relacionados.length > 0 ? ` - CIDs: ${pcdt.cids_relacionados.join(', ')}` : '';
+  // 4. PCDT da CONITEC (lista oficial, CIDs e fármacos extraídos dos PDFs), carregados sob demanda
+  for (const pcdt of await listarPcdtConitec()) {
+    const nome = normalizarTexto(pcdt.titulo);
+    const cids = normalizarTexto(pcdt.cids.join(' '));
+    const farmacos = normalizarTexto(pcdt.farmacos.map((f) => f.nome).join(' '));
+    if (nome.includes(termoNormalizado) || cids.includes(termoNormalizado) || farmacos.includes(termoNormalizado)) {
+      const cidsTexto = pcdt.cids.length > 0 ? ` - CIDs: ${pcdt.cids.slice(0, 6).join(', ')}` : '';
       resultados.push({
-        tipo_registro: 'pcdt_governo',
+        tipo_registro: 'pcdt_conitec',
         id_referencia: pcdt.id_pcdt,
-        titulo_primario: pcdt.nome_protocolo,
-        subtitulo: `${pcdt.tipo_protocolo} (${pcdt.status_conitec})${cidsTexto}`,
-        score_relevancia: nome.includes(termoNormalizado) ? -5.5 : -3.5,
+        titulo_primario: pcdt.titulo,
+        subtitulo: `PCDT CONITEC${cidsTexto}`,
+        score_relevancia: nome.includes(termoNormalizado) || cids.includes(termoNormalizado) ? -5.5 : -3.5,
       });
     }
   }
 
-  // 5. Amostra do catálogo CMED disponível offline no navegador (o catálogo completo está no app nativo)
+  // 5. Bulas em PDF importadas neste navegador
+  for (const bula of await bulasImportadasLocais()) {
+    const textos = [bula.nome_produto, bula.registro, ...bula.principios_ativos].map(normalizarTexto);
+    if (textos.some((t) => t.includes(termoNormalizado))) {
+      resultados.push({
+        tipo_registro: 'bula_importada',
+        id_referencia: `${bula.registro}:${bula.tipo}`,
+        titulo_primario: bula.nome_produto,
+        subtitulo: `${bula.tipo === 'profissional' ? 'Bula do profissional' : 'Bula do paciente'} · ${bula.empresa || 'empresa não informada'}`,
+        score_relevancia: normalizarTexto(bula.nome_produto).startsWith(termoNormalizado) ? -5.8 : -4.6,
+      });
+    }
+  }
+
+  // 6. Amostra do catálogo CMED disponível offline no navegador (o catálogo completo está no app nativo)
   let encontradosCmed = 0;
   for (const item of await carregarCatalogoCmed()) {
     if (encontradosCmed >= 10) break;
@@ -978,4 +988,87 @@ export async function apresentacoesComerciaisDoFarmaco(monografia: MonografiaFtn
   }
   const { CATALOGO_CMED_NACIONAL } = await import('./data/catalogo_cmed_nacional');
   return ordenar(CATALOGO_CMED_NACIONAL.filter((m) => chaves.has(chaveSubstanciaCmed(m.substancia))));
+}
+
+// -----------------------------------------------------------------------------
+// Bulas em PDF importadas: banco SQLite no app desktop, IndexedDB no navegador/PWA
+// -----------------------------------------------------------------------------
+
+async function bulasImportadasLocais(): Promise<BulaImportada[]> {
+  const { lerTodos, LOJA_BULAS } = await import('./armazenamento_local');
+  return lerTodos<BulaImportada>(LOJA_BULAS).catch(() => []);
+}
+
+const ordemTipoBula = (b: { tipo: string }) => (b.tipo === 'profissional' ? 0 : 1);
+
+export async function salvarBulaImportada(bula: BulaImportada): Promise<BulaImportadaResumo> {
+  if (isTauri()) return invokeTauri<BulaImportadaResumo>('salvar_bula_importada', { bula });
+  const registro = bula.registro.replace(/\D/g, '').slice(0, 9);
+  if (registro.length < 9) throw new Error('A bula precisa do número de registro do produto na ANVISA (9 dígitos).');
+  const gravada: BulaImportada = {
+    ...bula,
+    registro,
+    data_importacao: new Date().toISOString().slice(0, 19).replace('T', ' '),
+  };
+  const { gravar, LOJA_BULAS } = await import('./armazenamento_local');
+  await gravar(LOJA_BULAS, gravada);
+  return resumoBula(gravada);
+}
+
+export async function obterBulasImportadas(numeroRegistro: string): Promise<BulaImportada[]> {
+  const registro = numeroRegistro.replace(/\D/g, '').slice(0, 9);
+  if (registro.length < 9) return [];
+  if (isTauri()) return invokeTauri<BulaImportada[]>('obter_bulas_importadas', { numeroRegistro: registro });
+  return (await bulasImportadasLocais()).filter((b) => b.registro === registro).sort((a, b) => ordemTipoBula(a) - ordemTipoBula(b));
+}
+
+export async function listarBulasImportadas(): Promise<BulaImportadaResumo[]> {
+  if (isTauri()) return invokeTauri<BulaImportadaResumo[]>('listar_bulas_importadas');
+  return (await bulasImportadasLocais())
+    .map(resumoBula)
+    .sort((a, b) => b.data_importacao.localeCompare(a.data_importacao) || a.nome_produto.localeCompare(b.nome_produto));
+}
+
+export async function removerBulaImportada(registro: string, tipo: BulaImportada['tipo']): Promise<boolean> {
+  if (isTauri()) return invokeTauri<boolean>('remover_bula_importada', { registro, tipo });
+  const { remover, LOJA_BULAS } = await import('./armazenamento_local');
+  return remover(LOJA_BULAS, [registro, tipo]);
+}
+
+function resumoBula(b: BulaImportada): BulaImportadaResumo {
+  return {
+    registro: b.registro,
+    tipo: b.tipo,
+    nome_produto: b.nome_produto,
+    empresa: b.empresa,
+    origem: b.origem,
+    data_bula: b.data_bula,
+    data_importacao: b.data_importacao,
+    total_secoes: b.secoes.length,
+  };
+}
+
+// -----------------------------------------------------------------------------
+// PCDT da CONITEC: banco do app desktop (lista atualizada todo dia) ou resumo empacotado no navegador
+// -----------------------------------------------------------------------------
+
+const carregarPcdtEmpacotados = () => import('./data/pcdt_conitec');
+
+export async function listarPcdtConitec(): Promise<PcdtResumo[]> {
+  if (isTauri()) return invokeTauri<PcdtResumo[]>('listar_pcdt_conitec');
+  const { PCDT_CONITEC } = await carregarPcdtEmpacotados();
+  return [...PCDT_CONITEC].sort((a, b) => a.titulo.localeCompare(b.titulo, 'pt-BR'));
+}
+
+export async function obterPcdtConitec(idPcdt: number): Promise<PcdtDetalhe | null> {
+  if (isTauri()) return invokeTauri<PcdtDetalhe | null>('obter_pcdt_conitec', { idPcdt });
+  const { PCDT_CONITEC } = await carregarPcdtEmpacotados();
+  const pcdt = PCDT_CONITEC.find((p) => p.id_pcdt === idPcdt);
+  if (!pcdt) return null;
+  // No navegador só vão os trechos de medicamentos e esquemas (o texto completo fica no banco do desktop)
+  const secoes = [
+    { chave: 'esquemas', titulo: 'Esquemas de administração', ...pcdt.esquemas },
+    { chave: 'medicamentos', titulo: 'Fármacos / medicamentos', ...pcdt.medicamentos },
+  ].filter((s) => s.texto);
+  return { ...pcdt, secoes };
 }

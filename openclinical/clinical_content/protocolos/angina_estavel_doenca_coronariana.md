@@ -1,12 +1,15 @@
 ---
 id_protocolo: "angina_estavel_doenca_coronariana"
 titulo: "Doença Arterial Coronariana Crônica: Angina Estável"
+categoria: "cardiovascular"
 cids_relacionados: ["I20.9", "I25.1"]
 ciaps_relacionados: ["K74"]
+farmacos_principais: ["AAS 100mg", "Atorvastatina 40mg", "Atenolol 50mg", "Dinitrato de Isossorbida"]
 nivel_atencao: "Atencao_Primaria_e_Cardiologia"
 diretrizes_referencia: "Diretriz de DAC Estável da SBC, ESC, AHA"
 data_revisao: "2026-10-26"
 status_revisao_clinica: "pendente_revisao_por_profissional_habilitado"
+ordem_catalogo: 23
 ---
 
 # Diretrizes Clínicas: Angina Estável

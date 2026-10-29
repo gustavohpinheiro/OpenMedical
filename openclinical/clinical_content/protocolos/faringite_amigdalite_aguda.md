@@ -1,12 +1,15 @@
 ---
 id_protocolo: "faringite_amigdalite_aguda"
 titulo: "Manejo da Faringoamigdalite Aguda Estreptocócica"
+categoria: "infectologia"
 cids_relacionados: ["J02.0", "J02.9", "J03.0"]
 ciaps_relacionados: ["R74"]
+farmacos_principais: ["Amoxicilina 500mg", "Dipirona 500mg", "Penicilina G Benzatina"]
 nivel_atencao: "Atencao_Primaria"
 diretrizes_referencia: "Ministério da Saúde (Brasil), IDSA, NICE"
 data_revisao: "2026-10-26"
 status_revisao_clinica: "pendente_revisao_por_profissional_habilitado"
+ordem_catalogo: 1
 ---
 
 # Diretrizes Clínicas: Faringite e Amigdalite Aguda Estreptocócica

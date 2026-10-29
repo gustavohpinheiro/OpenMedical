@@ -1,12 +1,15 @@
 ---
 id_protocolo: "rinite_alergica_persistente"
 titulo: "Manejo da Rinite Alérgica Moderada a Grave (Diretrizes ARIA)"
+categoria: "respiratorio"
 cids_relacionados: ["J30.1", "J30.4"]
 ciaps_relacionados: ["R97"]
+farmacos_principais: ["Budesonida Spray Nasal", "Loratadina 10mg", "Soro Fisiológico 0.9%"]
 nivel_atencao: "Atencao_Primaria"
 diretrizes_referencia: "Allergic Rhinitis and its Impact on Asthma (ARIA), ASBAI"
 data_revisao: "2026-10-26"
 status_revisao_clinica: "pendente_revisao_por_profissional_habilitado"
+ordem_catalogo: 29
 ---
 
 # Diretrizes Clínicas: Rinite Alérgica

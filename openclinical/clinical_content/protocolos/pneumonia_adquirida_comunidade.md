@@ -1,12 +1,15 @@
 ---
 id_protocolo: "pneumonia_adquirida_comunidade"
 titulo: "Pneumonia Adquirida na Comunidade (PAC) no Adulto: Manejo Ambulatorial"
+categoria: "infectologia"
 cids_relacionados: ["J18.9", "J13", "J15.9"]
 ciaps_relacionados: ["R81"]
+farmacos_principais: ["Amoxicilina 500mg", "Dipirona 500mg"]
 nivel_atencao: "Atencao_Primaria"
 diretrizes_referencia: "Sociedade Brasileira de Pneumologia e Tisiologia (SBPT), ATS/IDSA"
 data_revisao: "2026-10-26"
 status_revisao_clinica: "pendente_revisao_por_profissional_habilitado"
+ordem_catalogo: 5
 ---
 
 # Diretrizes Clínicas: Pneumonia Comunitária Ambulatorial

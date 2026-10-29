@@ -1,0 +1,30 @@
+{
+  "_comentario": "Fontes do coletor scripts/baixar_bulas_laboratorios.mjs. Só entram sites cujo robots.txt permite a coleta e que não exigem verificação antirrobô. Levantamento de 28/10/2026.",
+  "fontes": [
+    {
+      "id": "ache",
+      "empresa": "Aché Laboratórios Farmacêuticos S.A.",
+      "tipo": "wp-rest",
+      "observacao": "API REST pública do WordPress do site (wp-json/wp/v2/produtos); o campo 'bula' traz o link do PDF quando o produto tem bula publicada. robots.txt sem restrições.",
+      "listagem": "https://www.ache.com.br/wp-json/wp/v2/produtos?per_page=100&_fields=id,slug,title,modified,bula,link",
+      "campo_pdf": "bula"
+    },
+    {
+      "id": "eurofarma",
+      "empresa": "Eurofarma Laboratórios S.A.",
+      "tipo": "sitemap-paginas",
+      "observacao": "Páginas de produto listadas no sitemap, com links para a bula do profissional (healthcare) e do paciente (patient). robots.txt permite User-agent * (Content-Signal: use=reference, ai-train=no: uso como referência, sem treinar IA).",
+      "sitemap": "https://www.eurofarma.com.br/sitemap.xml",
+      "filtro_paginas": "/produtos/",
+      "padrao_pdf": "https?://[^\"'\\s]+/produtos/bulas/(?:healthcare|patient)/pt/[^\"'\\s]+\\.pdf"
+    }
+  ],
+  "avaliadas_e_excluidas": [
+    { "empresa": "EMS", "site": "www.ems.com.br", "motivo": "Proteção antirrobô (Incapsula) até no robots.txt." },
+    { "empresa": "Neo Química (Hypera)", "site": "www.neoquimica.com.br", "motivo": "Verificação antirrobô da Cloudflare no sitemap." },
+    { "empresa": "Medley (Sanofi)", "site": "www.medley.com.br", "motivo": "O botão 'Ver bula' leva ao aplicativo sm.far.br (sem PDF direto nem API documentada)." },
+    { "empresa": "Cimed", "site": "cimed.com.br", "motivo": "Sem página ou listagem de bulas no site." },
+    { "empresa": "Prati-Donaduzzi", "site": "www.pratidonaduzzi.com.br", "motivo": "Sem robots.txt nem listagem de bulas encontrada; reavaliar." },
+    { "empresa": "Germed, Legrand, Sandoz", "site": "-", "motivo": "Domínios redirecionam; não avaliados nesta rodada." }
+  ]
+}

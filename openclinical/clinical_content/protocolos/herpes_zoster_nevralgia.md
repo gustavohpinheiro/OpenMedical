@@ -1,12 +1,15 @@
 ---
 id_protocolo: "herpes_zoster_nevralgia"
 titulo: "Abordagem do Herpes Zoster e Prevenção da Nevralgia Pós-Herpética"
+categoria: "infectologia"
 cids_relacionados: ["B02.9", "G53.0"]
 ciaps_relacionados: ["S70"]
+farmacos_principais: ["Aciclovir 800mg", "Dipirona 500mg", "Gabapentina 300mg"]
 nivel_atencao: "Atencao_Primaria_e_Pronto_Atendimento"
 diretrizes_referencia: "Sociedade Brasileira de Dermatologia (SBD), CDC"
 data_revisao: "2026-10-26"
 status_revisao_clinica: "pendente_revisao_por_profissional_habilitado"
+ordem_catalogo: 12
 ---
 
 # Diretrizes Clínicas: Herpes Zoster

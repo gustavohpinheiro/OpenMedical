@@ -1,12 +1,15 @@
 ---
 id_protocolo: "crise_hipertensiva"
 titulo: "Abordagem da Crise Hipertensiva: Urgência vs Emergência Hipertensiva"
+categoria: "cardiovascular"
 cids_relacionados: ["I10", "I15"]
 ciaps_relacionados: ["K86", "K87"]
+farmacos_principais: ["Maleato de Enalapril 10mg", "Hidroclorotiazida 25mg", "Anlodipino 5mg"]
 nivel_atencao: "Atencao_Primaria_e_Pronto_Atendimento"
 diretrizes_referencia: "Diretrizes Brasileiras de Hipertensão (SBC 2020), AHA/ACC"
 data_revisao: "2026-10-26"
 status_revisao_clinica: "pendente_revisao_por_profissional_habilitado"
+ordem_catalogo: 19
 ---
 
 # Diretrizes Clínicas: Crise Hipertensiva

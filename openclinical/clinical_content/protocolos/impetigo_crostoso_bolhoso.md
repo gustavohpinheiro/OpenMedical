@@ -1,12 +1,15 @@
 ---
 id_protocolo: "impetigo_crostoso_bolhoso"
 titulo: "Manejo do Impetigo Crostoso e Bolhoso na Criança e Adulto"
+categoria: "pediatria"
 cids_relacionados: ["L01.0", "L01.1"]
 ciaps_relacionados: ["S84"]
+farmacos_principais: ["Mupirocina 2% Pomada", "Cefalexina 250mg/5mL", "Sabonete Antisséptico"]
 nivel_atencao: "Atencao_Primaria"
 diretrizes_referencia: "Sociedade Brasileira de Dermatologia (SBD), SBP"
 data_revisao: "2026-10-26"
 status_revisao_clinica: "pendente_revisao_por_profissional_habilitado"
+ordem_catalogo: 11
 ---
 
 # Diretrizes Clínicas: Impetigo

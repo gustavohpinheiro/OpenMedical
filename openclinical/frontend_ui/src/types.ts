@@ -77,7 +77,15 @@ export interface CodigoDiagnostico {
 }
 
 export interface ItemBuscaFts {
-  tipo_registro: 'medicamento' | 'diagnostico' | 'protocolo' | 'pcdt_governo' | 'cmed_comercial' | 'ftn_monografia';
+  tipo_registro:
+    | 'medicamento'
+    | 'diagnostico'
+    | 'protocolo'
+    | 'pcdt_governo'
+    | 'cmed_comercial'
+    | 'ftn_monografia'
+    | 'bula_importada'
+    | 'pcdt_conitec';
   id_referencia: number | string;
   titulo_primario: string;
   subtitulo: string;
@@ -214,4 +222,76 @@ export interface ResultadoTesteApiAnvisa {
   mensagem: string;
   token_expira_em_segundos: number | null;
   servicos: ServicoApiAnvisa[];
+}
+
+/** Bula em PDF importada pelo usuário ou coletada do site do laboratório, já separada em seções (bula_parser.ts) */
+export interface BulaImportada {
+  /** 9 primeiros dígitos do registro na ANVISA */
+  registro: string;
+  tipo: 'profissional' | 'paciente';
+  nome_produto: string;
+  principios_ativos: string[];
+  empresa: string;
+  cnpj: string;
+  /** AAAA-MM-DD da aprovação pela ANVISA, ou vazio */
+  data_bula: string;
+  /** 'manual' ou 'laboratorio:<nome>' */
+  origem: string;
+  url_origem: string;
+  data_importacao: string;
+  hash_arquivo: string;
+  cabecalho: string;
+  secoes: { chave: string; titulo: string; texto: string }[];
+}
+
+export interface BulaImportadaResumo {
+  registro: string;
+  tipo: 'profissional' | 'paciente';
+  nome_produto: string;
+  empresa: string;
+  origem: string;
+  data_bula: string;
+  data_importacao: string;
+  total_secoes: number;
+}
+
+/** Fármaco listado no PCDT (Termo de Esclarecimento), cruzado com RENAME 2024 e FTN */
+export interface FarmacoPcdt {
+  nome: string;
+  chave: string;
+  no_rename: boolean;
+  id_monografia_ftn: number | null;
+}
+
+export interface SecaoPcdt {
+  chave: string;
+  titulo: string;
+  /** Página do PDF onde a seção começa */
+  pagina: number;
+  texto: string;
+  /** false quando o texto foi cortado (versão do navegador) */
+  completo?: boolean;
+}
+
+/** PCDT da CONITEC: lista oficial + conteúdo extraído do PDF (etl_pipeline/extrator_pcdt_conitec.py) */
+export interface PcdtResumo {
+  id_pcdt: number;
+  titulo: string;
+  portaria: string;
+  data_portaria: string;
+  url_pdf: string;
+  url_portaria: string;
+  url_publicacao_ms: string;
+  url_resumido: string;
+  paginas: number;
+  tem_texto: boolean;
+  cids: string[];
+  farmacos: FarmacoPcdt[];
+  secoes_disponiveis: string[];
+  /** A CONITEC trocou o PDF depois da última extração (só no app desktop) */
+  conteudo_desatualizado?: boolean;
+}
+
+export interface PcdtDetalhe extends PcdtResumo {
+  secoes: SecaoPcdt[];
 }

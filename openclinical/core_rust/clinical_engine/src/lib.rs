@@ -2,6 +2,10 @@
 pub mod api_anvisa;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod atualizador;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod bulas_importadas;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod pcdt_conitec;
 pub mod calculators;
 pub mod database;
 pub mod errors;

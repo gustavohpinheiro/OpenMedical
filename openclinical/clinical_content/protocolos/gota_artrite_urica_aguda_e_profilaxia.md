@@ -1,12 +1,15 @@
 ---
 id_protocolo: "gota_artrite_urica_aguda_e_profilaxia"
 titulo: "Artrite Gotosa Aguda (Crise) e Hipouricemiantes Crônicos (Alopurinol)"
+categoria: "reumatologia"
 cids_relacionados: ["M10.0", "M10.9"]
 ciaps_relacionados: ["T92"]
+farmacos_principais: ["Colchicina 0.5mg", "Alopurinol 100mg / 300mg", "Dipirona 500mg"]
 nivel_atencao: "Atencao_Primaria_e_Reumatologia"
 diretrizes_referencia: "Sociedade Brasileira de Reumatologia (SBR), ACR"
 data_revisao: "2026-10-26"
 status_revisao_clinica: "pendente_revisao_por_profissional_habilitado"
+ordem_catalogo: 37
 ---
 
 # Diretrizes Clínicas: Manejo da Gota

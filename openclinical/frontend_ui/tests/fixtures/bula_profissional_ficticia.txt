@@ -1,0 +1,58 @@
+Modelo de bula para o profissional de saúde
+EXEMPLOFEN®
+paracetamol
+Medicamento Similar Equivalente ao Medicamento de Referência
+APRESENTAÇÕES
+Comprimido revestido de 500 mg: embalagem com 20 comprimidos.
+Solução oral (gotas) de 200 mg/mL: frasco com 15 mL.
+USO ORAL
+USO ADULTO E PEDIÁTRICO
+COMPOSIÇÃO
+Cada comprimido revestido contém:
+paracetamol .......................................................... 500 mg
+Excipientes: amido, povidona, estearato de magnésio.
+INFORMAÇÕES TÉCNICAS AOS PROFISSIONAIS DE SAÚDE
+1. INDICAÇÕES
+Este medicamento é indicado para a redução da febre e para o alívio temporário de dores leves a moderadas,
+como dores associadas a gripes e resfriados comuns, dor de cabeça e dor muscular.
+2. RESULTADOS DE EFICÁCIA
+Estudos clínicos controlados demonstraram eficácia analgésica e antipirética em doses de 10 a 15 mg/kg.
+EXEMPLO_BU01_VPS
+3. CARACTERÍSTICAS FARMACOLÓGICAS
+Propriedades farmacodinâmicas
+O paracetamol é um analgésico e antipirético de ação central. A ab-
+sorção é rápida e quase completa pelo trato gastrintestinal.
+4. CONTRAINDICAÇÕES
+Este medicamento é contraindicado para pacientes com hipersensibilidade ao paracetamol ou a qualquer
+outro componente da fórmula.
+5. ADVERTÊNCIAS E PRECAUÇÕES
+Não exceder a dose máxima diária recomendada. O uso acima das doses recomendadas pode causar
+lesão hepática grave.
+EXEMPLO_BU01_VPS
+6. INTERAÇÕES MEDICAMENTOSAS
+O uso crônico com varfarina pode elevar o INR. Indutores enzimáticos (carbamazepina, fenitoína,
+rifampicina) aumentam o risco de hepatotoxicidade.
+7. CUIDADOS DE ARMAZENAMENTO DO MEDICAMENTO
+Conservar em temperatura ambiente (entre 15 e 30 °C). Proteger da luz e da umidade.
+8. POSOLOGIA E MODO DE USAR
+Adultos e crianças acima de 12 anos
+Comprimidos: 1 comprimido de 500 mg a cada 4 a 6 horas. Não exceder 4.000 mg em 24 horas.
+Crianças
+Gotas: 10 a 15 mg/kg por dose, a cada 4 a 6 horas, até 5 tomadas ao dia.
+- Não ultrapassar 75 mg/kg/dia.
+EXEMPLO_BU01_VPS
+9. REAÇÕES ADVERSAS
+Reação rara (> 1/10.000 e < 1/1.000): urticária, prurido e eritema.
+10. SUPERDOSE
+Em caso de superdose, iniciar acetilcisteína o mais rápido possível. Procure o centro de informação toxicológica.
+Em caso de intoxicação ligue para 0800 722 6001, se você precisar de mais orientações.
+DIZERES LEGAIS
+Reg. MS nº 1.2345.6789.001-2
+Farmacêutico Responsável: Fulano de Tal - CRF-SP nº 00.000
+Registrado por:
+Laboratório Exemplo Ltda.
+CNPJ 00.000.000/0001-91
+Indústria Brasileira
+VENDA SOB PRESCRIÇÃO
+Esta bula foi aprovada pela Anvisa em 05/03/2024.
+12/04/2024   10:15

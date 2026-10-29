@@ -1,12 +1,15 @@
 ---
 id_protocolo: "candidiaze_vulvovaginal"
 titulo: "Manejo da Candidíase Vulvovaginal Aguda"
+categoria: "ginecologia"
 cids_relacionados: ["B37.3"]
 ciaps_relacionados: ["X72"]
+farmacos_principais: ["Fluconazol 150mg", "Nitrato de Miconazol Creme 2%"]
 nivel_atencao: "Atencao_Primaria"
 diretrizes_referencia: "FEBRASGO, CDC"
 data_revisao: "2026-10-26"
 status_revisao_clinica: "pendente_revisao_por_profissional_habilitado"
+ordem_catalogo: 16
 ---
 
 # Diretrizes Clínicas: Candidíase Vulvovaginal

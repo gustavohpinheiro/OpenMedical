@@ -1,12 +1,15 @@
 ---
 id_protocolo: "constipacao_intestinal_cronica"
 titulo: "Constipação Intestinal Funcional Crônica no Adulto e Idoso"
+categoria: "gastroenterologia"
 cids_relacionados: ["K59.0"]
 ciaps_relacionados: ["D12"]
+farmacos_principais: ["Polietilenoglicol (PEG 4000)", "Lactulose 667mg/mL", "Psyllium"]
 nivel_atencao: "Atencao_Primaria"
 diretrizes_referencia: "Federação Brasileira de Gastroenterologia (FBG), WGO"
 data_revisao: "2026-10-26"
 status_revisao_clinica: "pendente_revisao_por_profissional_habilitado"
+ordem_catalogo: 32
 ---
 
 # Diretrizes Clínicas: Constipação Crônica

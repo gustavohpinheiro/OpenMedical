@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, X, Pill, Stethoscope, BookOpen, ArrowRight, FileCheck, Tag, AlertTriangle, BookMarked } from 'lucide-react';
+import { Search, X, Pill, Stethoscope, BookOpen, ArrowRight, FileCheck, Tag, AlertTriangle, BookMarked, FileText } from 'lucide-react';
 import { ItemBuscaFts } from '../types';
 import { buscarGeral } from '../api';
 
@@ -8,7 +8,7 @@ interface SearchModalProps {
   onFechar: () => void;
   onSelecionarMedicamento: (id: number) => void;
   onSelecionarProtocolo: (id: string) => void;
-  onSelecionarBasePublica: (tipo: 'cmed' | 'pcdt', id: number) => void;
+  onSelecionarBasePublica: (tipo: 'cmed' | 'pcdt' | 'bula', id: number | string) => void;
   onSelecionarFormulario: (idMonografia: number) => void;
   /** Termo já digitado ao abrir (clique em um nome de medicamento sem bula própria) */
   termoInicial?: string;
@@ -21,6 +21,8 @@ const ROTULO_TIPO: Record<ItemBuscaFts['tipo_registro'], string> = {
   diagnostico: 'CID / CIAP',
   pcdt_governo: 'PCDT MS',
   cmed_comercial: 'CMED',
+  bula_importada: 'Bula PDF',
+  pcdt_conitec: 'PCDT',
 };
 
 const ESTILO_TIPO: Record<ItemBuscaFts['tipo_registro'], { icone: string; selo: string }> = {
@@ -30,6 +32,8 @@ const ESTILO_TIPO: Record<ItemBuscaFts['tipo_registro'], { icone: string; selo: 
   diagnostico: { icone: 'bg-amber-500/10 text-amber-400', selo: 'bg-amber-900/60 text-amber-300 border-amber-700/50' },
   pcdt_governo: { icone: 'bg-sky-500/10 text-sky-400', selo: 'bg-sky-900/60 text-sky-300 border-sky-700/50' },
   cmed_comercial: { icone: 'bg-emerald-500/10 text-emerald-400', selo: 'bg-emerald-900/60 text-emerald-300 border-emerald-700/50' },
+  bula_importada: { icone: 'bg-sky-500/10 text-sky-300', selo: 'bg-sky-950 text-sky-200 border-sky-600/60' },
+  pcdt_conitec: { icone: 'bg-sky-500/10 text-sky-400', selo: 'bg-sky-900/60 text-sky-300 border-sky-700/50' },
 };
 
 const ICONE_TIPO: Record<ItemBuscaFts['tipo_registro'], React.ComponentType<{ className?: string }>> = {
@@ -39,6 +43,8 @@ const ICONE_TIPO: Record<ItemBuscaFts['tipo_registro'], React.ComponentType<{ cl
   diagnostico: Stethoscope,
   pcdt_governo: FileCheck,
   cmed_comercial: Tag,
+  bula_importada: FileText,
+  pcdt_conitec: FileCheck,
 };
 
 export const SearchModal: React.FC<SearchModalProps> = ({
@@ -122,11 +128,19 @@ export const SearchModal: React.FC<SearchModalProps> = ({
       case 'protocolo':
         onSelecionarProtocolo(String(item.id_referencia));
         break;
-      case 'pcdt_governo':
+      case 'pcdt_conitec':
         onSelecionarBasePublica('pcdt', Number(item.id_referencia));
+        break;
+      case 'pcdt_governo':
+        // Lista antiga do MS (banco de versões anteriores): abre a lista atual filtrada pelo nome
+        onSelecionarBasePublica('pcdt', item.titulo_primario);
         break;
       case 'cmed_comercial':
         onSelecionarBasePublica('cmed', Number(item.id_referencia));
+        break;
+      case 'bula_importada':
+        // id "registro:tipo"
+        onSelecionarBasePublica('bula', String(item.id_referencia).split(':')[0]);
         break;
       case 'diagnostico': {
         // Um código diagnóstico não tem tela própria: refaz a busca pelo CID para listar protocolos relacionados

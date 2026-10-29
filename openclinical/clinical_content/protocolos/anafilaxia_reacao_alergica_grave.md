@@ -1,12 +1,15 @@
 ---
 id_protocolo: "anafilaxia_reacao_alergica_grave"
 titulo: "Protocolo de Emergência: Anafilaxia e Reações Alérgicas Graves"
+categoria: "urgencia"
 cids_relacionados: ["T78.2", "T78.0"]
 ciaps_relacionados: ["A92"]
+farmacos_principais: ["Epinefrina (Adrenalina 1:1000)", "Hidrocortisona", "Difenidramina"]
 nivel_atencao: "Urgencia_Emergencia"
 diretrizes_referencia: "World Allergy Organization (WAO), ASBAI, AHA"
 data_revisao: "2026-10-26"
 status_revisao_clinica: "pendente_revisao_por_profissional_habilitado"
+ordem_catalogo: 44
 ---
 
 # Protocolo de Emergência: Anafilaxia

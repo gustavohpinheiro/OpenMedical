@@ -1,12 +1,15 @@
 ---
 id_protocolo: "hipotireoidismo_primario_levotiroxina"
 titulo: "Hipotireoidismo Primário no Adulto e Idoso: Manejo com Levotiroxina"
+categoria: "endocrinologia"
 cids_relacionados: ["E03.9", "E03.8"]
 ciaps_relacionados: ["T86"]
+farmacos_principais: ["Levotiroxina Sódica 25mcg / 50mcg / 75mcg / 100mcg"]
 nivel_atencao: "Atencao_Primaria"
 diretrizes_referencia: "Sociedade Brasileira de Endocrinologia e Metabologia (SBEM), ATA"
 data_revisao: "2026-10-26"
 status_revisao_clinica: "pendente_revisao_por_profissional_habilitado"
+ordem_catalogo: 36
 ---
 
 # Diretrizes Clínicas: Reposição de Levotiroxina

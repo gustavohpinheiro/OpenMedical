@@ -1,12 +1,15 @@
 ---
 id_protocolo: "asma_exacerbacao_aguda"
 titulo: "Manejo da Exacerbação Aguda de Asma na Atenção Básica e Urgência"
+categoria: "respiratorio"
 cids_relacionados: ["J45", "J45.9", "J46"]
 ciaps_relacionados: ["R96"]
+farmacos_principais: ["Sulfato de Salbutamol 100mcg Spray", "Prednisona 20mg"]
 nivel_atencao: "Atencao_Primaria_e_Urgencia"
 diretrizes_referencia: "Global Initiative for Asthma (GINA 2024), SBPT"
 data_revisao: "2026-10-26"
 status_revisao_clinica: "pendente_revisao_por_profissional_habilitado"
+ordem_catalogo: 26
 ---
 
 # Diretrizes Clínicas: Crise Asmática Aguda

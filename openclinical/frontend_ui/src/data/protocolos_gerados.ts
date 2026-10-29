@@ -1,4 +1,4 @@
-// ARQUIVO GERADO por etl_pipeline/gerador_receitas_completas.py - NÃO EDITAR MANUALMENTE.
+// ARQUIVO GERADO por etl_pipeline/cadastrar_receitas.py a partir de clinical_content/protocolos/*.md - NÃO EDITAR MANUALMENTE.
 import { ProtocoloClinico } from '../types';
 
 export const PROTOCOLOS_GERADOS: ProtocoloClinico[] = [

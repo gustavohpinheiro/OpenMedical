@@ -1,12 +1,15 @@
 ---
 id_protocolo: "hipertensao_arterial_estagio1_2"
 titulo: "Hipertensão Arterial Sistêmica Estágios 1 e 2 (Terapia Combinada Inicial)"
+categoria: "cardiovascular"
 cids_relacionados: ["I10"]
 ciaps_relacionados: ["K86"]
+farmacos_principais: ["Losartana Potássica 50mg", "Besilato de Anlodipino 5mg", "Hidroclorotiazida 25mg"]
 nivel_atencao: "Atencao_Primaria"
 diretrizes_referencia: "Sociedade Brasileira de Cardiologia (SBC 2020), ESH/ESC, AHA"
 data_revisao: "2026-10-26"
 status_revisao_clinica: "pendente_revisao_por_profissional_habilitado"
+ordem_catalogo: 20
 ---
 
 # Diretrizes Clínicas: Tratamento Farmacológico da Hipertensão

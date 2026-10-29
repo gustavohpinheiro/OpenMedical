@@ -1,12 +1,15 @@
 ---
 id_protocolo: "asma_tratamento_manutencao_gina"
 titulo: "Tratamento de Manutenção da Asma Crônica (Diretrizes GINA)"
+categoria: "respiratorio"
 cids_relacionados: ["J45.0", "J45.8"]
 ciaps_relacionados: ["R96"]
+farmacos_principais: ["Budesonida + Formoterol", "Dipropionato de Beclometasona"]
 nivel_atencao: "Atencao_Primaria_e_Pneumologia"
 diretrizes_referencia: "Global Initiative for Asthma (GINA 2024), SBPT"
 data_revisao: "2026-10-26"
 status_revisao_clinica: "pendente_revisao_por_profissional_habilitado"
+ordem_catalogo: 27
 ---
 
 # Diretrizes Clínicas: Asma Crônica de Manutenção

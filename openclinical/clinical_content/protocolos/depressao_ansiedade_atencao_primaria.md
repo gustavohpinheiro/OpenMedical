@@ -1,12 +1,15 @@
 ---
 id_protocolo: "depressao_ansiedade_atencao_primaria"
 titulo: "Transtorno Depressivo Maior e Ansiedade na Atenção Primária (ISRS)"
+categoria: "saude_mental"
 cids_relacionados: ["F32.1", "F41.1"]
 ciaps_relacionados: ["P76", "P74"]
+farmacos_principais: ["Cloridrato de Sertralina 50mg", "Oxalato de Escitalopram 10mg"]
 nivel_atencao: "Atencao_Primaria"
 diretrizes_referencia: "Guia mhGAP da OMS, Associação Brasileira de Psiquiatria (ABP), CANMAT"
 data_revisao: "2026-10-26"
 status_revisao_clinica: "pendente_revisao_por_profissional_habilitado"
+ordem_catalogo: 42
 ---
 
 # Diretrizes Clínicas: Depressão e Ansiedade na APS

@@ -101,18 +101,28 @@ python openclinical/etl_pipeline/seed_dados_iniciais.py
 # Terapêutico Nacional 2010 e as 875 apresentações da RENAME 2024 (banco + frontend)
 python openclinical/etl_pipeline/extrator_formulario_terapeutico.py
 
+# Baixar os 141 PCDT da CONITEC (2 s entre requisições, só o que mudou) e extrair CIDs, medicamentos e esquemas
+python openclinical/etl_pipeline/extrator_pcdt_conitec.py
+
 # Rodar os testes unitários do pipeline Python
-python -m pytest openclinical/etl_pipeline/tests/test_etl_pipeline.py
+python -m pytest openclinical/etl_pipeline/tests
 ```
+
+### Cadastrar uma nova receita
+As receitas ficam em `openclinical/clinical_content/protocolos/*.md` (um arquivo por receita, fonte única).
+1. `python openclinical/etl_pipeline/cadastrar_receitas.py --nova nome_da_receita` cria o `.md` a partir de `clinical_content/protocolos/_MODELO.md`.
+2. Preencha todos os campos `PREENCHER` com base na diretriz citada em `diretrizes_referencia` (mantenha `status_revisao_clinica: pendente` até a revisão por profissional habilitado).
+3. `python openclinical/etl_pipeline/cadastrar_receitas.py` valida tudo (erros no formato `arquivo:linha -> campo`) e, se estiver tudo certo, regenera o catálogo do frontend e o índice de busca dos dois bancos SQLite. `--validar` só confere.
+4. `python -X utf8 -m pytest openclinical/etl_pipeline/tests -q`. Guia completo: `clinical_content/protocolos/COMO_CADASTRAR.md`.
 
 ### 3. Rodar os Testes Unitários do Motor Clínico em Rust
 ```bash
 cargo test --package clinical_engine --manifest-path openclinical/core_rust/clinical_engine/Cargo.toml
 ```
-*24 testes determinísticos (credencial do Portal de APIs da ANVISA, CKD-EPI 2021, Cockcroft-Gault, CURB-65, Wells TEP, vazão de noradrenalina, dose pediátrica com teto e em forma sólida, combinatória de interações, parser de protocolos, busca FTS5, consulta CMED, preço oficial e Farmácia Popular, atualizador das bases da ANVISA, entradas inválidas e consultas no banco empacotado).*
+*26 testes determinísticos (bulas importadas, lista de PCDT da CONITEC no atualizador, credencial do Portal de APIs da ANVISA, CKD-EPI 2021, Cockcroft-Gault, CURB-65, Wells TEP, vazão de noradrenalina, dose pediátrica com teto e em forma sólida, combinatória de interações, parser de protocolos, busca FTS5, consulta CMED, preço oficial e Farmácia Popular, atualizador das bases da ANVISA, entradas inválidas e consultas no banco empacotado).*
 
 ```bash
-# Atualizar preços CMED, registros e índice de bulas da ANVISA (o app desktop faz isso sozinho uma vez por dia)
+# Atualizar preços CMED, registros, índice de bulas da ANVISA e lista de PCDT da CONITEC (o app desktop faz isso sozinho uma vez por dia)
 cargo run --release --manifest-path openclinical/core_rust/clinical_engine/Cargo.toml --bin openclinical_cli -- atualizar
 ```
 
@@ -127,7 +137,11 @@ Acesse `http://localhost:5173`. Pressione `Ctrl+K` para abrir a busca global ins
 
 ```bash
 npm run typecheck   # tsc estrito
-npm test            # paridade dos cálculos TS x casos de referência do Rust
+npm test            # 23 testes: paridade dos cálculos, leitor de bula em PDF e coletor de bulas
+
+# Coletar as bulas publicadas pelos laboratórios (Aché, Eurofarma); respeita robots.txt, 2 s por domínio.
+# Rodar uma vez por semana (Agendador de Tarefas do Windows ou cron).
+node scripts/baixar_bulas_laboratorios.mjs
 ```
 
 ### 5. Executar o Aplicativo Nativo Multiplataforma (Tauri 2.0 Desktop)
@@ -143,7 +157,9 @@ Projeto em estágio de protótipo. O conteúdo clínico (protocolos, bulas, inte
 ## 🛡️ Segurança Clínica e Determinismo
 - Todos os cálculos médicos são estritamente matemáticos e determinísticos, auditados por testes unitários e nunca delegados a LLMs em tempo de execução.
 - A calculadora de dose pediátrica serve para qualquer medicamento: busca os 346 do FTN, mostra os esquemas pediátricos e aceita dose em mg/kg por dia ou por tomada; o que o FTN não diz sem ambiguidade fica para o médico preencher. Tem alerta e limitação ao teto diário, atalho fixo no topo (ícone de bebê) e, no app instalado no celular, um atalho próprio ("Dose infantil").
-- No app desktop, preços da CMED, registros e o índice de bulas da ANVISA são atualizados automaticamente uma vez por dia, sem apagar dados se o download falhar.
+- No app desktop, preços da CMED, registros, o índice de bulas da ANVISA e a lista de PCDT da CONITEC são atualizados automaticamente uma vez por dia, sem apagar dados se o download falhar.
+- Bula em PDF baixada no Bulário da ANVISA pode ser importada no app (arrastar e soltar): o texto é separado nas seções da RDC 47/2009, com aviso se o PDF for de outro produto ou mais antigo que a bula vigente. Um coletor semanal traz as bulas publicadas nos sites dos laboratórios que permitem (Aché, Eurofarma).
+- Os 141 PCDT da CONITEC trazem CIDs, medicamentos (com selo SUS e link para o FTN) e esquemas de administração extraídos do PDF oficial, com link para a página do PDF. Textos para pedir à ANVISA a base de bulas em lote estão em `pedidos_anvisa.md`.
 - A credencial do Portal de APIs da ANVISA (Client ID = CPF, Client Secret gerado em api.anvisa.gov.br/client-manage) é cadastrada no app desktop, com tutorial, e fica no cofre de credenciais do sistema operacional.
 - Cada medicamento do Formulário mostra se está disponível no SUS (RENAME 2024) e todas as apresentações comerciais da CMED do mesmo princípio ativo; a calculadora pediátrica aceita associações (ex.: amoxicilina + clavulanato) e marca as formulações do SUS e as comerciais.
 - Clicar no nome de um medicamento (protocolos, interações, PCDT, registros) abre a bula estruturada ou a monografia do FTN.

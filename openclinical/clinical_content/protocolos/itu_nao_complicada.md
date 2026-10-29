@@ -1,12 +1,15 @@
 ---
 id_protocolo: "itu_nao_complicada"
 titulo: "Manejo da Infecção do Trato Urinário Não Complicada (Cistite Aguda)"
+categoria: "infectologia"
 cids_relacionados: ["N39.0", "N30.0"]
 ciaps_relacionados: ["U71"]
+farmacos_principais: ["Fosfomicina trometamol 3g", "Nitrofurantoína 100mg", "Dipirona Gotas"]
 nivel_atencao: "Atencao_Primaria"
 diretrizes_referencia: "Sociedade Brasileira de Urologia (SBU), IDSA, EAU"
 data_revisao: "2026-10-26"
 status_revisao_clinica: "pendente_revisao_por_profissional_habilitado"
+ordem_catalogo: 8
 ---
 
 # Diretrizes Clínicas: Cistite Aguda em Mulheres Não Gestantes

@@ -14,8 +14,8 @@ import {
   ShieldCheck,
   Barcode,
   Store,
+  FileText,
 } from 'lucide-react';
-import { LISTA_PCDT_OFICIAL_MS, ProtocoloPCDTOficial } from '../data/pcdt_oficial_ms';
 import { LISTA_MEDICAMENTOS_ANVISA_OFICIAL, MedicamentoAnvisaOficial } from '../data/anvisa_medicamentos_publicos';
 import { CATALOGO_CMED_NACIONAL, MedicamentoComercialCMED } from '../data/catalogo_cmed_nacional';
 import { normalizarTexto, obterRegistroCmed } from '../api';
@@ -23,13 +23,16 @@ import { BotaoBulaAnvisa, BulaVigenteAnvisa, PosologiaFtnProduto } from './Posol
 import { AtualizacaoBases } from './AtualizacaoBases';
 import { IntegracaoApiAnvisa } from './IntegracaoApiAnvisa';
 import { LinkMedicamento } from './LinkMedicamento';
+import { BulaImportadaDoProduto, BulasImportadasView } from './BulaImportada';
+import { PcdtConitecView } from './PcdtConitecView';
 
 /** Registro aberto a partir da busca global; `versao` muda a cada clique para reabrir o mesmo item. */
-export interface SelecaoBasePublica {
-  tipo: 'cmed' | 'pcdt';
-  id: number;
-  versao: number;
-}
+export type SelecaoBasePublica =
+  | { tipo: 'cmed'; id: number; versao: number }
+  /** PCDT pelo id, ou um título para filtrar a lista */
+  | { tipo: 'pcdt'; id: number | string; versao: number }
+  /** Bula importada, pelo registro de 9 dígitos */
+  | { tipo: 'bula'; id: string; versao: number };
 
 interface PublicDatabasesViewProps {
   selecao?: SelecaoBasePublica | null;
@@ -40,7 +43,8 @@ interface PublicDatabasesViewProps {
 const LIMITE_ITENS_LISTA = 150;
 
 export const PublicDatabasesView: React.FC<PublicDatabasesViewProps> = ({ selecao, onCompararPrecos, onAbrirMonografia }) => {
-  const [abaAtiva, setAbaAtiva] = useState<'cmed' | 'pcdt' | 'anvisa'>('cmed');
+  const [abaAtiva, setAbaAtiva] = useState<'cmed' | 'pcdt' | 'anvisa' | 'bulas'>('cmed');
+  const [registroBulaInicial, setRegistroBulaInicial] = useState<string | null>(null);
 
   // Estado CMED (Remédios Registrados no Brasil)
   const [termoCmed, setTermoCmed] = useState('');
@@ -49,26 +53,19 @@ export const PublicDatabasesView: React.FC<PublicDatabasesViewProps> = ({ seleca
   const [copiadoCmed, setCopiadoCmed] = useState(false);
   const [erroCmed, setErroCmed] = useState<string | null>(null);
 
-  // Estado PCDT
-  const [termoPcdt, setTermoPcdt] = useState('');
-  const [filtroStatus, setFiltroStatus] = useState<string>('todos');
-  const [pcdtSelecionado, setPcdtSelecionado] = useState<ProtocoloPCDTOficial>(LISTA_PCDT_OFICIAL_MS[0]);
-  const [copiadoPcdt, setCopiadoPcdt] = useState(false);
-
   // Estado ANVISA
   const [termoAnvisa, setTermoAnvisa] = useState('');
   const [filtroClasse, setFiltroClasse] = useState<string>('todas');
 
   useEffect(() => {
     if (!selecao) return;
+    if (selecao.tipo === 'bula') {
+      setAbaAtiva('bulas');
+      setRegistroBulaInicial(selecao.id);
+      return;
+    }
     if (selecao.tipo === 'pcdt') {
-      const encontrado = LISTA_PCDT_OFICIAL_MS.find((p) => p.id_pcdt === selecao.id);
       setAbaAtiva('pcdt');
-      if (encontrado) {
-        setTermoPcdt('');
-        setFiltroStatus('todos');
-        setPcdtSelecionado(encontrado);
-      }
       return;
     }
 
@@ -95,11 +92,6 @@ export const PublicDatabasesView: React.FC<PublicDatabasesViewProps> = ({ seleca
         setTimeout(() => marcarCopiado(false), 2000);
       })
       .catch(() => window.alert('Não foi possível acessar a área de transferência. Selecione o texto e copie manualmente.'));
-  };
-
-  const copiarPrescricaoPcdt = () => {
-    if (!pcdtSelecionado?.bloco_prescricao_copiavel) return;
-    copiarTexto(pcdtSelecionado.bloco_prescricao_copiavel, setCopiadoPcdt);
   };
 
   const copiarPrescricaoCmed = (med: MedicamentoComercialCMED) => {
@@ -137,29 +129,6 @@ export const PublicDatabasesView: React.FC<PublicDatabasesViewProps> = ({ seleca
       return true;
     });
   }, [termoCmed, filtroTipoCmed]);
-
-  // Filtragem PCDT
-  const pcdtsFiltrados = useMemo(() => {
-    const t = normalizarTexto(termoPcdt);
-    return LISTA_PCDT_OFICIAL_MS.filter((p) => {
-      const matchTexto =
-        !t ||
-        normalizarTexto(p.nome_protocolo).includes(t) ||
-        normalizarTexto(p.id_protocolo).includes(t) ||
-        normalizarTexto(p.tipo_protocolo).includes(t) ||
-        normalizarTexto(p.cids_relacionados.join(' ')).includes(t) ||
-        normalizarTexto(p.farmacos_principais.join(' ')).includes(t);
-
-      if (!matchTexto) return false;
-
-      if (filtroStatus === 'aprovado') return p.status_conitec.toLowerCase().includes('aprovado');
-      if (filtroStatus === 'atualizacao') return p.status_conitec.toLowerCase().includes('atualiza');
-      if (filtroStatus === 'elaboracao') return p.status_conitec.toLowerCase().includes('elabora');
-      if (filtroStatus === 'conitec') return p.status_conitec.toLowerCase().includes('conitec');
-
-      return true;
-    });
-  }, [termoPcdt, filtroStatus]);
 
   // Filtragem ANVISA Geral
   const anvisaFiltrados = useMemo(() => {
@@ -224,7 +193,7 @@ export const PublicDatabasesView: React.FC<PublicDatabasesViewProps> = ({ seleca
               }`}
             >
               <FileCheck className="w-4 h-4" />
-              <span>PCDT / CONITEC (83 Protocolos)</span>
+              <span>PCDT / CONITEC</span>
             </button>
             <button
               onClick={() => setAbaAtiva('anvisa')}
@@ -236,6 +205,17 @@ export const PublicDatabasesView: React.FC<PublicDatabasesViewProps> = ({ seleca
             >
               <Building2 className="w-4 h-4" />
               <span>Registro ANVISA</span>
+            </button>
+            <button
+              onClick={() => setAbaAtiva('bulas')}
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold whitespace-nowrap transition-all ${
+                abaAtiva === 'bulas'
+                  ? 'bg-gradient-to-r from-teal-600 to-emerald-600 text-white shadow-md'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <FileText className="w-4 h-4" />
+              <span>Bulas importadas (PDF)</span>
             </button>
           </div>
         </div>
@@ -418,6 +398,11 @@ export const PublicDatabasesView: React.FC<PublicDatabasesViewProps> = ({ seleca
                     </div>
                   </div>
 
+                  <BulaImportadaDoProduto
+                    numeroRegistro={cmedSelecionado.numero_registro}
+                    nomeProduto={cmedSelecionado.nome_produto}
+                  />
+
                   <PosologiaFtnProduto
                     substancia={cmedSelecionado.substancia}
                     apresentacao={cmedSelecionado.apresentacao}
@@ -451,200 +436,16 @@ export const PublicDatabasesView: React.FC<PublicDatabasesViewProps> = ({ seleca
         </div>
       )}
 
-      {/* ABA 2: PCDT MINISTÉRIO DA SAÚDE */}
+      {/* ABA 2: PCDT DA CONITEC (lista oficial + conteúdo extraído dos PDFs) */}
       {abaAtiva === 'pcdt' && (
-        <div className="space-y-6">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl flex flex-col md:flex-row gap-4 justify-between items-center">
-            <div className="relative w-full md:w-96">
-              <Search className="w-4 h-4 text-teal-400 absolute left-3 top-2.5" />
-              <input
-                type="text"
-                value={termoPcdt}
-                onChange={(e) => setTermoPcdt(e.target.value)}
-                placeholder="Filtrar por protocolo (ex: Artrite, Asma, Diabetes, M05)..."
-                className="w-full bg-slate-950 border border-slate-750 focus:border-teal-500 rounded-xl pl-9 pr-4 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none"
-              />
-            </div>
-
-            <div className="flex items-center gap-2 overflow-x-auto w-full md:w-auto text-xs scrollbar-none">
-              <span className="text-slate-400 font-semibold text-[11px] flex items-center gap-1">
-                <Filter className="w-3.5 h-3.5" /> Status:
-              </span>
-              {[
-                { id: 'todos', label: 'Todos (83)' },
-                { id: 'aprovado', label: 'Aprovados CONITEC' },
-                { id: 'atualizacao', label: 'Em Atualização' },
-                { id: 'elaboracao', label: 'Em Elaboração' },
-              ].map((s) => (
-                <button
-                  key={s.id}
-                  onClick={() => setFiltroStatus(s.id)}
-                  className={`px-3 py-1.5 rounded-xl font-medium whitespace-nowrap transition-all ${
-                    filtroStatus === s.id
-                      ? 'bg-teal-600 text-white shadow-md'
-                      : 'bg-slate-800 text-slate-300 hover:bg-slate-750'
-                  }`}
-                >
-                  {s.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-            <div className="lg:col-span-5 bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl space-y-2.5 max-h-[720px] overflow-y-auto">
-              <div className="flex justify-between items-center text-xs pb-2 border-b border-slate-800 text-slate-300 font-bold uppercase tracking-wider">
-                <span>Protocolos Encontrados ({pcdtsFiltrados.length})</span>
-                {termoPcdt && (
-                  <button onClick={() => setTermoPcdt('')} className="text-teal-400 hover:text-teal-300 text-[11px]">
-                    Limpar
-                  </button>
-                )}
-              </div>
-
-              {pcdtsFiltrados.map((p) => {
-                const ativo = pcdtSelecionado?.id_pcdt === p.id_pcdt;
-                const eAprovado = p.status_conitec.toLowerCase().includes('aprovado');
-                return (
-                  <div
-                    key={p.id_pcdt}
-                    onClick={() => setPcdtSelecionado(p)}
-                    className={`p-3.5 rounded-xl border cursor-pointer transition-all ${
-                      ativo
-                        ? 'bg-teal-950/70 border-teal-500 shadow-lg shadow-teal-950/50 ring-1 ring-teal-500/40'
-                        : 'bg-slate-850/60 border-slate-800 hover:bg-slate-800/80 hover:border-slate-700'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between text-xs mb-1">
-                      <span className="text-[10px] font-mono text-slate-400 font-semibold">{p.tipo_protocolo}</span>
-                      <span
-                        className={`text-[9px] px-2 py-0.5 rounded-full font-mono font-bold ${
-                          eAprovado
-                            ? 'bg-emerald-950 text-emerald-300 border border-emerald-700/60'
-                            : 'bg-amber-950 text-amber-300 border border-amber-700/60'
-                        }`}
-                      >
-                        {p.status_conitec}
-                      </span>
-                    </div>
-
-                    <div className="text-xs font-bold text-slate-100 leading-snug mb-1.5">{p.nome_protocolo}</div>
-
-                    <div className="flex flex-wrap gap-1">
-                      {p.cids_relacionados.slice(0, 3).map((cid) => (
-                        <span key={cid} className="text-[9px] bg-slate-800 text-slate-300 px-1.5 py-px rounded font-mono">
-                          {cid}
-                        </span>
-                      ))}
-                      {p.cids_relacionados.length > 3 && (
-                        <span className="text-[9px] text-slate-500">+{p.cids_relacionados.length - 3}</span>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            <div className="lg:col-span-7 bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-6">
-              {pcdtSelecionado && (
-                <>
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-4 border-b border-slate-800">
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-xs bg-indigo-900/60 text-indigo-300 border border-indigo-700/60 px-2 py-0.5 rounded font-mono font-bold">
-                          {pcdtSelecionado.tipo_protocolo}
-                        </span>
-                        <span
-                          className={`text-xs px-2 py-0.5 rounded font-mono font-bold border ${
-                            pcdtSelecionado.status_conitec.toLowerCase().includes('aprovado')
-                              ? 'bg-emerald-900/60 text-emerald-300 border-emerald-700/60'
-                              : 'bg-amber-900/60 text-amber-300 border-amber-700/60'
-                          }`}
-                        >
-                          CONITEC: {pcdtSelecionado.status_conitec}
-                        </span>
-                      </div>
-                      <h3 className="text-lg font-bold text-slate-100 leading-tight">
-                        {pcdtSelecionado.nome_protocolo}
-                      </h3>
-                    </div>
-
-                    {pcdtSelecionado.conteudo_curado && pcdtSelecionado.bloco_prescricao_copiavel && (
-                      <button
-                        onClick={copiarPrescricaoPcdt}
-                        className="flex items-center gap-2 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-lg shadow-teal-950/50 transition-all flex-shrink-0"
-                      >
-                        {copiadoPcdt ? <Check className="w-4 h-4 text-white" /> : <Copy className="w-4 h-4" />}
-                        <span>{copiadoPcdt ? 'Copiado!' : 'Copiar Modelo de Prescrição'}</span>
-                      </button>
-                    )}
-                  </div>
-
-                  {!pcdtSelecionado.conteudo_curado && (
-                    <div className="p-4 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-300 leading-relaxed">
-                      A base pública do Ministério da Saúde traz apenas nome, tipo e status deste documento. CIDs, fármacos e
-                      conduta não foram resumidos pelo projeto: consulte o texto oficial no portal da CONITEC (gov.br/conitec).
-                    </div>
-                  )}
-
-                  {pcdtSelecionado.conteudo_curado && (
-                  <>
-                  <div className="p-3 bg-amber-950/40 border border-amber-700/50 rounded-xl text-[11px] text-amber-200 leading-relaxed">
-                    Resumo redigido pelo projeto OpenClinical, pendente de revisão clínica. Não substitui o texto oficial do PCDT
-                    (gov.br/conitec).
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">CIDs Cobertos no SUS:</span>
-                    <div className="flex flex-wrap gap-1.5">
-                      {pcdtSelecionado.cids_relacionados.map((cid) => (
-                        <span key={cid} className="bg-slate-800/90 border border-slate-700 text-teal-300 px-2 py-0.5 rounded text-xs font-mono font-bold">
-                          {cid}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Fármacos Incorporados:</span>
-                    <div className="flex flex-wrap gap-1.5">
-                      {pcdtSelecionado.farmacos_principais.map((farmaco, i) => (
-                        <span key={i} className="bg-slate-800 text-slate-200 border border-slate-700/80 px-2.5 py-1 rounded-lg text-xs font-medium flex items-center gap-1.5">
-                          <Pill className="w-3 h-3 text-teal-400 opacity-80" />
-                          <LinkMedicamento nome={farmaco} />
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                      <BookOpen className="w-4 h-4 text-teal-400" /> Resumo da Conduta
-                    </span>
-                    <div className="p-4 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-300 leading-relaxed">
-                      {pcdtSelecionado.conduta_clinica}
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-center">
-                      <span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                        <FileCheck className="w-4 h-4 text-emerald-400" /> Modelo de Prescrição & Dispensação SUS
-                      </span>
-                      <span className="text-[10px] text-slate-500 font-mono">PEC / Tasy / MV</span>
-                    </div>
-                    <pre className="p-4 bg-slate-950 border border-slate-800 rounded-xl text-xs text-teal-300 font-mono whitespace-pre-wrap leading-relaxed overflow-x-auto selection:bg-teal-700 selection:text-white">
-                      {pcdtSelecionado.bloco_prescricao_copiavel}
-                    </pre>
-                  </div>
-                  </>
-                  )}
-                </>
-              )}
-            </div>
-          </div>
-        </div>
+        <PcdtConitecView
+          selecao={selecao?.tipo === 'pcdt' ? { id: selecao.id, versao: selecao.versao } : null}
+          onAbrirMonografia={onAbrirMonografia}
+        />
       )}
+
+      {/* ABA 4: BULAS EM PDF IMPORTADAS (Bulário ou site do laboratório) */}
+      {abaAtiva === 'bulas' && <BulasImportadasView registroInicial={registroBulaInicial} />}
 
       {/* ABA 3: MEDICAMENTOS ANVISA OFICIAL */}
       {abaAtiva === 'anvisa' && (

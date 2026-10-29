@@ -1,12 +1,15 @@
 ---
 id_protocolo: "doenca_renal_cronica_nefroprotecao"
 titulo: "Doença Renal Crônica (DRC): Estratégias de Nefroproteção e Retardo da Progressão"
+categoria: "nefrologia"
 cids_relacionados: ["N18.9", "N18.3", "N18.4"]
 ciaps_relacionados: ["U99"]
+farmacos_principais: ["Losartana Potássica", "Dapagliflozina 10mg", "Bicarbonato de Sódio"]
 nivel_atencao: "Atencao_Primaria_e_Nefrologia"
 diretrizes_referencia: "Diretrizes KDIGO (2024), Sociedade Brasileira de Nefrologia (SBN)"
 data_revisao: "2026-10-26"
 status_revisao_clinica: "pendente_revisao_por_profissional_habilitado"
+ordem_catalogo: 25
 ---
 
 # Diretrizes Clínicas: Nefroproteção na DRC (KDIGO 2024)

@@ -1,12 +1,15 @@
 ---
 id_protocolo: "diabetes_tipo2_associacao_metformina_isglt2"
 titulo: "Diabetes Tipo 2: Terapia Combinada com Inibidor de SGLT2 (Proteção Cardio-Renal)"
+categoria: "endocrinologia"
 cids_relacionados: ["E11.2", "E11.5"]
 ciaps_relacionados: ["T90"]
+farmacos_principais: ["Metformina XR 500mg", "Dapagliflozina 10mg", "Empagliflozina 25mg"]
 nivel_atencao: "Atencao_Primaria_e_Endocrinologia"
 diretrizes_referencia: "Sociedade Brasileira de Diabetes (SBD 2024), ADA Standards of Care 2024"
 data_revisao: "2026-10-26"
 status_revisao_clinica: "pendente_revisao_por_profissional_habilitado"
+ordem_catalogo: 35
 ---
 
 # Diretrizes Clínicas: Associação Metformina + iSGLT2

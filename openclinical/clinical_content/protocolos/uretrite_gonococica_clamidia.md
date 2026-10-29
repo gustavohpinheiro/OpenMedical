@@ -1,12 +1,15 @@
 ---
 id_protocolo: "uretrite_gonococica_clamidia"
 titulo: "Abordagem Sindrômica das Uretrites e Cervicites (Gonorreia e Clamídia)"
+categoria: "infectologia"
 cids_relacionados: ["A54.0", "A56.0"]
 ciaps_relacionados: ["U72", "X71"]
+farmacos_principais: ["Ceftriaxona 500mg IM", "Azitromicina 500mg VO"]
 nivel_atencao: "Atencao_Primaria_e_Urgencia"
 diretrizes_referencia: "PCDT ISTs Ministério da Saúde do Brasil, CDC"
 data_revisao: "2026-10-26"
 status_revisao_clinica: "pendente_revisao_por_profissional_habilitado"
+ordem_catalogo: 15
 ---
 
 # Diretrizes Clínicas: Corrimento Uretral Masculino e Cervicite

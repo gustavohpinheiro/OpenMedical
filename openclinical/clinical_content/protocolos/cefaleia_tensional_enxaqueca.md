@@ -1,12 +1,15 @@
 ---
 id_protocolo: "cefaleia_tensional_enxaqueca"
 titulo: "Abordagem da Cefaleia Tensional e Enxaqueca na Atenção Primária"
+categoria: "neurologia"
 cids_relacionados: ["R51", "G43.9", "G44.2"]
 ciaps_relacionados: ["N01", "N89"]
+farmacos_principais: ["Dipirona Monoidratada 500mg", "Metoclopramida 10mg"]
 nivel_atencao: "Atencao_Primaria_e_Pronto_Atendimento"
 diretrizes_referencia: "Sociedade Brasileira de Cefaleia (SBCe), IHS"
 data_revisao: "2026-10-26"
 status_revisao_clinica: "pendente_revisao_por_profissional_habilitado"
+ordem_catalogo: 40
 ---
 
 # Diretrizes Clínicas: Cefaleia Aguda e Sinais SNOOP

@@ -1,0 +1,695 @@
+{
+ "@type": "Document",
+ "modified": "2026-10-28T18:55:51+00:00",
+ "title": "Protocolos Clínicos e Diretrizes Terapêuticas - PCDT",
+ "blocks": {
+  "tabela": {
+   "@type": "columnsBlock",
+   "data": {
+    "blocks": {
+     "c": {
+      "blocks": {
+       "t": {
+        "@type": "slateTable",
+        "table": {
+         "basic": false,
+         "caption": "Tabela de PCDT",
+         "celled": true,
+         "compact": true,
+         "fixed": true,
+         "hideHeaders": true,
+         "inverted": false,
+         "rows": [
+          {
+           "cells": [
+            {
+             "key": "5c00m",
+             "type": "header",
+             "value": [
+              {
+               "children": [
+                {
+                 "text": ""
+                }
+               ],
+               "type": "p"
+              }
+             ]
+            },
+            {
+             "key": "divav",
+             "type": "header",
+             "value": [
+              {
+               "children": [
+                {
+                 "text": ""
+                }
+               ],
+               "type": "p"
+              }
+             ]
+            },
+            {
+             "key": "73ooe",
+             "type": "header",
+             "value": [
+              {
+               "children": [
+                {
+                 "text": ""
+                }
+               ],
+               "type": "p"
+              }
+             ]
+            },
+            {
+             "key": "f50mp",
+             "type": "header",
+             "value": [
+              {
+               "children": [
+                {
+                 "text": ""
+                }
+               ],
+               "type": "p"
+              }
+             ]
+            }
+           ],
+           "key": "700jg"
+          },
+          {
+           "cells": [
+            {
+             "key": "88sis",
+             "type": "data",
+             "value": [
+              {
+               "children": [
+                {
+                 "text": ""
+                },
+                {
+                 "children": [
+                  {
+                   "text": "A"
+                  }
+                 ],
+                 "type": "strong"
+                },
+                {
+                 "text": ""
+                }
+               ],
+               "type": "h2"
+              }
+             ]
+            },
+            {
+             "key": "e6j2h",
+             "type": "data",
+             "value": [
+              {
+               "children": [
+                {
+                 "text": ""
+                }
+               ],
+               "type": "p"
+              }
+             ]
+            },
+            {
+             "key": "4tlu6",
+             "type": "data",
+             "value": [
+              {
+               "children": [
+                {
+                 "text": ""
+                }
+               ],
+               "type": "p"
+              }
+             ]
+            },
+            {
+             "key": "6ug0c",
+             "type": "data",
+             "value": [
+              {
+               "children": [
+                {
+                 "text": ""
+                }
+               ],
+               "type": "p"
+              }
+             ]
+            }
+           ],
+           "key": "eir3c"
+          },
+          {
+           "cells": [
+            {
+             "key": "2ls9t",
+             "type": "data",
+             "value": [
+              {
+               "children": [
+                {
+                 "text": ""
+                },
+                {
+                 "children": [
+                  {
+                   "text": "Acidentes Escorpiônicos"
+                  }
+                 ],
+                 "data": {
+                  "url": "https://www.gov.br/conitec/pt-br/midias/protocolos/pcdt-acidentes-escorpionicos/@@display-file/file"
+                 },
+                 "type": "link"
+                },
+                {
+                 "text": ""
+                }
+               ],
+               "type": "p"
+              }
+             ]
+            },
+            {
+             "key": "5hpkb",
+             "type": "data",
+             "value": [
+              {
+               "children": [
+                {
+                 "text": "Portaria SECTICS/MS nº 59 - 01/08/2025  (Publicada em "
+                },
+                {
+                 "children": [
+                  {
+                   "text": "05/08/2025"
+                  }
+                 ],
+                 "data": {
+                  "url": "https://www.gov.br/conitec/pt-br/midias/relatorios/portaria/2025/portaria-sectics-ms-no-59-de-1o-de-agosto-de-2025/@@display-file/file"
+                 },
+                 "type": "link"
+                },
+                {
+                 "text": ")"
+                }
+               ],
+               "type": "p"
+              }
+             ]
+            },
+            {
+             "key": "99sjf",
+             "type": "data",
+             "value": [
+              {
+               "children": [
+                {
+                 "text": ""
+                },
+                {
+                 "children": [
+                  {
+                   "text": "Publicação MS"
+                  }
+                 ],
+                 "data": {
+                  "url": "https://www.gov.br/conitec/pt-br/midias/protocolos/2026/publicacao-ms/pcdt-acidentes-escorpionicos/@@display-file/file"
+                 },
+                 "type": "link"
+                },
+                {
+                 "text": ""
+                }
+               ],
+               "type": "p"
+              }
+             ]
+            },
+            {
+             "key": "dbiip",
+             "type": "data",
+             "value": [
+              {
+               "children": [
+                {
+                 "text": ""
+                },
+                {
+                 "children": [
+                  {
+                   "text": "PCDT Resumido"
+                  }
+                 ],
+                 "data": {
+                  "url": "https://www.gov.br/conitec/pt-br/midias/protocolos/2026/pcdt-resumido/pcdt_acidentes-escopionicos_f.pdf/@@display-file/file"
+                 },
+                 "type": "link"
+                },
+                {
+                 "text": ""
+                }
+               ],
+               "type": "p"
+              }
+             ]
+            }
+           ],
+           "key": "c8loe"
+          },
+          {
+           "cells": [
+            {
+             "key": "1kmve",
+             "type": "data",
+             "value": [
+              {
+               "children": [
+                {
+                 "text": ""
+                },
+                {
+                 "children": [
+                  {
+                   "text": "Acidentes Ofídicos"
+                  }
+                 ],
+                 "data": {
+                  "url": "https://www.gov.br/conitec/pt-br/midias/protocolos/pcdt_acidentes_ofidicos_final.pdf/@@display-file/file"
+                 },
+                 "type": "link"
+                },
+                {
+                 "text": ""
+                }
+               ],
+               "type": "p"
+              }
+             ]
+            },
+            {
+             "key": "24bg7",
+             "type": "data",
+             "value": [
+              {
+               "children": [
+                {
+                 "text": "Portaria SECTICS/MS nº 83 - 07/10/2025 (Publicada em "
+                },
+                {
+                 "children": [
+                  {
+                   "text": "09/10/2025"
+                  }
+                 ],
+                 "data": {
+                  "url": "https://www.gov.br/conitec/pt-br/midias/relatorios/portaria/2025/portaria-sectics-ms-no-83-de-7-de-outubro-de-2025/@@display-file/file"
+                 },
+                 "type": "link"
+                },
+                {
+                 "text": ")"
+                }
+               ],
+               "type": "p"
+              }
+             ]
+            },
+            {
+             "key": "5g6ii",
+             "type": "data",
+             "value": [
+              {
+               "children": [
+                {
+                 "text": ""
+                }
+               ],
+               "type": "p"
+              }
+             ]
+            },
+            {
+             "key": "b60ba",
+             "type": "data",
+             "value": [
+              {
+               "children": [
+                {
+                 "text": ""
+                },
+                {
+                 "children": [
+                  {
+                   "text": "PCDT Resumido"
+                  }
+                 ],
+                 "data": {
+                  "url": "https://www.gov.br/conitec/pt-br/midias/protocolos/2026/pcdt-resumido/pcdt-resumido-acidentes-ofidicos/@@display-file/file"
+                 },
+                 "type": "link"
+                },
+                {
+                 "text": ""
+                }
+               ],
+               "type": "p"
+              }
+             ]
+            }
+           ],
+           "key": "98n4s"
+          },
+          {
+           "cells": [
+            {
+             "key": "e30bp",
+             "type": "data",
+             "value": [
+              {
+               "children": [
+                {
+                 "text": ""
+                },
+                {
+                 "children": [
+                  {
+                   "text": "Acidente Vascular Cerebral (AVC) Isquêmico Agudo"
+                  }
+                 ],
+                 "data": {
+                  "url": "https://www.gov.br/conitec/pt-br/midias/protocolos/tromb-lise-no-acidente-vascular-cerebral-isqu-mico-agudo.pdf/@@display-file/file"
+                 },
+                 "type": "link"
+                },
+                {
+                 "text": ""
+                }
+               ],
+               "type": "p"
+              }
+             ]
+            },
+            {
+             "key": "4bofj",
+             "type": "data",
+             "value": [
+              {
+               "children": [
+                {
+                 "text": "Portaria Conjunta SAES/SECTICS/MS nº 29 - 12/12/2023 (Publicada em "
+                },
+                {
+                 "children": [
+                  {
+                   "text": "15/12/2023"
+                  }
+                 ],
+                 "data": {
+                  "url": "https://www.gov.br/conitec/pt-br/midias/relatorios/portaria/2023/portaria-conjunta-saes-sectics-no-29.pdf/@@display-file/file"
+                 },
+                 "type": "link"
+                },
+                {
+                 "text": ""
+                }
+               ],
+               "type": "p"
+              }
+             ]
+            },
+            {
+             "key": "6gv92",
+             "type": "data",
+             "value": [
+              {
+               "children": [
+                {
+                 "text": ""
+                }
+               ],
+               "type": "p"
+              }
+             ]
+            },
+            {
+             "key": "9udq9",
+             "type": "data",
+             "value": [
+              {
+               "children": [
+                {
+                 "text": ""
+                },
+                {
+                 "children": [
+                  {
+                   "text": "PCDT Resumido"
+                  }
+                 ],
+                 "data": {
+                  "url": "https://www.gov.br/conitec/pt-br/midias/protocolos/resumidos/pcdt-resumido-avc.pdf/@@display-file/file"
+                 },
+                 "type": "link"
+                },
+                {
+                 "text": ""
+                }
+               ],
+               "type": "p"
+              }
+             ]
+            }
+           ],
+           "key": "4s0o7"
+          },
+          {
+           "cells": [
+            {
+             "key": "2ls9t",
+             "type": "data",
+             "value": [
+              {
+               "children": [
+                {
+                 "text": ""
+                },
+                {
+                 "children": [
+                  {
+                   "text": "Acidentes Escorpiônicos"
+                  }
+                 ],
+                 "data": {
+                  "url": "https://www.gov.br/conitec/pt-br/midias/protocolos/pcdt-acidentes-escorpionicos/@@display-file/file"
+                 },
+                 "type": "link"
+                },
+                {
+                 "text": ""
+                }
+               ],
+               "type": "p"
+              }
+             ]
+            },
+            {
+             "key": "5hpkb",
+             "type": "data",
+             "value": [
+              {
+               "children": [
+                {
+                 "text": "Portaria SECTICS/MS nº 59 - 01/08/2025  (Publicada em "
+                },
+                {
+                 "children": [
+                  {
+                   "text": "05/08/2025"
+                  }
+                 ],
+                 "data": {
+                  "url": "https://www.gov.br/conitec/pt-br/midias/relatorios/portaria/2025/portaria-sectics-ms-no-59-de-1o-de-agosto-de-2025/@@display-file/file"
+                 },
+                 "type": "link"
+                },
+                {
+                 "text": ")"
+                }
+               ],
+               "type": "p"
+              }
+             ]
+            },
+            {
+             "key": "99sjf",
+             "type": "data",
+             "value": [
+              {
+               "children": [
+                {
+                 "text": ""
+                },
+                {
+                 "children": [
+                  {
+                   "text": "Publicação MS"
+                  }
+                 ],
+                 "data": {
+                  "url": "https://www.gov.br/conitec/pt-br/midias/protocolos/2026/publicacao-ms/pcdt-acidentes-escorpionicos/@@display-file/file"
+                 },
+                 "type": "link"
+                },
+                {
+                 "text": ""
+                }
+               ],
+               "type": "p"
+              }
+             ]
+            },
+            {
+             "key": "dbiip",
+             "type": "data",
+             "value": [
+              {
+               "children": [
+                {
+                 "text": ""
+                },
+                {
+                 "children": [
+                  {
+                   "text": "PCDT Resumido"
+                  }
+                 ],
+                 "data": {
+                  "url": "https://www.gov.br/conitec/pt-br/midias/protocolos/2026/pcdt-resumido/pcdt_acidentes-escopionicos_f.pdf/@@display-file/file"
+                 },
+                 "type": "link"
+                },
+                {
+                 "text": ""
+                }
+               ],
+               "type": "p"
+              }
+             ]
+            }
+           ],
+           "key": "c8loe"
+          },
+          {
+           "cells": [
+            {
+             "key": "d3j9r",
+             "type": "data",
+             "value": [
+              {
+               "children": [
+                {
+                 "text": ""
+                },
+                {
+                 "children": [
+                  {
+                   "text": "Diabete Melito Tipo 2"
+                  }
+                 ],
+                 "data": {
+                  "url": "https://www.gov.br/conitec/pt-br/midias/protocolos/2026/pcdt-diabete-melito-tipo-2/@@display-file/file"
+                 },
+                 "type": "link"
+                },
+                {
+                 "text": ""
+                }
+               ],
+               "type": "p"
+              }
+             ]
+            },
+            {
+             "key": "dro73",
+             "type": "data",
+             "value": [
+              {
+               "children": [
+                {
+                 "text": "Portaria SCTIE/MS nº 13/2026 - 21/02/2026 (Publicada em "
+                },
+                {
+                 "children": [
+                  {
+                   "text": "24/02/2026"
+                  }
+                 ],
+                 "data": {
+                  "url": "https://www.gov.br/conitec/pt-br/midias/relatorios/portaria/2026/portaria-sctie-ms-no-13-de-21-de-fevereiro-de-2026/@@display-file/file"
+                 },
+                 "type": "link"
+                },
+                {
+                 "text": ")"
+                }
+               ],
+               "type": "p"
+              }
+             ]
+            },
+            {
+             "key": "dholg",
+             "type": "data",
+             "value": [
+              {
+               "children": [
+                {
+                 "text": ""
+                }
+               ],
+               "type": "p"
+              }
+             ]
+            },
+            {
+             "key": "166fs",
+             "type": "data",
+             "value": [
+              {
+               "children": [
+                {
+                 "text": ""
+                }
+               ],
+               "type": "p"
+              }
+             ]
+            }
+           ],
+           "key": "50s0u"
+          }
+         ],
+         "striped": false
+        }
+       }
+      }
+     }
+    }
+   }
+  }
+ }
+}

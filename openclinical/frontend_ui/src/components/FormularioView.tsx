@@ -10,6 +10,7 @@ import {
   montarReceita,
 } from '../formulario_utils';
 import { MarkdownSimples } from './MarkdownSimples';
+import { PcdtsDoFarmaco } from './PcdtConitecView';
 import { ApresentacoesComerciaisFtn } from './ApresentacoesComerciaisFtn';
 import { esquemasPediatricos, interpretarEsquemaPediatrico } from '../pediatria_ftn';
 import { LinkMedicamento } from './LinkMedicamento';
@@ -28,6 +29,7 @@ interface FormularioViewProps {
   ) => void;
   /** Abre a apresentação CMED (registro, bula oficial, preço) */
   onAbrirProdutoCmed?: (idCmed: number) => void;
+  onAbrirPcdt?: (idPcdt: number) => void;
 }
 
 /** Esquema pediátrico com dose em mg/kg legível pela calculadora */
@@ -41,7 +43,12 @@ type FiltroLista = 'todos' | 'pediatricos' | 'rename';
 
 const LIMITE_LISTA = 200;
 
-export const FormularioView: React.FC<FormularioViewProps> = ({ selecao, onAbrirCalculadoraPediatrica, onAbrirProdutoCmed }) => {
+export const FormularioView: React.FC<FormularioViewProps> = ({
+  selecao,
+  onAbrirCalculadoraPediatrica,
+  onAbrirProdutoCmed,
+  onAbrirPcdt,
+}) => {
   const [monografias, setMonografias] = useState<MonografiaFtn[]>([]);
   const [fonte, setFonte] = useState('');
   const [erroCarga, setErroCarga] = useState<string | null>(null);
@@ -306,6 +313,11 @@ export const FormularioView: React.FC<FormularioViewProps> = ({ selecao, onAbrir
                   <span className="font-semibold text-slate-400">Apresentações: </span>
                   {selecionada.apresentacoes.join(' · ') || 'não informadas no FTN'}
                 </div>
+                <PcdtsDoFarmaco
+                  nomeMonografia={selecionada.nome}
+                  idMonografia={selecionada.id_monografia}
+                  onAbrirPcdt={onAbrirPcdt}
+                />
               </div>
 
               {/* Abas */}

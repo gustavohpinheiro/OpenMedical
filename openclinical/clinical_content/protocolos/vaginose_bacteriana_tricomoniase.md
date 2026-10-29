@@ -1,12 +1,15 @@
 ---
 id_protocolo: "vaginose_bacteriana_tricomoniase"
 titulo: "Tratamento da Vaginose Bacteriana e Tricomoníase Vaginal"
+categoria: "ginecologia"
 cids_relacionados: ["N76.0", "A59.0"]
 ciaps_relacionados: ["X73"]
+farmacos_principais: ["Metronidazol 400mg", "Metronidazol Gel Vaginal"]
 nivel_atencao: "Atencao_Primaria"
 diretrizes_referencia: "FEBRASGO, PCDT ISTs Ministério da Saúde"
 data_revisao: "2026-10-26"
 status_revisao_clinica: "pendente_revisao_por_profissional_habilitado"
+ordem_catalogo: 17
 ---
 
 # Diretrizes Clínicas: Corrimento com Odor Fétido

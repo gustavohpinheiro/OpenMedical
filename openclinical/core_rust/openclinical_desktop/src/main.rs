@@ -9,6 +9,8 @@ use commands::{
     preparar_banco_gravavel, resolver_caminho_banco, verificar_interacoes, EstadoAplicacao,
     estado_credenciais_anvisa, remover_credenciais_anvisa, salvar_credenciais_anvisa, testar_api_anvisa,
     apresentacoes_cmed_por_substancias, listar_substancias_cmed,
+    listar_bulas_importadas, obter_bulas_importadas, remover_bula_importada, salvar_bula_importada,
+    listar_pcdt_conitec, obter_pcdt_conitec,
 };
 use std::sync::Mutex;
 use tauri::Manager;
@@ -58,7 +60,13 @@ fn main() {
             remover_credenciais_anvisa,
             testar_api_anvisa,
             listar_substancias_cmed,
-            apresentacoes_cmed_por_substancias
+            apresentacoes_cmed_por_substancias,
+            salvar_bula_importada,
+            obter_bulas_importadas,
+            listar_bulas_importadas,
+            remover_bula_importada,
+            listar_pcdt_conitec,
+            obter_pcdt_conitec
         ])
         .run(tauri::generate_context!());
 

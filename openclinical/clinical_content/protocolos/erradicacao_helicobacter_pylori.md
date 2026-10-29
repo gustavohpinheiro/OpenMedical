@@ -1,12 +1,15 @@
 ---
 id_protocolo: "erradicacao_helicobacter_pylori"
 titulo: "Erradicação do Helicobacter pylori: Terapia Quádrupla / Tripla Otimizada"
+categoria: "gastroenterologia"
 cids_relacionados: ["B96.81", "K25.9"]
 ciaps_relacionados: ["D85"]
+farmacos_principais: ["Omeprazol 20mg", "Claritromicina 500mg", "Amoxicilina 500mg"]
 nivel_atencao: "Atencao_Primaria_e_Gastroenterologia"
 diretrizes_referencia: "IV Diretriz Brasileira sobre Infecção por H. pylori (2024), Maastricht VI"
 data_revisao: "2026-10-26"
 status_revisao_clinica: "pendente_revisao_por_profissional_habilitado"
+ordem_catalogo: 31
 ---
 
 # Diretrizes Clínicas: Erradicação de H. pylori

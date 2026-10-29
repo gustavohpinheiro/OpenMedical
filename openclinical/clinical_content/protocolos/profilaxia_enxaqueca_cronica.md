@@ -1,12 +1,15 @@
 ---
 id_protocolo: "profilaxia_enxaqueca_cronica"
 titulo: "Tratamento Profilático da Enxaqueca Frequente ou Crônica"
+categoria: "neurologia"
 cids_relacionados: ["G43.3", "G43.9"]
 ciaps_relacionados: ["N89"]
+farmacos_principais: ["Cloridrato de Propranolol 40mg", "Topiramato 25mg", "Amitriptilina 25mg"]
 nivel_atencao: "Atencao_Primaria_e_Neurologia"
 diretrizes_referencia: "Sociedade Brasileira de Cefaleia (SBCe), AAN"
 data_revisao: "2026-10-26"
 status_revisao_clinica: "pendente_revisao_por_profissional_habilitado"
+ordem_catalogo: 41
 ---
 
 # Diretrizes Clínicas: Profilaxia de Enxaqueca

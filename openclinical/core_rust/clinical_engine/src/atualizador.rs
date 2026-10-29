@@ -21,6 +21,8 @@ pub enum TipoFonte {
     PrecosCmed,
     RegistrosAnvisa,
     IndiceBulas,
+    /// Lista oficial de PCDT da CONITEC (JSON da API do portal gov.br)
+    ListaPcdt,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -33,7 +35,7 @@ pub struct FonteDados {
     pub minimo_linhas: usize,
 }
 
-pub const FONTES: [FonteDados; 3] = [
+pub const FONTES: [FonteDados; 4] = [
     FonteDados {
         id: "cmed_precos",
         descricao: "Preços máximos e apresentações (CMED/ANVISA)",
@@ -54,6 +56,13 @@ pub const FONTES: [FonteDados; 3] = [
         url: "https://dados.anvisa.gov.br/dados/CONSULTAS/DOCUMENTOS/TA_CONSULTA_BULA_PRODUTO.CSV",
         tipo: TipoFonte::IndiceBulas,
         minimo_linhas: 500,
+    },
+    FonteDados {
+        id: "conitec_pcdt",
+        descricao: "Lista de PCDT da CONITEC (portarias e PDFs vigentes)",
+        url: crate::pcdt_conitec::URL_API_LISTA,
+        tipo: TipoFonte::ListaPcdt,
+        minimo_linhas: 50,
     },
 ];
 
@@ -510,6 +519,11 @@ pub fn aplicar_arquivo(con: &mut Connection, fonte: &FonteDados, bytes: &[u8]) -
             }
             linhas.len()
         }
+        TipoFonte::ListaPcdt => {
+            let itens = crate::pcdt_conitec::ler_lista_api(&texto)?;
+            conferir_tamanho(fonte, itens.len(), contar(&tx, "pcdt_documentos WHERE na_lista_oficial = 1"))?;
+            crate::pcdt_conitec::aplicar_lista(&tx, &itens)?
+        }
     };
     tx.commit().map_err(|e| e.to_string())?;
     Ok(total as i64)
@@ -531,6 +545,10 @@ fn baixar(fonte: &FonteDados, etag: Option<&str>, last_modified: Option<&str>) -
         .user_agent(concat!("OpenClinical/", env!("CARGO_PKG_VERSION"), " (atualizador de dados abertos)"))
         .build();
     let mut requisicao = agente.get(fonte.url);
+    if fonte.tipo == TipoFonte::ListaPcdt {
+        // O portal gov.br (Plone) devolve a página em JSON pela rota ++api++
+        requisicao = requisicao.set("Accept", "application/json");
+    }
     if let Some(valor) = etag {
         requisicao = requisicao.set("If-None-Match", valor);
     }

@@ -1,12 +1,15 @@
 ---
 id_protocolo: "influenza_sindrome_gripal_oseltamivir"
 titulo: "Manejo da Síndrome Gripal e Uso do Oseltamivir (Influenza A/B)"
+categoria: "infectologia"
 cids_relacionados: ["J10.1", "J11.1"]
 ciaps_relacionados: ["R80"]
+farmacos_principais: ["Fosfato de Oseltamivir 75mg", "Dipirona 500mg", "Soro Fisiológico"]
 nivel_atencao: "Atencao_Primaria_e_Urgencia"
 diretrizes_referencia: "Ministério da Saúde do Brasil, OMS, CDC"
 data_revisao: "2026-10-26"
 status_revisao_clinica: "pendente_revisao_por_profissional_habilitado"
+ordem_catalogo: 18
 ---
 
 # Protocolo de Tratamento da Influenza (Ministério da Saúde)
