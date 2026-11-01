@@ -480,7 +480,11 @@ export interface ItemPrescricaoCesta {
   principio_ativo: string;
   apresentacao: string;
   posologia: string;
+  via_administracao?: string;
+  dose_unitaria?: string;
+  frequencia_intervalo?: string;
   duracao_tratamento?: string;
+  orientacoes_especificas?: string;
   quantidade_embalagens: number;
   tipo_receituario: 'simples' | 'controle_especial_c1' | 'antimicrobiano' | 'notificacao_b_azul' | 'notificacao_a_amarela';
   preco_pmc: number;

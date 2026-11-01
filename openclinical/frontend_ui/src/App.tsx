@@ -35,7 +35,7 @@ import { RapidClinicTestsView } from './components/RapidClinicTestsView';
 import { DoctorProfileModal } from './components/DoctorProfileModal';
 import { PatientSelectorBar } from './components/PatientSelectorBar';
 import { AntimicrobialGuideView } from './components/AntimicrobialGuideView';
-import { obterPerfilMedicoAtivo } from './storage_clinico';
+import { obterPerfilMedicoAtivo, salvarPerfilMedicoAtivo } from './storage_clinico';
 import { PerfilMedico } from './types';
 import { obterTemaAtual, aplicarTema, alternarTema, TemaClinico } from './tema';
 import { UserCheck, Brain, Sun, Moon, FileSpreadsheet } from 'lucide-react';
@@ -434,7 +434,7 @@ export const App: React.FC = () => {
 
   return (
     <AbrirMedicamentoContext.Provider value={abrirMedicamentoPorNome}>
-      <div className="min-h-screen bg-[#060b13] text-slate-100 flex flex-col font-sans selection:bg-teal-500 selection:text-white">
+      <div className="min-h-screen bg-slate-50 dark:bg-[#060b13] text-slate-900 dark:text-slate-100 flex flex-col font-sans selection:bg-teal-500 selection:text-white transition-colors duration-200">
         {/* Toast Notificação Flutuante */}
         {toastMensagem && (
           <div
@@ -455,7 +455,7 @@ export const App: React.FC = () => {
         )}
 
         {/* Barra de Topo Superior - Ergonomia Médica Point-of-Care */}
-        <header className="sticky top-0 z-40 bg-[#0a101d]/95 backdrop-blur-xl border-b border-slate-800/80 px-4 sm:px-6 py-2.5 flex items-center justify-between gap-4">
+        <header className="sticky top-0 z-40 bg-white/95 dark:bg-[#0a101d]/95 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800/80 px-4 sm:px-6 py-2.5 flex items-center justify-between gap-4">
           <div className="flex items-center space-x-3">
             {/* Botão de Toggle da Barra Lateral no Mobile */}
             <button
@@ -482,12 +482,12 @@ export const App: React.FC = () => {
               </div>
               <div>
                 <div className="flex items-center gap-1.5">
-                  <span className="text-base font-black tracking-tight text-white font-sans">OpenClinical</span>
+                  <span className="text-base font-black tracking-tight text-slate-900 dark:text-white font-sans">OpenClinical</span>
                   <span className="text-[9px] font-extrabold bg-gradient-to-r from-teal-900 to-emerald-900 text-teal-300 border border-teal-600/50 px-1.5 py-0.5 rounded-full uppercase tracking-wider">
                     Point-of-Care
                   </span>
                 </div>
-                <p className="text-[10px] text-slate-400 font-medium hidden sm:block">
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium hidden sm:block">
                   Suporte Clínico Determinístico &bull; SUS &bull; ANVISA &bull; RENAME
                 </p>
               </div>
@@ -566,20 +566,7 @@ export const App: React.FC = () => {
               <Search className="w-4 h-4" />
             </button>
 
-            {/* Badge de Conexão e Motor */}
-            <div
-              className="hidden sm:flex items-center space-x-1.5 px-2.5 py-1 bg-slate-900/80 border border-slate-800 rounded-xl text-[10px] whitespace-nowrap"
-              title={
-                modoNativo
-                  ? 'Aplicativo nativo: motor Rust e banco SQLite completo'
-                  : 'Navegador/PWA: porte TypeScript do motor e amostra offline das bases'
-              }
-            >
-              <span className={`w-1.5 h-1.5 rounded-full ${modoNativo ? 'bg-emerald-400' : 'bg-sky-400'}`}></span>
-              <span className="font-semibold text-slate-300">{modoNativo ? 'Desktop' : 'Web/PWA'}</span>
-              <span className="text-slate-500 font-mono">| {modoNativo ? 'Rust' : 'TS'}</span>
             </div>
-          </div>
         </header>
 
         {/* Aviso clínico regulatório (Discreto e Fechável) */}
@@ -855,6 +842,26 @@ export const App: React.FC = () => {
           </main>
         </div>
 
+                {/* Modal de Gestão e Identificação do Médico Prescritor */}
+        <DoctorProfileModal
+          isOpen={modalMedicoAberto}
+          onClose={() => setModalMedicoAberto(false)}
+          perfil={perfilMedico}
+          onPerfilSalvo={(novo) => {
+            setPerfilMedico(novo);
+            salvarPerfilMedicoAtivo(novo);
+          }}
+        />
+
+        {/* Gaveta Lateral Deslizante da Receita Modular (Lego No-Code) */}
+        <PrescriptionSideDrawer
+          onVisualizarReceitaCompleta={() => setSecaoAtiva('prescricao')}
+          onAbrirCalculadoraPediatrica={(nome) => {
+            abrirCalculadoraPediatricaComDados(nome, undefined, null, null);
+          }}
+          onAbrirCalculadoraRenal={() => setSecaoAtiva('calculadoras')}
+        />
+
         {/* Modal de Busca Rápida Unificada */}
         <SearchModal
           aberto={buscaAberta}
@@ -875,9 +882,7 @@ export const App: React.FC = () => {
             <Database className="w-4 h-4 text-teal-400" />
             <span>
               <strong>OpenClinical</strong> &bull;{' '}
-              {modoNativo
-                ? 'Motor clínico em Rust + SQLite FTS5'
-                : 'Cálculos no porte TypeScript do motor Rust (testado por paridade)'}
+              Sistema Determinístico de Suporte à Decisão Médica & Prescrição Inteligente
             </span>
           </div>
           <div className="hidden sm:flex items-center space-x-4 text-[11px] text-slate-400">
