@@ -48,10 +48,10 @@ const SECOES: { id: SecaoApp; label: string; icon: React.ComponentType<{ classNa
   { id: 'protocolos', label: 'Receitas & Prescrições', icon: BookOpen, badge: '45 Protocolos' },
   { id: 'prescricao', label: 'Cesta de Receita & Orçamento', icon: FileText, badge: 'SUS · RDC 471' },
   { id: 'guia_antimicrobiano', label: 'Guia Antimicrobiano & CCIH', icon: Stethoscope, badge: '15 ATBs · IV→VO' },
-  { id: 'pcdt', label: 'Bases Públicas', icon: FileCheck, badge: 'CMED · PCDT · Bulas' },
+  { id: 'pcdt', label: 'Bases Públicas', icon: FileCheck, badge: 'CMED · PCDT · LME' },
   { id: 'pediatria', label: 'Calculadora Pediátrica', icon: Baby, badge: 'Teto de dose' },
-  { id: 'interacoes', label: 'Verificador de Interações', icon: ShieldAlert, badge: 'FTN · 1.436' },
-  { id: 'calculadoras', label: 'Escores & Nefrologia', icon: Calculator, badge: 'CKD-EPI 2021' },
+  { id: 'interacoes', label: 'Interações & Radar 5G', icon: ShieldAlert, badge: 'Triple Whammy · CPIC' },
+  { id: 'calculadoras', label: 'Escores & Sala Vermelha', icon: Calculator, badge: 'ISR · Gaso · UTI' },
 ];
 
 export const App: React.FC = () => {
