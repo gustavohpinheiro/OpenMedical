@@ -126,6 +126,7 @@ export const PrescriptionSideDrawer: React.FC<PrescriptionSideDrawerProps> = ({
 
   // Busca rápida de medicamentos diretamente na gaveta da receita
   const [buscaTermo, setBuscaTermo] = useState('');
+  const [filtroOrigemBusca, setFiltroOrigemBusca] = useState<'todos' | 'ftn' | 'cmed'>('todos');
   const [resultadosBusca, setResultadosBusca] = useState<ItemBuscaFts[]>([]);
   const [buscando, setBuscando] = useState(false);
   const [modoPersonalizado, setModoPersonalizado] = useState(false);
@@ -170,13 +171,20 @@ export const PrescriptionSideDrawer: React.FC<PrescriptionSideDrawerProps> = ({
       try {
         const res = await buscarGeral(buscaTermo.trim());
         // Filtra para dar prioridade a monografias do FTN, medicamentos e CMED
-        const filtrados = res.filter(
+        let filtrados = res.filter(
           (r) =>
             r.tipo_registro === 'ftn_monografia' ||
             r.tipo_registro === 'medicamento' ||
             r.tipo_registro === 'cmed_comercial'
         );
-        setResultadosBusca(filtrados.slice(0, 6));
+        if (filtroOrigemBusca === 'ftn') {
+          filtrados = filtrados.filter((r) => r.tipo_registro === 'ftn_monografia');
+        } else if (filtroOrigemBusca === 'cmed') {
+          filtrados = filtrados.filter(
+            (r) => r.tipo_registro === 'cmed_comercial' || r.tipo_registro === 'medicamento'
+          );
+        }
+        setResultadosBusca(filtrados.slice(0, 8));
       } catch {
         setResultadosBusca([]);
       } finally {
@@ -185,7 +193,7 @@ export const PrescriptionSideDrawer: React.FC<PrescriptionSideDrawerProps> = ({
     }, 200);
 
     return () => clearTimeout(timer);
-  }, [buscaTermo]);
+  }, [buscaTermo, filtroOrigemBusca]);
 
   // Adicionar medicamento a partir do resultado da busca da base
   const adicionarResultadoBusca = (item: ItemBuscaFts) => {
@@ -597,6 +605,28 @@ export const PrescriptionSideDrawer: React.FC<PrescriptionSideDrawerProps> = ({
                   Buscando...
                 </span>
               )}
+
+              <div className="flex items-center gap-1.5 mt-1.5">
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold">Filtrar:</span>
+                {[
+                  { id: 'todos', label: 'Todos' },
+                  { id: 'ftn', label: 'Formulário FTN' },
+                  { id: 'cmed', label: 'Marcas CMED' },
+                ].map((f) => (
+                  <button
+                    key={f.id}
+                    type="button"
+                    onClick={() => setFiltroOrigemBusca(f.id as any)}
+                    className={`px-2 py-0.5 rounded text-[10px] font-semibold transition ${
+                      filtroOrigemBusca === f.id
+                        ? 'bg-teal-600 text-white'
+                        : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-300 dark:hover:bg-slate-700'
+                    }`}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
 
               {/* Resultados da Busca Flutuante */}
               {resultadosBusca.length > 0 && (
