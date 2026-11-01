@@ -749,6 +749,11 @@ export interface PerfilMedico {
   papel_timbrado_base64?: string;
   usar_papel_timbrado_proprio?: boolean;
   pin_acesso?: string;
+  tamanho_papel_receita?: 'A4' | 'A5';
+  estilo_receita?: 'moderno' | 'classico' | 'hospitalar';
+  mostrar_qr_code?: boolean;
+  mostrar_linha_assinatura?: boolean;
+  texto_rodape_customizado?: string;
 }
 
 export interface ReceitaSalva {

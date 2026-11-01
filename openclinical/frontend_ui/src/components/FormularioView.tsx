@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Store, Baby, BookMarked, Check, ClipboardCopy, Copy, FileText, Search, ShieldAlert, Stethoscope, Pill, Info } from 'lucide-react';
+import { Store, Baby, BookMarked, Check, ClipboardCopy, Copy, FileText, Search, ShieldAlert, Stethoscope, Pill, Info, Plus } from 'lucide-react';
+import { adicionarItemPrescricaoModular } from '../storage_clinico';
 import type { EsquemaAdministracaoFtn, MonografiaFtn } from '../data/formulario_terapeutico';
 import {
   apresentacoesDisponiveis,
@@ -60,6 +61,44 @@ export const FormularioView: React.FC<FormularioViewProps> = ({
   const [esquema, setEsquema] = useState<EsquemaAdministracaoFtn | null>(null);
   const [textoReceita, setTextoReceita] = useState('');
   const [copiado, setCopiado] = useState(false);
+  const [adicionadoDigitalMsg, setAdicionadoDigitalMsg] = useState(false);
+
+  const adicionarMonografiaNaReceitaDigital = (
+    monografia: MonografiaFtn,
+    apresEscolhida?: string,
+    esquemaEscolhido?: EsquemaAdministracaoFtn | null
+  ) => {
+    const nome = capitalizar(monografia.nome);
+    const apres = apresEscolhida || apresentacoesDisponiveis(monografia)[0] || nome;
+    const posologia =
+      esquemaEscolhido?.texto ||
+      monografia.esquemas?.[0]?.texto ||
+      (typeof monografia.esquemas_administracao === 'string' && monografia.esquemas_administracao.trim()
+        ? monografia.esquemas_administracao.slice(0, 150)
+        : 'Tomar 1 dose por via oral conforme orientação médica.');
+    const isControlado = monografia.tipo_receituario !== 'Receituário simples';
+
+    adicionarItemPrescricaoModular(
+      'medicamento',
+      `${nome} - ${apres}`,
+      posologia,
+      {
+        id: `med_${Date.now()}`,
+        nome_medicamento: nome,
+        principio_ativo: monografia.nome,
+        apresentacao: apres,
+        posologia: posologia,
+        quantidade_embalagens: 1,
+        tipo_receituario: isControlado ? 'controle_especial_c1' : 'simples',
+        preco_pmc: 0,
+      },
+      'Formulário Terapêutico Nacional (FTN)',
+      [monografia.tipo_receituario, isControlado ? 'Controlado' : 'Simples']
+    );
+
+    setAdicionadoDigitalMsg(true);
+    setTimeout(() => setAdicionadoDigitalMsg(false), 2500);
+  };
   const painelReceitaRef = useRef<HTMLDivElement>(null);
   const painelDetalheRef = useRef<HTMLDivElement>(null);
 
@@ -279,7 +318,18 @@ export const FormularioView: React.FC<FormularioViewProps> = ({
           <div ref={painelDetalheRef} className="lg:col-span-8 space-y-5 scroll-mt-28">
             <div className="bg-slate-900 border border-slate-800 rounded-2xl shadow-xl overflow-hidden">
               <div className="p-5 border-b border-slate-800 space-y-3">
-                <h2 className="text-xl font-extrabold text-slate-100 leading-tight">{capitalizar(selecionada.nome)}</h2>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <h2 className="text-xl font-extrabold text-slate-100 leading-tight">{capitalizar(selecionada.nome)}</h2>
+                  <button
+                    type="button"
+                    onClick={() => adicionarMonografiaNaReceitaDigital(selecionada, apresentacao, esquema)}
+                    className="flex items-center gap-1.5 px-3.5 py-1.5 bg-teal-600 hover:bg-teal-500 text-white rounded-xl text-xs font-bold transition shadow-md shadow-teal-950/30"
+                    title="Adicionar este fármaco à Receita Digital"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>{adicionadoDigitalMsg ? 'Adicionado à Receita Digital ✓' : 'Adicionar à Receita Digital'}</span>
+                  </button>
+                </div>
                 <div className="flex flex-wrap gap-2 text-[11px]">
                   <span
                     className={`px-2 py-0.5 rounded-full border font-semibold ${
@@ -373,10 +423,19 @@ export const FormularioView: React.FC<FormularioViewProps> = ({
                               <div className="flex flex-wrap gap-2">
                                 <button
                                   onClick={() => usarEsquema(item)}
-                                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-teal-600/90 hover:bg-teal-500 text-white font-semibold"
+                                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold"
+                                  title="Preencher no campo de texto abaixo"
                                 >
                                   <ClipboardCopy className="w-3.5 h-3.5" />
-                                  {ativo ? 'Na receita' : 'Usar na receita'}
+                                  {ativo ? 'No texto' : 'Usar no texto'}
+                                </button>
+                                <button
+                                  onClick={() => adicionarMonografiaNaReceitaDigital(selecionada, apresentacao, item)}
+                                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-teal-600 hover:bg-teal-500 text-white font-bold shadow-sm"
+                                  title="Colocar diretamente na Receita Digital"
+                                >
+                                  <Plus className="w-3.5 h-3.5" />
+                                  Colocar na Receita Digital
                                 </button>
                                 {(() => {
                                   const lido = doseCalculavel(selecionada, item);
@@ -450,13 +509,44 @@ export const FormularioView: React.FC<FormularioViewProps> = ({
                 <div className="flex items-center gap-2 text-teal-400 text-xs font-bold uppercase tracking-wider">
                   <Pill className="w-4 h-4" /> Receita pronta para o prontuário
                 </div>
-                <button
-                  onClick={copiarReceita}
-                  className="flex items-center justify-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white rounded-xl text-xs font-bold shadow-lg"
-                >
-                  {copiado ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                  {copiado ? 'Receita copiada!' : 'Copiar receita'}
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      const isControlado = selecionada.tipo_receituario !== 'Receituário simples';
+                      adicionarItemPrescricaoModular(
+                        'medicamento',
+                        `${capitalizar(selecionada.nome)} - ${apresentacao}`,
+                        textoReceita,
+                        {
+                          id: `med_${Date.now()}`,
+                          nome_medicamento: capitalizar(selecionada.nome),
+                          principio_ativo: selecionada.nome,
+                          apresentacao: apresentacao,
+                          posologia: textoReceita,
+                          quantidade_embalagens: 1,
+                          tipo_receituario: isControlado ? 'controle_especial_c1' : 'simples',
+                          preco_pmc: 0,
+                        },
+                        'Formulário Terapêutico Nacional (FTN)'
+                      );
+                      setAdicionadoDigitalMsg(true);
+                      setTimeout(() => setAdicionadoDigitalMsg(false), 2500);
+                    }}
+                    className="flex items-center justify-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white rounded-xl text-xs font-bold shadow-lg"
+                    title="Enviar este medicamento para a Receita Digital"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>{adicionadoDigitalMsg ? 'Enviado à Receita Digital ✓' : 'Adicionar à Receita Digital'}</span>
+                  </button>
+                  <button
+                    onClick={copiarReceita}
+                    className="flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-semibold"
+                    title="Copiar texto simples para colar em prontuário externo"
+                  >
+                    {copiado ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4 text-slate-400" />}
+                    <span>{copiado ? 'Copiado!' : 'Copiar Texto'}</span>
+                  </button>
+                </div>
               </div>
               <label className="block text-[11px] text-slate-400">
                 Apresentação

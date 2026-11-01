@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
-  ShoppingBag,
   FileText,
   Plus,
   Trash2,
@@ -27,12 +26,17 @@ import {
   AlertOctagon,
   Sparkles,
   ClipboardList,
+  Search,
+  Copy,
+  Building,
+  HeartPulse,
 } from 'lucide-react';
 import {
   BlocoPrescricao,
   Paciente,
   PerfilMedico,
   ItemPrescricaoCesta,
+  ItemBuscaFts,
 } from '../types';
 import {
   obterBlocosPrescricao,
@@ -41,9 +45,11 @@ import {
   obterPerfilMedicoAtivo,
   salvarReceitaNoHistorico,
   limparPrescricao,
+  adicionarItemPrescricaoModular,
 } from '../storage_clinico';
 import { avaliarSegurancaMedicamentosa5g } from '../medication_safety_5g';
 import { exportarElementosParaPdf } from '../pdf_generator';
+import { buscarGeral } from '../api';
 
 interface PrescriptionSideDrawerProps {
   onVisualizarReceitaCompleta?: () => void;
@@ -116,7 +122,20 @@ export const PrescriptionSideDrawer: React.FC<PrescriptionSideDrawerProps> = ({
   const [perfilMedico, setPerfilMedico] = useState<PerfilMedico>(obterPerfilMedicoAtivo());
 
   const [salvandoMsg, setSalvandoMsg] = useState(false);
-  const [blocoExpandidoId, setBlocoExpandidoId] = useState<string | null>(null);
+  const [copiadoTextoMsg, setCopiadoTextoMsg] = useState(false);
+
+  // Busca rápida de medicamentos diretamente na gaveta da receita
+  const [buscaTermo, setBuscaTermo] = useState('');
+  const [resultadosBusca, setResultadosBusca] = useState<ItemBuscaFts[]>([]);
+  const [buscando, setBuscando] = useState(false);
+  const [modoPersonalizado, setModoPersonalizado] = useState(false);
+
+  // Campos para item personalizado / fórmula livre
+  const [customNome, setCustomNome] = useState('');
+  const [customApresentacao, setCustomApresentacao] = useState('');
+  const [customPosologia, setCustomPosologia] = useState('');
+  const [customTipo, setCustomTipo] = useState<'medicamento' | 'orientacao'>('medicamento');
+  const [customControlado, setCustomControlado] = useState(false);
 
   // Sincronização com eventos globais
   useEffect(() => {
@@ -138,6 +157,111 @@ export const PrescriptionSideDrawer: React.FC<PrescriptionSideDrawerProps> = ({
     };
   }, []);
 
+  // Executa busca rápida de medicamentos na base clínica
+  useEffect(() => {
+    if (!buscaTermo.trim() || buscaTermo.trim().length < 2) {
+      setResultadosBusca([]);
+      setBuscando(false);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setBuscando(true);
+      try {
+        const res = await buscarGeral(buscaTermo.trim());
+        // Filtra para dar prioridade a monografias do FTN, medicamentos e CMED
+        const filtrados = res.filter(
+          (r) =>
+            r.tipo_registro === 'ftn_monografia' ||
+            r.tipo_registro === 'medicamento' ||
+            r.tipo_registro === 'cmed_comercial'
+        );
+        setResultadosBusca(filtrados.slice(0, 6));
+      } catch {
+        setResultadosBusca([]);
+      } finally {
+        setBuscando(false);
+      }
+    }, 200);
+
+    return () => clearTimeout(timer);
+  }, [buscaTermo]);
+
+  // Adicionar medicamento a partir do resultado da busca da base
+  const adicionarResultadoBusca = (item: ItemBuscaFts) => {
+    const isControlado =
+      item.subtitulo.toLowerCase().includes('controle') ||
+      item.subtitulo.toLowerCase().includes('portaria 344') ||
+      item.subtitulo.toLowerCase().includes('antimicrobiano');
+
+    const detalhe: ItemPrescricaoCesta = {
+      id: `med_${Date.now()}`,
+      nome_medicamento: item.titulo_primario,
+      principio_ativo: item.subtitulo.split('·')[0].trim() || item.titulo_primario,
+      apresentacao: item.subtitulo.split('·')[1]?.trim() || '',
+      posologia: 'Uso Oral: Tomar 1 comprimido de 12 em 12 horas por 7 dias.',
+      via_administracao: 'Uso Oral (VO)',
+      dose_unitaria: '1 comprimido',
+      frequencia_intervalo: 'de 12 em 12 horas',
+      duracao_tratamento: 'por 7 dias',
+      quantidade_embalagens: 1,
+      tipo_receituario: isControlado ? 'controle_especial_c1' : 'simples',
+      preco_pmc: 0,
+    };
+
+    adicionarItemPrescricaoModular(
+      'medicamento',
+      item.titulo_primario,
+      detalhe.posologia,
+      detalhe,
+      'Base Clínica Oficial (FTN/ANVISA)',
+      [item.tipo_registro, isControlado ? 'Controlado' : 'Simples']
+    );
+
+    setBuscaTermo('');
+    setResultadosBusca([]);
+  };
+
+  // Adicionar item personalizado / manipulado / orientação
+  const adicionarItemPersonalizado = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!customNome.trim()) return;
+
+    if (customTipo === 'medicamento') {
+      const detalhe: ItemPrescricaoCesta = {
+        id: `med_cust_${Date.now()}`,
+        nome_medicamento: customNome.trim(),
+        principio_ativo: customNome.trim(),
+        apresentacao: customApresentacao.trim() || 'Fórmula Manipulada',
+        posologia: customPosologia.trim() || 'Tomar conforme orientação clínica.',
+        quantidade_embalagens: 1,
+        tipo_receituario: customControlado ? 'controle_especial_c1' : 'simples',
+        preco_pmc: 0,
+      };
+
+      adicionarItemPrescricaoModular(
+        'medicamento',
+        customNome.trim(),
+        detalhe.posologia,
+        detalhe,
+        'Personalizado / Manipulado'
+      );
+    } else {
+      adicionarItemPrescricaoModular(
+        'orientacao',
+        customNome.trim(),
+        customPosologia.trim() || customNome.trim(),
+        undefined,
+        'Orientações e Estilo de Vida'
+      );
+    }
+
+    setCustomNome('');
+    setCustomApresentacao('');
+    setCustomPosologia('');
+    setModoPersonalizado(false);
+  };
+
   // Remover bloco
   const removerBloco = (id: string) => {
     const novos = blocos.filter((b) => b.id !== id);
@@ -157,7 +281,7 @@ export const PrescriptionSideDrawer: React.FC<PrescriptionSideDrawerProps> = ({
     salvarBlocosPrescricao(novos);
   };
 
-  // Atualizar parâmetros do Bloco Inteligente (Objeto estruturado)
+  // Atualizar parâmetros do Bloco Inteligente
   const atualizarParametroBloco = (
     id: string,
     campo: 'via' | 'dose' | 'intervalo' | 'duracao' | 'orientacao' | 'quantidade',
@@ -276,10 +400,12 @@ export const PrescriptionSideDrawer: React.FC<PrescriptionSideDrawerProps> = ({
   const handleExportarPdf = async () => {
     try {
       const el = document.getElementById('folha-receita-modular');
+      const formato = (perfilMedico.tamanho_papel_receita?.toLowerCase() as 'a4' | 'a5') || 'a4';
       if (el) {
         await exportarElementosParaPdf(
           [el],
-          `Receita_${pacienteAtivo?.nome_completo || 'Paciente'}_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}`
+          `Receita_${pacienteAtivo?.nome_completo || 'Paciente'}_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}`,
+          formato
         );
       } else {
         window.print();
@@ -287,6 +413,37 @@ export const PrescriptionSideDrawer: React.FC<PrescriptionSideDrawerProps> = ({
     } catch {
       window.print();
     }
+  };
+
+  // Copiar Texto Estruturado para Prontuários Externos (MV, Tasy, etc.)
+  const handleCopiarTextoProntuario = () => {
+    if (blocos.length === 0) return;
+    const linhas: string[] = [];
+    linhas.push(`RECEITUÁRIO MÉDICO - ${perfilMedico.nome_completo} (CRM/${perfilMedico.uf_crm} ${perfilMedico.crm})`);
+    linhas.push(`PACIENTE: ${pacienteAtivo ? pacienteAtivo.nome_completo : 'Paciente Geral'}`);
+    linhas.push(`DATA: ${new Date().toLocaleDateString('pt-BR')}\n`);
+
+    const meds = blocos.filter((b) => b.tipo === 'medicamento');
+    if (meds.length > 0) {
+      linhas.push('MEDICAMENTOS:');
+      meds.forEach((m, idx) => {
+        linhas.push(`${idx + 1}) ${m.titulo} ---------------- ${m.medicamento_detalhe?.quantidade_embalagens || 1} cx/fr`);
+        linhas.push(`   ${m.conteudo}`);
+      });
+      linhas.push('');
+    }
+
+    const orients = blocos.filter((b) => b.tipo !== 'medicamento');
+    if (orients.length > 0) {
+      linhas.push('ORIENTAÇÕES E ESTILO DE VIDA:');
+      orients.forEach((o, idx) => {
+        linhas.push(`- ${o.titulo}: ${o.conteudo}`);
+      });
+    }
+
+    navigator.clipboard.writeText(linhas.join('\n'));
+    setCopiadoTextoMsg(true);
+    setTimeout(() => setCopiadoTextoMsg(false), 2500);
   };
 
   const totalItens = blocos.length;
@@ -299,6 +456,20 @@ export const PrescriptionSideDrawer: React.FC<PrescriptionSideDrawerProps> = ({
           relatorioSeguranca.escore_tisdale.pontuacao_total >= 7)
     );
 
+  // Filtros estritos para o espelho de impressão sanitária:
+  // Medicamentos simples
+  const blocosReceituarioSimples = blocos.filter(
+    (b) => b.tipo === 'medicamento' && (b.medicamento_detalhe?.tipo_receituario === 'simples' || !b.medicamento_detalhe)
+  );
+  // Medicamentos controlados (Portaria 344 e Antimicrobianos)
+  const blocosControleEspecial = blocos.filter(
+    (b) => b.tipo === 'medicamento' && b.medicamento_detalhe && b.medicamento_detalhe.tipo_receituario !== 'simples'
+  );
+  // Orientações / Dieta / Estilo de Vida (não-farmacológicos)
+  const blocosOrientacoes = blocos.filter((b) => b.tipo !== 'medicamento');
+
+  const tamanhoPapel = perfilMedico.tamanho_papel_receita || 'A4';
+
   return (
     <>
       {/* =====================================================================
@@ -309,11 +480,11 @@ export const PrescriptionSideDrawer: React.FC<PrescriptionSideDrawerProps> = ({
           type="button"
           onClick={() => setAberto(true)}
           className="fixed right-0 top-1/3 z-40 bg-gradient-to-b from-teal-600 to-emerald-700 hover:from-teal-500 hover:to-emerald-600 text-white rounded-l-2xl shadow-2xl py-3 px-2 flex flex-col items-center gap-1.5 cursor-pointer border-y border-l border-teal-300/40 transition-transform hover:-translate-x-1 animate-in slide-in-from-right"
-          title="Abrir Prescrição Inteligente em Blocos Lego"
+          title="Abrir Receita Digital"
         >
           <ClipboardList className="w-5 h-5" />
           <span className="text-[10px] font-extrabold uppercase tracking-widest [writing-mode:vertical-rl] rotate-180">
-            Receita
+            Receita Digital
           </span>
           <span className="px-1.5 py-0.5 bg-black/30 rounded-full font-mono text-[10px] font-bold">
             {totalItens}
@@ -328,7 +499,7 @@ export const PrescriptionSideDrawer: React.FC<PrescriptionSideDrawerProps> = ({
           GAVETA LATERAL DINÂMICA (SLIDE-OVER DRAWER)
          ===================================================================== */}
       <div
-        className={`fixed inset-y-0 right-0 z-50 w-full sm:w-[480px] lg:w-[520px] bg-white dark:bg-[#0c1427] border-l border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col transition-transform duration-300 ease-in-out text-slate-800 dark:text-slate-100 ${
+        className={`fixed inset-y-0 right-0 z-50 w-full sm:w-[480px] lg:w-[530px] bg-white dark:bg-[#0c1427] border-l border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col transition-transform duration-300 ease-in-out text-slate-800 dark:text-slate-100 ${
           aberto ? 'translate-x-0' : 'translate-x-full pointer-events-none'
         }`}
       >
@@ -340,12 +511,15 @@ export const PrescriptionSideDrawer: React.FC<PrescriptionSideDrawerProps> = ({
             </div>
             <div>
               <h3 className="font-bold text-sm flex items-center gap-2 text-slate-900 dark:text-slate-100">
-                Receita Dinâmica &bull; Lego No-Code
+                Receita Digital
                 <span className="px-2 py-0.5 bg-teal-500/20 text-teal-800 dark:text-teal-300 text-[10px] rounded font-mono font-bold">
                   {totalItens} {totalItens === 1 ? 'item' : 'itens'}
                 </span>
+                <span className="text-[9px] bg-slate-200 dark:bg-slate-800 px-1.5 py-0.5 rounded text-slate-600 dark:text-slate-400 font-mono">
+                  {tamanhoPapel}
+                </span>
               </h3>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate max-w-[260px]">
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate max-w-[240px]">
                 Paciente: <strong>{pacienteAtivo ? pacienteAtivo.nome_completo : 'Paciente Geral'}</strong>
               </p>
             </div>
@@ -392,6 +566,137 @@ export const PrescriptionSideDrawer: React.FC<PrescriptionSideDrawerProps> = ({
         </div>
 
         {/* ===================================================================
+            BUSCADOR RÁPIDO INTEGRADO DIRETO NA GAVETA
+           =================================================================== */}
+        <div className="p-3 bg-slate-50 dark:bg-slate-950/60 border-b border-slate-200 dark:border-slate-800 space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold text-teal-700 dark:text-teal-400 uppercase tracking-wider flex items-center gap-1">
+              <Search className="w-3.5 h-3.5" /> Adicionar à Receita
+            </span>
+            <button
+              type="button"
+              onClick={() => setModoPersonalizado(!modoPersonalizado)}
+              className="text-[10px] text-teal-600 dark:text-teal-400 hover:underline font-semibold"
+            >
+              {modoPersonalizado ? '← Buscar na Base de Fármacos' : '+ Item Personalizado / Livre'}
+            </button>
+          </div>
+
+          {!modoPersonalizado ? (
+            /* Modo 1: Busca em Tempo Real na Base de Fármacos */
+            <div className="relative">
+              <input
+                type="text"
+                value={buscaTermo}
+                onChange={(e) => setBuscaTermo(e.target.value)}
+                placeholder="Digitar fármaco (ex: Amoxicilina, Dipirona, Losartana)..."
+                className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-1.5 text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-teal-500"
+              />
+              {buscando && (
+                <span className="absolute right-3 top-2 text-[10px] text-slate-400 animate-pulse">
+                  Buscando...
+                </span>
+              )}
+
+              {/* Resultados da Busca Flutuante */}
+              {resultadosBusca.length > 0 && (
+                <div className="absolute left-0 right-0 top-full mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl z-20 max-h-56 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
+                  {resultadosBusca.map((r, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => adicionarResultadoBusca(r)}
+                      className="w-full text-left p-2.5 hover:bg-teal-50 dark:hover:bg-slate-800 flex items-center justify-between text-xs transition"
+                    >
+                      <div>
+                        <div className="font-bold text-slate-900 dark:text-slate-100">
+                          {r.titulo_primario}
+                        </div>
+                        <div className="text-[10px] text-slate-500 line-clamp-1">
+                          {r.subtitulo}
+                        </div>
+                      </div>
+                      <span className="px-2 py-0.5 bg-teal-600 text-white rounded-md text-[10px] font-bold shrink-0 ml-2">
+                        + Inserir
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : (
+            /* Modo 2: Item Personalizado / Manipulado */
+            <form onSubmit={adicionarItemPersonalizado} className="space-y-2 pt-1 animate-in fade-in text-xs">
+              <div className="grid grid-cols-2 gap-2">
+                <input
+                  type="text"
+                  required
+                  value={customNome}
+                  onChange={(e) => setCustomNome(e.target.value)}
+                  placeholder="Nome do remédio / conduta *"
+                  className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1 text-xs text-slate-900 dark:text-slate-100"
+                />
+                <input
+                  type="text"
+                  value={customApresentacao}
+                  onChange={(e) => setCustomApresentacao(e.target.value)}
+                  placeholder="Apresentação (ex: 500mg - 30 caps)"
+                  className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1 text-xs text-slate-900 dark:text-slate-100"
+                />
+              </div>
+
+              <input
+                type="text"
+                value={customPosologia}
+                onChange={(e) => setCustomPosologia(e.target.value)}
+                placeholder="Posologia ou instrução (ex: Tomar 1 cápsula à noite por 30 dias)"
+                className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1 text-xs text-slate-900 dark:text-slate-100"
+              />
+
+              <div className="flex items-center justify-between pt-1">
+                <div className="flex items-center gap-3">
+                  <label className="flex items-center gap-1 text-[11px] text-slate-600 dark:text-slate-400 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="tipoItem"
+                      checked={customTipo === 'medicamento'}
+                      onChange={() => setCustomTipo('medicamento')}
+                    />
+                    <span>Medicamento</span>
+                  </label>
+                  <label className="flex items-center gap-1 text-[11px] text-slate-600 dark:text-slate-400 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="tipoItem"
+                      checked={customTipo === 'orientacao'}
+                      onChange={() => setCustomTipo('orientacao')}
+                    />
+                    <span>Recomendação / Dieta</span>
+                  </label>
+                  {customTipo === 'medicamento' && (
+                    <label className="flex items-center gap-1 text-[11px] text-amber-700 dark:text-amber-400 cursor-pointer font-bold">
+                      <input
+                        type="checkbox"
+                        checked={customControlado}
+                        onChange={(e) => setCustomControlado(e.target.checked)}
+                      />
+                      <span>Controle Especial (2 Vias)</span>
+                    </label>
+                  )}
+                </div>
+
+                <button
+                  type="submit"
+                  className="px-3 py-1 bg-teal-600 hover:bg-teal-500 text-white rounded-lg font-bold text-xs"
+                >
+                  + Adicionar Bloco
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
+
+        {/* ===================================================================
             TARJA VERMELHA DE ALERGIA E INTERAÇÕES MEDICAMENTOSAS
            =================================================================== */}
         {temAlertaGrave && (
@@ -435,7 +740,7 @@ export const PrescriptionSideDrawer: React.FC<PrescriptionSideDrawerProps> = ({
         )}
 
         {/* ===================================================================
-            CONTEÚDO: MODO BLOCOS INTELIGENTES (LEGO)
+            CONTEÚDO: MODO BLOCOS INTELIGENTES
            =================================================================== */}
         {modoVisualizacao === 'blocos' ? (
           <div className="flex-1 overflow-y-auto p-3.5 space-y-3">
@@ -443,16 +748,19 @@ export const PrescriptionSideDrawer: React.FC<PrescriptionSideDrawerProps> = ({
               <div className="py-20 text-center text-slate-400 space-y-2 text-xs">
                 <ClipboardList className="w-10 h-10 text-slate-300 dark:text-slate-700 mx-auto" />
                 <p className="font-bold text-slate-700 dark:text-slate-300 text-sm">
-                  Sua receita ainda está vazia
+                  Sua receita digital ainda está vazia
                 </p>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 max-w-[280px] mx-auto">
-                  Clique em <strong>[➕ Adicionar à Receita]</strong> em qualquer remédio do Formulário FTN, bulas ou protocolos para montar seus blocos modulares.
+                  Busque medicamentos acima ou clique em <strong>[➕ Adicionar à Receita Digital]</strong> em qualquer monografia do FTN, bulas ou diretrizes.
                 </p>
               </div>
             ) : (
               blocos.map((bloco, idx) => {
                 const isMed = bloco.tipo === 'medicamento';
-                const isControlado = bloco.medicamento_detalhe?.tipo_receituario !== 'simples';
+                // BUG FIX: Non-medication blocks (orientações/estilo de vida) must NEVER be marked as controle especial!
+                const isControlado =
+                  isMed &&
+                  Boolean(bloco.medicamento_detalhe && bloco.medicamento_detalhe.tipo_receituario !== 'simples');
                 const alergiaDetectada = checarAlergiaBloco(bloco);
                 const detalhe = bloco.medicamento_detalhe;
 
@@ -466,10 +774,10 @@ export const PrescriptionSideDrawer: React.FC<PrescriptionSideDrawerProps> = ({
                         ? 'bg-amber-50/70 dark:bg-amber-950/20 border-amber-300 dark:border-amber-700/60'
                         : isMed
                         ? 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800'
-                        : 'bg-sky-50/70 dark:bg-sky-950/20 border-sky-300 dark:border-sky-800/60'
+                        : 'bg-emerald-50/70 dark:bg-emerald-950/20 border-emerald-300 dark:border-emerald-800/60'
                     }`}
                   >
-                    {/* Cabeçalho do Bloco Lego */}
+                    {/* Cabeçalho do Bloco */}
                     <div className="p-3 flex items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800/60">
                       <div className="flex items-center gap-2 flex-1 min-w-0">
                         <span className="text-[11px] font-mono font-bold text-slate-400 w-5">
@@ -481,10 +789,10 @@ export const PrescriptionSideDrawer: React.FC<PrescriptionSideDrawerProps> = ({
                               ? 'bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-500/30'
                               : isMed
                               ? 'bg-teal-500/20 text-teal-800 dark:text-teal-300 border border-teal-500/30'
-                              : 'bg-sky-500/20 text-sky-800 dark:text-sky-300 border border-sky-500/30'
+                              : 'bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border border-emerald-500/30'
                           }`}
                         >
-                          {isControlado ? 'Controle Especial' : bloco.tipo}
+                          {isControlado ? 'Controle Especial' : isMed ? 'Receituário Simples' : 'Estilo de Vida / Cuidados'}
                         </span>
                         <span className="font-extrabold text-slate-900 dark:text-slate-100 truncate text-xs">
                           {bloco.titulo}
@@ -699,96 +1007,204 @@ export const PrescriptionSideDrawer: React.FC<PrescriptionSideDrawerProps> = ({
           </div>
         ) : (
           /* ===================================================================
-              CONTEÚDO: MODO IMPRESSÃO / FOLHAS SANITÁRIAS SEPARADAS
+              CONTEÚDO: MODO IMPRESSÃO / FOLHAS SANITÁRIAS PARTICIONADAS
              =================================================================== */
-          <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-100 dark:bg-[#070d18]">
-            <div id="folha-receita-modular" className="space-y-4">
-              {/* Receituário Simples (Máx 4 itens) */}
-              <div className="bg-white text-slate-900 p-5 rounded-2xl shadow-md border border-slate-200 text-xs space-y-3 font-sans">
-                <div className="border-b border-slate-200 pb-2 flex justify-between items-start">
-                  <div>
-                    <h4 className="font-black text-sm uppercase tracking-wide text-slate-900">
-                      Receituário Médico
-                    </h4>
-                    <p className="text-[10px] text-slate-500">
-                      {perfilMedico.nome_completo} &bull; CRM/{perfilMedico.uf_crm} {perfilMedico.crm}
-                    </p>
-                  </div>
-                  <span className="text-[9px] font-bold px-2 py-0.5 bg-slate-100 border border-slate-300 rounded font-mono">
-                    Receituário Simples
-                  </span>
-                </div>
-
-                <div className="text-[11px] font-medium text-slate-700">
-                  Paciente: <strong>{pacienteAtivo ? pacienteAtivo.nome_completo : 'Paciente Geral'}</strong>
-                </div>
-
-                <div className="space-y-2.5 pt-1">
-                  {blocos.filter((b) => b.medicamento_detalhe?.tipo_receituario === 'simples' || !b.medicamento_detalhe).map((b, i) => (
-                    <div key={b.id} className="text-[11px] border-b border-slate-100 pb-1.5">
-                      <div className="font-black text-slate-900">
-                        {i + 1}) {b.titulo} — {b.medicamento_detalhe?.quantidade_embalagens || 1} cx/fr
-                      </div>
-                      <div className="text-slate-600 pl-3 italic">{b.conteudo}</div>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="pt-4 border-t border-slate-200 text-[10px] text-slate-400 flex justify-between items-end">
-                  <span>Data: {new Date().toLocaleDateString('pt-BR')}</span>
-                  <div className="text-right">
-                    <div className="w-36 border-b border-slate-400 mb-1" />
-                    <span>Assinatura e Carimbo</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Receituário de Controle Especial (Portaria 344/98 e RDC 471) em 2 Vias */}
-              {blocos.some((b) => b.medicamento_detalhe && b.medicamento_detalhe.tipo_receituario !== 'simples') && (
-                <div className="bg-white text-slate-900 p-5 rounded-2xl shadow-md border-2 border-amber-400 text-xs space-y-3 font-sans">
-                  <div className="border-b border-amber-300 pb-2 flex justify-between items-start">
-                    <div>
-                      <h4 className="font-black text-sm uppercase tracking-wide text-amber-900">
-                        Receituário de Controle Especial
-                      </h4>
-                      <p className="text-[10px] text-slate-600 font-bold">
-                        VÁLIDO EM TODO O TERRITÓRIO NACIONAL &bull; 1ª VIA FARMÁCIA / 2ª VIA PACIENTE
-                      </p>
-                    </div>
-                    <span className="text-[9px] font-bold px-2 py-0.5 bg-amber-100 border border-amber-300 rounded text-amber-800 font-mono">
-                      Portaria 344/98
-                    </span>
-                  </div>
-
-                  <div className="text-[11px] font-medium text-slate-700">
-                    Paciente: <strong>{pacienteAtivo ? pacienteAtivo.nome_completo : 'Paciente Geral'}</strong>
-                    {pacienteAtivo?.endereco && <div>Endereço: {pacienteAtivo.endereco}</div>}
-                  </div>
-
-                  <div className="space-y-2.5 pt-1">
-                    {blocos.filter((b) => b.medicamento_detalhe && b.medicamento_detalhe.tipo_receituario !== 'simples').map((b, i) => (
-                      <div key={b.id} className="text-[11px] border-b border-amber-100 pb-1.5">
-                        <div className="font-black text-slate-900">
-                          {i + 1}) {b.titulo} — {b.medicamento_detalhe?.quantidade_embalagens || 1} cx
+          <div className="flex-1 overflow-y-auto p-4 space-y-5 bg-slate-100 dark:bg-[#070d18]">
+            <div id="folha-receita-modular" className="space-y-6">
+              {/* 1. Receituário Simples (Medicamentos Comuns) */}
+              {blocosReceituarioSimples.length > 0 && (
+                <div
+                  className={`bg-white text-slate-900 p-6 rounded-2xl shadow-lg border border-slate-200 text-xs space-y-4 font-sans ${
+                    tamanhoPapel === 'A5' ? 'max-w-[420px] mx-auto text-[11px]' : ''
+                  }`}
+                >
+                  {/* Cabeçalho Charmoso do Consultório */}
+                  <div className="border-b-2 border-teal-700/60 pb-3 flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      {perfilMedico.logo_base64 ? (
+                        <img src={perfilMedico.logo_base64} alt="Logo" className="w-12 h-12 object-contain" />
+                      ) : (
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-teal-700 to-emerald-600 text-white flex items-center justify-center shadow-md">
+                          <HeartPulse className="w-5 h-5" />
                         </div>
-                        <div className="text-slate-600 pl-3 italic">{b.conteudo}</div>
+                      )}
+                      <div>
+                        <h4 className="font-black text-sm uppercase tracking-wide text-slate-900">
+                          {perfilMedico.nome_completo}
+                        </h4>
+                        <p className="text-[10px] text-teal-800 font-bold font-mono">
+                          CRM/{perfilMedico.uf_crm} {perfilMedico.crm} {perfilMedico.rqe ? `• RQE ${perfilMedico.rqe}` : ''}
+                        </p>
+                        {perfilMedico.especialidade && (
+                          <p className="text-[10px] text-slate-500 font-medium">{perfilMedico.especialidade}</p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-[9px] font-bold px-2 py-0.5 bg-teal-50 border border-teal-300 text-teal-800 rounded font-mono uppercase">
+                        Receituário Simples ({tamanhoPapel})
+                      </span>
+                      {perfilMedico.nome_clinica && (
+                        <p className="text-[10px] text-slate-500 font-semibold mt-1">{perfilMedico.nome_clinica}</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Identificação do Paciente */}
+                  <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-[11px] space-y-0.5">
+                    <div>
+                      Paciente: <strong>{pacienteAtivo ? pacienteAtivo.nome_completo : 'Paciente Geral'}</strong>
+                      {pacienteAtivo?.idade_anos ? ` (${pacienteAtivo.idade_anos} anos)` : ''}
+                    </div>
+                    {pacienteAtivo?.cpf && <div className="text-slate-500 text-[10px]">CPF: {pacienteAtivo.cpf}</div>}
+                  </div>
+
+                  {/* Lista de Medicamentos */}
+                  <div className="space-y-3 pt-1">
+                    {blocosReceituarioSimples.map((b, i) => (
+                      <div key={b.id} className="text-xs border-b border-slate-100 pb-2">
+                        <div className="flex justify-between font-black text-slate-900">
+                          <span>{i + 1}) {b.titulo}</span>
+                          <span className="font-mono text-teal-800 font-bold">
+                            {b.medicamento_detalhe?.quantidade_embalagens || 1} cx/fr
+                          </span>
+                        </div>
+                        <div className="text-slate-600 pl-3.5 pt-0.5 leading-relaxed italic">
+                          {b.conteudo}
+                        </div>
                       </div>
                     ))}
                   </div>
 
-                  {/* Campos Obrigatórios do Comprador e Fornecedor da Portaria 344 */}
+                  {/* Rodapé e Assinatura */}
+                  <div className="pt-4 border-t border-slate-200 flex justify-between items-end text-[10px] text-slate-500">
+                    <div>
+                      <div>Emissão: {new Date().toLocaleDateString('pt-BR')}</div>
+                      {perfilMedico.endereco_consultorio && (
+                        <div className="text-[9px] text-slate-400 mt-0.5">{perfilMedico.endereco_consultorio}</div>
+                      )}
+                      {perfilMedico.texto_rodape_customizado && (
+                        <div className="text-[9px] text-teal-700 italic mt-1 max-w-[280px]">
+                          {perfilMedico.texto_rodape_customizado}
+                        </div>
+                      )}
+                    </div>
+                    {perfilMedico.mostrar_linha_assinatura !== false && (
+                      <div className="text-center">
+                        <div className="w-36 border-b border-slate-400 mb-1" />
+                        <span className="font-bold text-slate-700">{perfilMedico.nome_completo}</span>
+                        <div className="text-[9px] text-slate-400">Assinatura / Carimbo</div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* 2. Receituário de Controle Especial (Portaria 344/98 & RDC 471) em 2 Vias */}
+              {blocosControleEspecial.length > 0 && (
+                <div
+                  className={`bg-white text-slate-900 p-6 rounded-2xl shadow-lg border-2 border-amber-400 text-xs space-y-4 font-sans ${
+                    tamanhoPapel === 'A5' ? 'max-w-[420px] mx-auto text-[11px]' : ''
+                  }`}
+                >
+                  <div className="border-b-2 border-amber-400 pb-3 flex justify-between items-start gap-3">
+                    <div>
+                      <h4 className="font-black text-sm uppercase tracking-wide text-amber-900">
+                        Receituário de Controle Especial
+                      </h4>
+                      <p className="text-[10px] text-amber-800 font-bold">
+                        VÁLIDO EM TODO O BRASIL &bull; 1ª VIA FARMÁCIA / 2ª VIA PACIENTE
+                      </p>
+                      <p className="text-[10px] text-slate-500 font-medium">
+                        {perfilMedico.nome_completo} &bull; CRM/{perfilMedico.uf_crm} {perfilMedico.crm}
+                      </p>
+                    </div>
+                    <span className="text-[9px] font-bold px-2 py-0.5 bg-amber-100 border border-amber-300 rounded text-amber-900 font-mono uppercase">
+                      Portaria 344/98 ({tamanhoPapel})
+                    </span>
+                  </div>
+
+                  <div className="bg-amber-50/60 p-2.5 rounded-xl border border-amber-200 text-[11px] space-y-0.5">
+                    <div>
+                      Paciente: <strong>{pacienteAtivo ? pacienteAtivo.nome_completo : 'Paciente Geral'}</strong>
+                    </div>
+                    <div>Endereço: {pacienteAtivo?.endereco || 'Endereço fornecido em prontuário'}</div>
+                  </div>
+
+                  <div className="space-y-3 pt-1">
+                    {blocosControleEspecial.map((b, i) => (
+                      <div key={b.id} className="text-xs border-b border-amber-100 pb-2">
+                        <div className="flex justify-between font-black text-slate-900">
+                          <span>{i + 1}) {b.titulo}</span>
+                          <span className="font-mono text-amber-900 font-bold">
+                            {b.medicamento_detalhe?.quantidade_embalagens || 1} cx
+                          </span>
+                        </div>
+                        <div className="text-slate-600 pl-3.5 pt-0.5 leading-relaxed italic">
+                          {b.conteudo}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Campos Oficiais de Farmácia / Portaria 344 */}
                   <div className="pt-2 border-t border-amber-200 grid grid-cols-2 gap-2 text-[9px] text-slate-500">
-                    <div className="border border-slate-200 p-1.5 rounded">
+                    <div className="border border-slate-200 p-2 rounded-lg bg-slate-50">
                       <strong>IDENTIFICAÇÃO DO COMPRADOR:</strong>
                       <div>Nome: ____________________________</div>
-                      <div>Identidade/Órgão: __________________</div>
+                      <div>Identidade / Órgão: ______________</div>
                       <div>Telefone: __________________________</div>
                     </div>
-                    <div className="border border-slate-200 p-1.5 rounded">
+                    <div className="border border-slate-200 p-2 rounded-lg bg-slate-50">
                       <strong>IDENTIFICAÇÃO DO FORNECEDOR:</strong>
-                      <div>Assinatura Farmacêutico: __________</div>
-                      <div>Data de Dispensação: ___/___/______</div>
+                      <div>Farmacêutico: _____________________</div>
+                      <div>Data de Retirada: ___/___/______</div>
                     </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 3. Folha de Recomendações e Estilo de Vida (Não-Farmacológicos) */}
+              {blocosOrientacoes.length > 0 && (
+                <div
+                  className={`bg-white text-slate-900 p-6 rounded-2xl shadow-lg border border-emerald-300 text-xs space-y-4 font-sans ${
+                    tamanhoPapel === 'A5' ? 'max-w-[420px] mx-auto text-[11px]' : ''
+                  }`}
+                >
+                  <div className="border-b-2 border-emerald-600/60 pb-3 flex justify-between items-start gap-3">
+                    <div>
+                      <h4 className="font-black text-sm uppercase tracking-wide text-emerald-900">
+                        Orientações, Estilo de Vida & Cuidados
+                      </h4>
+                      <p className="text-[10px] text-slate-500">
+                        {perfilMedico.nome_completo} &bull; CRM/{perfilMedico.uf_crm} {perfilMedico.crm}
+                      </p>
+                    </div>
+                    <span className="text-[9px] font-bold px-2 py-0.5 bg-emerald-50 border border-emerald-300 rounded text-emerald-800 font-mono uppercase">
+                      Não-Farmacológico
+                    </span>
+                  </div>
+
+                  <div className="text-[11px] text-slate-700">
+                    Paciente: <strong>{pacienteAtivo ? pacienteAtivo.nome_completo : 'Paciente Geral'}</strong>
+                  </div>
+
+                  <div className="space-y-3 pt-1">
+                    {blocosOrientacoes.map((b, i) => (
+                      <div key={b.id} className="p-3 bg-emerald-50/50 rounded-xl border border-emerald-100 text-xs">
+                        <div className="font-bold text-emerald-950 mb-1">
+                          {i + 1}. {b.titulo}
+                        </div>
+                        <div className="text-slate-700 leading-relaxed whitespace-pre-wrap">
+                          {b.conteudo}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="pt-3 border-t border-slate-200 text-[10px] text-slate-400 flex justify-between items-end">
+                    <span>Emissão: {new Date().toLocaleDateString('pt-BR')}</span>
+                    <span className="text-slate-600 font-semibold">{perfilMedico.nome_completo}</span>
                   </div>
                 </div>
               )}
@@ -802,7 +1218,13 @@ export const PrescriptionSideDrawer: React.FC<PrescriptionSideDrawerProps> = ({
         <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/95 space-y-2 text-xs">
           {salvandoMsg && (
             <div className="p-2 bg-emerald-500/15 border border-emerald-500/40 text-emerald-800 dark:text-emerald-300 rounded-xl font-bold text-[11px] flex items-center gap-1.5 animate-in fade-in">
-              <Check className="w-3.5 h-3.5" /> Receita salva com sucesso no histórico do paciente!
+              <Check className="w-3.5 h-3.5" /> Receita salva com sucesso no prontuário do paciente!
+            </div>
+          )}
+
+          {copiadoTextoMsg && (
+            <div className="p-2 bg-sky-500/15 border border-sky-500/40 text-sky-800 dark:text-sky-300 rounded-xl font-bold text-[11px] flex items-center gap-1.5 animate-in fade-in">
+              <Check className="w-3.5 h-3.5" /> Texto da receita copiado para a área de transferência!
             </div>
           )}
 
@@ -813,10 +1235,10 @@ export const PrescriptionSideDrawer: React.FC<PrescriptionSideDrawerProps> = ({
               onClick={handleExportarPdf}
               disabled={blocos.length === 0}
               className="py-2.5 bg-teal-600 hover:bg-teal-500 disabled:opacity-50 text-white rounded-xl font-bold flex items-center justify-center gap-1.5 shadow transition"
-              title="Gerar PDF da receita nas normas sanitárias"
+              title={`Gerar PDF oficial no tamanho ${tamanhoPapel}`}
             >
               <Download className="w-4 h-4" />
-              <span>Exportar PDF</span>
+              <span>Exportar PDF ({tamanhoPapel})</span>
             </button>
 
             {/* Salvar no Prontuário */}
@@ -831,6 +1253,18 @@ export const PrescriptionSideDrawer: React.FC<PrescriptionSideDrawerProps> = ({
               <span>Salvar no Prontuário</span>
             </button>
           </div>
+
+          {/* Botão para copiar texto estruturado para prontuário externo */}
+          <button
+            type="button"
+            onClick={handleCopiarTextoProntuario}
+            disabled={blocos.length === 0}
+            className="w-full py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-850 dark:hover:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-semibold flex items-center justify-center gap-1.5 transition disabled:opacity-50 text-[11px]"
+            title="Copiar texto puro formatado para colar em prontuários externos (Tasy, MV Soul, etc.)"
+          >
+            <Copy className="w-3.5 h-3.5 text-slate-500" />
+            <span>Copiar Texto para Prontuário Externo (MV/Tasy)</span>
+          </button>
 
           <div className="flex items-center justify-between pt-1">
             <button

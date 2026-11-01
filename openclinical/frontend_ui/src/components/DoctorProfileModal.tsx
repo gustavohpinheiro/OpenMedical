@@ -11,6 +11,7 @@ import {
   Check,
   Lock,
   FileImage,
+  FileText,
   Users,
   UserPlus,
   Shield,
@@ -40,6 +41,7 @@ export const DoctorProfileModal: React.FC<DoctorProfileModalProps> = ({
   const [todosMedicos, setTodosMedicos] = useState<PerfilMedico[]>([]);
   const [sucessoMsg, setSucessoMsg] = useState(false);
   const [erroMsg, setErroMsg] = useState<string | null>(null);
+  const [abaAtiva, setAbaAtiva] = useState<'dados' | 'receita'>('dados');
 
   // Sincroniza o estado interno sempre que o modal abre ou perfil muda
   useEffect(() => {
@@ -185,6 +187,34 @@ export const DoctorProfileModal: React.FC<DoctorProfileModalProps> = ({
           </button>
         </div>
 
+                {/* Abas: Dados Profissionais vs Configurações da Receita & PDF */}
+        <div className="flex border-b border-slate-200 dark:border-slate-800 px-6 bg-slate-50 dark:bg-slate-950/40">
+          <button
+            type="button"
+            onClick={() => setAbaAtiva('dados')}
+            className={`py-3 px-4 text-xs font-bold border-b-2 flex items-center gap-2 transition ${
+              abaAtiva === 'dados'
+                ? 'border-teal-500 text-teal-600 dark:text-teal-400'
+                : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+            }`}
+          >
+            <UserCheck className="w-4 h-4" />
+            <span>Dados Profissionais & Login</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setAbaAtiva('receita')}
+            className={`py-3 px-4 text-xs font-bold border-b-2 flex items-center gap-2 transition ${
+              abaAtiva === 'receita'
+                ? 'border-teal-500 text-teal-600 dark:text-teal-400'
+                : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+            }`}
+          >
+            <FileText className="w-4 h-4" />
+            <span>Configurações da Receita & PDF (A4/A5, Estilo, Logo)</span>
+          </button>
+        </div>
+
         {/* Formulário de Edição */}
         <form onSubmit={handleSalvar} className="p-6 space-y-5 text-xs">
           {sucessoMsg && (
@@ -199,7 +229,9 @@ export const DoctorProfileModal: React.FC<DoctorProfileModalProps> = ({
             </div>
           )}
 
-          {/* Dados Pessoais & CRM */}
+                    {abaAtiva === 'dados' ? (
+            <>
+              {/* Dados Pessoais & CRM */}
           <div className="space-y-3">
             <span className="text-[11px] font-bold text-teal-600 dark:text-teal-400 uppercase tracking-wider block">
               Registro Profissional (CFM / CRM)
@@ -421,6 +453,190 @@ export const DoctorProfileModal: React.FC<DoctorProfileModalProps> = ({
               </label>
             </div>
           </div>
+
+                      </>
+          ) : (
+            /* ===================================================================
+                ABA DE CONFIGURAÇÕES DA RECEITA & PDF
+               =================================================================== */
+            <div className="space-y-5">
+              <div>
+                <span className="text-[11px] font-bold text-teal-600 dark:text-teal-400 uppercase tracking-wider block mb-2">
+                  Formato e Dimensões do Papel de Impressão
+                </span>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => handleChange('tamanho_papel_receita', 'A4')}
+                    className={`p-3.5 rounded-2xl border text-left transition ${
+                      (formData.tamanho_papel_receita || 'A4') === 'A4'
+                        ? 'border-teal-500 bg-teal-500/10 text-teal-900 dark:text-teal-200 ring-1 ring-teal-500/40'
+                        : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-700 dark:text-slate-300'
+                    }`}
+                  >
+                    <div className="font-bold text-xs flex items-center justify-between">
+                      <span>Papel A4 (Padrão)</span>
+                      <span className="font-mono text-[10px]">210 × 297 mm</span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 mt-1">
+                      Ideal para impressoras comuns de consultório ou envio em PDF digital.
+                    </p>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleChange('tamanho_papel_receita', 'A5')}
+                    className={`p-3.5 rounded-2xl border text-left transition ${
+                      formData.tamanho_papel_receita === 'A5'
+                        ? 'border-teal-500 bg-teal-500/10 text-teal-900 dark:text-teal-200 ring-1 ring-teal-500/40'
+                        : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-700 dark:text-slate-300'
+                    }`}
+                  >
+                    <div className="font-bold text-xs flex items-center justify-between">
+                      <span>Papel A5 (Meio-Ofício / Bloco)</span>
+                      <span className="font-mono text-[10px]">148 × 210 mm</span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 mt-1">
+                      Ideal para blocos de receituário compacto e carimbo tradicional.
+                    </p>
+                  </button>
+                </div>
+              </div>
+
+              {/* Estilo Visual da Receita */}
+              <div>
+                <span className="text-[11px] font-bold text-teal-600 dark:text-teal-400 uppercase tracking-wider block mb-2">
+                  Estilo e Apresentação Visual da Receita
+                </span>
+                <div className="grid grid-cols-3 gap-3">
+                  {[
+                    { id: 'moderno', label: 'Moderno Clínico', desc: 'Design esmeralda com linhas limpas' },
+                    { id: 'classico', label: 'Clássico Consultório', desc: 'Borda dupla nobre e tipografia de prestígio' },
+                    { id: 'hospitalar', label: 'Hospitalar Oficial', desc: 'Tabela densa com leito e prontuário' },
+                  ].map((est) => (
+                    <button
+                      key={est.id}
+                      type="button"
+                      onClick={() => handleChange('estilo_receita', est.id)}
+                      className={`p-3 rounded-2xl border text-left transition ${
+                        (formData.estilo_receita || 'moderno') === est.id
+                          ? 'border-teal-500 bg-teal-500/10 text-teal-900 dark:text-teal-200 ring-1 ring-teal-500/40'
+                          : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-700 dark:text-slate-300'
+                      }`}
+                    >
+                      <div className="font-bold text-xs">{est.label}</div>
+                      <p className="text-[10px] text-slate-500 mt-0.5">{est.desc}</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Uploads de Logotipo e Timbrado */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="p-3.5 bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                      <FileImage className="w-4 h-4 text-teal-600 dark:text-teal-400" /> Logotipo do Consultório
+                    </span>
+                    {formData.logo_base64 && (
+                      <button
+                        type="button"
+                        onClick={() => handleChange('logo_base64', undefined)}
+                        className="text-rose-500 hover:text-rose-400 text-[10px]"
+                      >
+                        Remover
+                      </button>
+                    )}
+                  </div>
+                  {formData.logo_base64 ? (
+                    <div className="h-14 bg-white dark:bg-slate-900 rounded-xl flex items-center justify-center p-2 border border-slate-200 dark:border-slate-800">
+                      <img src={formData.logo_base64} alt="Logo" className="max-h-full object-contain" />
+                    </div>
+                  ) : (
+                    <label className="flex flex-col items-center justify-center h-14 border border-dashed border-slate-300 dark:border-slate-700 hover:border-teal-500 rounded-xl cursor-pointer text-slate-500 dark:text-slate-400 hover:text-teal-600 dark:hover:text-teal-400 transition">
+                      <Upload className="w-4 h-4 mb-1" />
+                      <span className="text-[10px]">Carregar Logo (PNG / JPG)</span>
+                      <input type="file" accept="image/*" onChange={handleUploadLogo} className="hidden" />
+                    </label>
+                  )}
+                </div>
+
+                <div className="p-3.5 bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                      <Building className="w-4 h-4 text-teal-600 dark:text-teal-400" /> Papel Timbrado de Fundo
+                    </span>
+                    {formData.papel_timbrado_base64 && (
+                      <button
+                        type="button"
+                        onClick={() => handleChange('papel_timbrado_base64', undefined)}
+                        className="text-rose-500 hover:text-rose-400 text-[10px]"
+                      >
+                        Remover
+                      </button>
+                    )}
+                  </div>
+                  {formData.papel_timbrado_base64 ? (
+                    <div className="h-14 bg-white dark:bg-slate-900 rounded-xl flex items-center justify-center p-2 border border-slate-200 dark:border-slate-800">
+                      <span className="text-[11px] text-teal-600 dark:text-teal-300 font-mono">Fundo Timbrado Carregado ✓</span>
+                    </div>
+                  ) : (
+                    <label className="flex flex-col items-center justify-center h-14 border border-dashed border-slate-300 dark:border-slate-700 hover:border-teal-500 rounded-xl cursor-pointer text-slate-500 dark:text-slate-400 hover:text-teal-600 dark:hover:text-teal-400 transition">
+                      <Upload className="w-4 h-4 mb-1" />
+                      <span className="text-[10px]">Carregar Arte Timbrada</span>
+                      <input type="file" accept="image/*" onChange={handleUploadPapelTimbrado} className="hidden" />
+                    </label>
+                  )}
+                </div>
+              </div>
+
+              {/* Opções de Impressão */}
+              <div className="space-y-2">
+                <span className="text-[11px] font-bold text-teal-600 dark:text-teal-400 uppercase tracking-wider block">
+                  Elementos e Rodapé da Receita
+                </span>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <label className="p-3 bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 rounded-xl flex items-center gap-2.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.mostrar_qr_code !== false}
+                      onChange={(e) => handleChange('mostrar_qr_code', e.target.checked)}
+                      className="rounded border-slate-300 text-teal-600 focus:ring-teal-500"
+                    />
+                    <span className="text-slate-700 dark:text-slate-300 text-[11px] font-medium">
+                      Exibir QR Code de validação
+                    </span>
+                  </label>
+
+                  <label className="p-3 bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 rounded-xl flex items-center gap-2.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.mostrar_linha_assinatura !== false}
+                      onChange={(e) => handleChange('mostrar_linha_assinatura', e.target.checked)}
+                      className="rounded border-slate-300 text-teal-600 focus:ring-teal-500"
+                    />
+                    <span className="text-slate-700 dark:text-slate-300 text-[11px] font-medium">
+                      Exibir linha de assinatura e carimbo
+                    </span>
+                  </label>
+                </div>
+
+                <div>
+                  <label className="text-slate-600 dark:text-slate-400 block mb-1">
+                    Instruções ou Mensagem Fixa de Rodapé
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={formData.texto_rodape_customizado || ''}
+                    onChange={(e) => handleChange('texto_rodape_customizado', e.target.value)}
+                    placeholder="Ex: Em caso de persistência dos sintomas ou efeitos adversos, procure o pronto atendimento mais próximo."
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl p-2.5 text-slate-900 dark:text-slate-100 focus:outline-none focus:border-teal-500"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Rodapé com botões de ação */}
           <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-800">

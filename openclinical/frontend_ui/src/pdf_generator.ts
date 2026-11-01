@@ -3,28 +3,29 @@ import html2canvas from 'html2canvas';
 import { PerfilMedico, Paciente, RelatorioTesteRealizado } from './types';
 
 /**
- * Converte um ou mais elementos HTML (páginas A4) em um arquivo PDF para download direto.
+ * Converte um ou mais elementos HTML (páginas A4 ou A5) em um arquivo PDF para download direto.
  */
 export async function exportarElementosParaPdf(
   elementos: HTMLElement[],
-  nomeArquivo: string
+  nomeArquivo: string,
+  formato: 'a4' | 'a5' = 'a4'
 ): Promise<void> {
   if (!elementos || elementos.length === 0) return;
 
   const pdf = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
-    format: 'a4',
+    format: formato,
     compress: true,
   });
 
-  const larguraA4 = 210;
-  const alturaA4 = 297;
+  const largura = formato === 'a5' ? 148 : 210;
+  const altura = formato === 'a5' ? 210 : 297;
 
   for (let i = 0; i < elementos.length; i++) {
     const el = elementos[i];
     if (i > 0) {
-      pdf.addPage('a4', 'portrait');
+      pdf.addPage(formato, 'portrait');
     }
 
     const canvas = await html2canvas(el, {
@@ -35,7 +36,7 @@ export async function exportarElementosParaPdf(
     });
 
     const imgData = canvas.toDataURL('image/jpeg', 0.95);
-    pdf.addImage(imgData, 'JPEG', 0, 0, larguraA4, alturaA4, undefined, 'FAST');
+    pdf.addImage(imgData, 'JPEG', 0, 0, largura, altura, undefined, 'FAST');
   }
 
   pdf.save(nomeArquivo.endsWith('.pdf') ? nomeArquivo : `${nomeArquivo}.pdf`);
