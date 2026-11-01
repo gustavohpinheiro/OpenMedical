@@ -729,6 +729,9 @@ export async function buscarGeral(termo: string): Promise<ItemBuscaFts[]> {
     const markdown = normalizarTexto(p.conteudo_markdown);
     const receita = normalizarTexto(p.bloco_prescricao_copiavel);
     const id = normalizarTexto(p.id_protocolo);
+    const agencia = normalizarTexto(p.agencia || '');
+    const pais = normalizarTexto(p.pais || '');
+    const codigo = normalizarTexto(p.codigo_diretriz || '');
 
     if (
       titulo.includes(termoNormalizado) ||
@@ -736,20 +739,26 @@ export async function buscarGeral(termo: string): Promise<ItemBuscaFts[]> {
       cids.includes(termoNormalizado) ||
       ciaps.includes(termoNormalizado) ||
       markdown.includes(termoNormalizado) ||
-      receita.includes(termoNormalizado)
+      receita.includes(termoNormalizado) ||
+      agencia.includes(termoNormalizado) ||
+      pais.includes(termoNormalizado) ||
+      codigo.includes(termoNormalizado)
     ) {
       const matchNoTitulo = titulo.includes(termoNormalizado) || cids.includes(termoNormalizado);
+      const eInternacional = Boolean(p.jurisdicao && p.jurisdicao !== "BR_SUS");
+      const rotuloOrigem = eInternacional
+        ? `🌐 Diretriz Internacional (${p.agencia || p.pais || "Exterior"})`
+        : "🇧🇷 SUS / PCDT Oficial";
       resultados.push({
-        tipo_registro: 'protocolo',
+        tipo_registro: "protocolo",
         id_referencia: p.id_protocolo,
         titulo_primario: p.titulo,
-        subtitulo: `Receita & Conduta - CIDs: ${p.cids_relacionados.join(', ')}`,
-        score_relevancia: matchNoTitulo ? -4.5 : -2.5,
+        subtitulo: `${rotuloOrigem} · CIDs: ${p.cids_relacionados.join(", ")}`,
+        score_relevancia: matchNoTitulo ? (eInternacional ? -4.2 : -4.5) : (eInternacional ? -2.2 : -2.5),
       });
     }
   }
 
-  // 3. Pesquisa em Diagnósticos CIDs e CIAPs
   for (const d of MOCK_DIAGNOSTICOS) {
     const cid = normalizarTexto(d.codigo_cid10);
     const descCid = normalizarTexto(d.descricao_cid10);
