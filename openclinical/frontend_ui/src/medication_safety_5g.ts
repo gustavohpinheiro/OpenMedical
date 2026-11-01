@@ -335,7 +335,7 @@ export function calcularEscoreTisdaleQtc(
     fatores.push('Insuficiência Cardíaca descompensada ou Sepse (+3 pontos)');
   }
 
-  const qtdFarmacosQtc = qtcEncontrados.len || qtcEncontrados.length;
+  const qtdFarmacosQtc = qtcEncontrados.length;
   if (qtdFarmacosQtc >= 2) {
     pontos += 6;
     fatores.push(`>= 2 fármacos que prolongam o QTc na prescrição (+6 pontos): ${qtcEncontrados.join(', ')}`);

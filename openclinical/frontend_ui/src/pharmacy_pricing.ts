@@ -72,12 +72,14 @@ export interface CotacaoFarmaciaItem {
 }
 
 export function cotarPrecosFarmacias(
-  _nome: string,
+  nome: string,
   substancia: string,
-  precoPmc?: number
+  precoPmc?: number,
+  apresentacao?: string
 ): CotacaoFarmaciaItem {
   const pmc = precoPmc && precoPmc > 0 ? precoPmc : 25.0;
-  const sit = verificarFarmaciaPopular(substancia, '');
+  const textoDose = apresentacao ? `${apresentacao} ${nome}` : nome;
+  const sit = verificarFarmaciaPopular(substancia, textoDose);
   const precoVarejo = Math.round(pmc * 0.75 * 100) / 100;
   return {
     preco_teto_anvisa: pmc,

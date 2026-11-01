@@ -9,7 +9,8 @@
 > 4. **Paridade 100% Rust $\leftrightarrow$ TypeScript:** Toda função matemática/clínica criada no motor Rust (`clinical_engine/src/`) DEVE ter espelho idêntico em `openclinical/frontend_ui/src/clinical_fallback.ts` para que o modo Web/PWA Offline funcione com os mesmos resultados do modo Desktop Tauri.
 > 5. **Comandos de Verificação no Windows (PowerShell):**
 >    * Testes Rust: `cargo test --manifest-path openclinical\core_rust\Cargo.toml --package clinical_engine`
->    * Build Frontend: `node openclinical\frontend_ui\node_modules\vite\bin\vite.js build openclinical\frontend_ui`
+>    * Build Frontend: `npm run build --prefix openclinical/frontend_ui`
+   * Checagem de Tipos TS: `node openclinical\frontend_ui\node_modules\typescript\bin\tsc --noEmit --project openclinical\frontend_ui\tsconfig.json`
 >    * Testes Paridade TS: `node --test openclinical\frontend_ui\tests\paridade_calculos.test.mjs`
 >    * Testes Python: `C:\Users\gusta\miniconda3\envs\openclinical\python.exe -m pytest openclinical\etl_pipeline\tests\`
 
@@ -264,11 +265,11 @@ Retorna alertas silenciosos de medicina de precisão para os fármacos presentes
 
 Para executar este plano sem erros, o agente deve seguir exatamente esta ordem de verificação:
 
-- [ ] **Passo 1:** Criar `openclinical/core_rust/clinical_engine/src/emergency.rs` e `openclinical/core_rust/clinical_engine/src/acid_base.rs`.
-- [ ] **Passo 2:** Criar `openclinical/core_rust/clinical_engine/src/medication_safety_5g.rs`.
-- [ ] **Passo 3:** Expandir `openclinical/core_rust/clinical_engine/src/calculators.rs` (dose reversa de infusão, `CHA2DS2-VA` e `qSOFA`) e registrar todos os novos módulos em `openclinical/core_rust/clinical_engine/src/lib.rs` e `openclinical/core_rust/openclinical_desktop/src/commands.rs`.
-- [ ] **Passo 4:** Adicionar testes unitários cobrindo todos os novos módulos em `openclinical/core_rust/clinical_engine/tests/test_clinical_engine.rs` e rodar `cargo test --manifest-path openclinical\core_rust\Cargo.toml --package clinical_engine`.
-- [ ] **Passo 5:** Espelhar todas as funções e tipos no frontend em `openclinical/frontend_ui/src/types.ts`, `openclinical/frontend_ui/src/clinical_fallback.ts`, `openclinical/frontend_ui/src/medication_safety_5g.ts` e `openclinical/frontend_ui/src/api.ts`.
-- [ ] **Passo 6:** Atualizar `openclinical/frontend_ui/src/components/ClinicalCalculators.tsx` (adicionando ISR, Gasometria, PALS e 10 Drogas Vasoativas) e `openclinical/frontend_ui/src/components/InteractionChecker.tsx` (adicionando Cascata de Prescrição, ACB Score, Triple Whammy, Tisdale QTc e CPIC).
-- [ ] **Passo 7:** Criar `openclinical/frontend_ui/src/components/PrescriptionBuilderView.tsx` (Cesta de Receita + Orçamento Total + Impressão Portaria 344) e `openclinical/frontend_ui/src/components/AntimicrobialGuideView.tsx` (Matriz CCIH + *Switch* IV-VO + Carimbos de Prontuário), integrando-os ao menu de `openclinical/frontend_ui/src/App.tsx` e adicionando o gerador de LME em `openclinical/frontend_ui/src/components/PublicDatabasesView.tsx`.
-- [ ] **Passo 8:** Executar o build completo do Vite (`node openclinical\frontend_ui\node_modules\vite\bin\vite.js build openclinical\frontend_ui`) e a suíte de paridade (`node --test openclinical\frontend_ui\tests\paridade_calculos.test.mjs`), garantindo zero erros antes do commit.
+- [x] **Passo 1:** Criar `openclinical/core_rust/clinical_engine/src/emergency.rs` e `openclinical/core_rust/clinical_engine/src/acid_base.rs`.
+- [x] **Passo 2:** Criar `openclinical/core_rust/clinical_engine/src/medication_safety_5g.rs`.
+- [x] **Passo 3:** Expandir `openclinical/core_rust/clinical_engine/src/calculators.rs` (dose reversa de infusão, `CHA2DS2-VA` e `qSOFA`) e registrar todos os novos módulos em `openclinical/core_rust/clinical_engine/src/lib.rs` e `openclinical/core_rust/openclinical_desktop/src/commands.rs`.
+- [x] **Passo 4:** Adicionar testes unitários cobrindo todos os novos módulos em `openclinical/core_rust/clinical_engine/tests/test_clinical_engine.rs` e rodar `cargo test --manifest-path openclinical\core_rust\Cargo.toml --package clinical_engine`.
+- [x] **Passo 5:** Espelhar todas as funções e tipos no frontend em `openclinical/frontend_ui/src/types.ts`, `openclinical/frontend_ui/src/clinical_fallback.ts`, `openclinical/frontend_ui/src/medication_safety_5g.ts` e `openclinical/frontend_ui/src/api.ts`.
+- [x] **Passo 6:** Atualizar `openclinical/frontend_ui/src/components/ClinicalCalculators.tsx` (adicionando ISR, Gasometria, PALS e 10 Drogas Vasoativas) e `openclinical/frontend_ui/src/components/InteractionChecker.tsx` (adicionando Cascata de Prescrição, ACB Score, Triple Whammy, Tisdale QTc e CPIC).
+- [x] **Passo 7:** Criar `openclinical/frontend_ui/src/components/PrescriptionBuilderView.tsx` (Cesta de Receita + Orçamento Total + Impressão Portaria 344) e `openclinical/frontend_ui/src/components/AntimicrobialGuideView.tsx` (Matriz CCIH + *Switch* IV-VO + Carimbos de Prontuário), integrando-os ao menu de `openclinical/frontend_ui/src/App.tsx` e adicionando o gerador de LME em `openclinical/frontend_ui/src/components/PcdtConitecView.tsx`.
+- [x] **Passo 8:** Executar o build completo do Vite (`npm run build --prefix openclinical/frontend_ui`), a checagem de tipos (`tsc --noEmit`) e a suíte de paridade (`node --test openclinical\frontend_ui\tests\paridade_calculos.test.mjs`), garantindo zero erros antes do commit.

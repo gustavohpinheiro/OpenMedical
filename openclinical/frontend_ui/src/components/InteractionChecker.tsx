@@ -17,23 +17,27 @@ import { verificarInteracoes, avaliarSegurancaMedicamentosa5g } from '../api';
 import { FtnInteractionChecker } from './FtnInteractionChecker';
 import { LinkMedicamento } from './LinkMedicamento';
 
-const LISTA_FARMACOS_SUGERIDOS = [
-  { id: 1, nome: 'Amoxicilina' },
-  { id: 2, nome: 'Dipirona Monoidratada' },
-  { id: 3, nome: 'Losartana Potássica' },
-  { id: 4, nome: 'Maleato de Enalapril' },
-  { id: 5, nome: 'Anlodipino' },
-  { id: 6, nome: 'Furosemida' },
-  { id: 7, nome: 'Ibuprofeno' },
-  { id: 8, nome: 'Amitriptilina' },
-  { id: 9, nome: 'Oxibutinina' },
-  { id: 10, nome: 'Ondansetrona' },
-  { id: 11, nome: 'Azitromicina' },
-  { id: 12, nome: 'Clopidogrel' },
-  { id: 13, nome: 'Sinvastatina' },
-  { id: 14, nome: 'Alopurinol' },
-  { id: 15, nome: 'Donepezila' },
-  { id: 16, nome: 'Metoclopramida' },
+const LISTA_FARMACOS_SUGERIDOS: { chave: string; nome: string; idPrincipioAtivo: number | null }[] = [
+  { chave: 'amoxicilina', nome: 'Amoxicilina', idPrincipioAtivo: 1 },
+  { chave: 'dipirona', nome: 'Dipirona Monoidratada', idPrincipioAtivo: 2 },
+  { chave: 'losartana', nome: 'Losartana Potássica', idPrincipioAtivo: 3 },
+  { chave: 'enalapril', nome: 'Maleato de Enalapril', idPrincipioAtivo: 4 },
+  { chave: 'omeprazol', nome: 'Omeprazol', idPrincipioAtivo: 5 },
+  { chave: 'azitromicina', nome: 'Azitromicina', idPrincipioAtivo: 6 },
+  { chave: 'norepinefrina', nome: 'Hemitartarato de Norepinefrina', idPrincipioAtivo: 7 },
+  { chave: 'ceftriaxona', nome: 'Ceftriaxona Sódica', idPrincipioAtivo: 8 },
+  { chave: 'metformina', nome: 'Cloridrato de Metformina', idPrincipioAtivo: 9 },
+  { chave: 'sinvastatina', nome: 'Sinvastatina', idPrincipioAtivo: 10 },
+  { chave: 'anlodipino', nome: 'Anlodipino', idPrincipioAtivo: null },
+  { chave: 'furosemida', nome: 'Furosemida', idPrincipioAtivo: null },
+  { chave: 'ibuprofeno', nome: 'Ibuprofeno', idPrincipioAtivo: null },
+  { chave: 'amitriptilina', nome: 'Amitriptilina', idPrincipioAtivo: null },
+  { chave: 'oxibutinina', nome: 'Oxibutinina', idPrincipioAtivo: null },
+  { chave: 'ondansetrona', nome: 'Ondansetrona', idPrincipioAtivo: null },
+  { chave: 'clopidogrel', nome: 'Clopidogrel', idPrincipioAtivo: null },
+  { chave: 'alopurinol', nome: 'Alopurinol', idPrincipioAtivo: null },
+  { chave: 'donepezila', nome: 'Donepezila', idPrincipioAtivo: null },
+  { chave: 'metoclopramida', nome: 'Metoclopramida', idPrincipioAtivo: null },
 ];
 
 export const InteractionChecker: React.FC = () => {
@@ -79,13 +83,13 @@ export const InteractionChecker: React.FC = () => {
           console.error('Erro ao avaliar segurança 5G:', e);
         });
 
-      // Mapeamento para IDs caso coincida com a base demo
+      // Mapeamento para IDs caso coincida com os 10 princípios ativos da matriz SQLite/demo
       const idsDemo = nomesFarmacos
         .map((nome) => {
           const achado = LISTA_FARMACOS_SUGERIDOS.find(
             (f) => f.nome.toLowerCase() === nome.toLowerCase()
           );
-          return achado ? achado.id : null;
+          return achado ? achado.idPrincipioAtivo : null;
         })
         .filter((id): id is number => id !== null);
 
@@ -175,7 +179,7 @@ export const InteractionChecker: React.FC = () => {
               const ativo = nomesFarmacos.includes(f.nome);
               return (
                 <button
-                  key={f.id}
+                  key={f.chave}
                   type="button"
                   onClick={() => alternarFarmacoNome(f.nome)}
                   className={`flex items-center space-x-1.5 px-3 py-1 rounded-xl text-xs font-medium border transition-all ${
