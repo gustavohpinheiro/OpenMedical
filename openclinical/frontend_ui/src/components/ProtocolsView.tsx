@@ -30,6 +30,9 @@ import { listarProtocolos, normalizarTexto, atualizarDiretrizesPython } from '..
 import { FARMACOS_POR_PROTOCOLO, CATEGORIAS_POR_PROTOCOLO } from '../catalog_protocolos';
 import { MarkdownSimples } from './MarkdownSimples';
 import { LinkMedicamento } from './LinkMedicamento';
+import { CustomProtocolModal } from './CustomProtocolModal';
+import { DataBackupModal } from './DataBackupModal';
+import { listarProtocolosPersonalizados, excluirProtocoloPersonalizado } from '../storage_clinico';
 
 /** "Atencao_Primaria_e_Urgencia" -> "Atenção Primária e Urgência" */
 function formatarNivelAtencao(nivel: string): string {
@@ -51,6 +54,7 @@ function formatarNivelAtencao(nivel: string): string {
 
 type CategoriaFiltro =
   | 'todos'
+  | 'personalizados'
   | 'dipirona'
   | 'infecto'
   | 'cardio'
@@ -71,6 +75,7 @@ const CATEGORIAS_FILTRO: {
   matches: (cat: string) => boolean;
 }[] = [
   { id: 'todos', label: 'Todas as Especialidades', matches: () => true },
+  { id: 'personalizados', label: '⭐ Protocolos Próprios do Médico', destaque: true, matches: (cat) => cat === 'custom' || cat === 'Clinica_Geral' || true },
   { id: 'dipirona', label: '⭐ Dor & Febre (Dipirona)', destaque: true, matches: () => false },
   {
     id: 'infecto',
@@ -248,6 +253,9 @@ export const ProtocolsView: React.FC<ProtocolsViewProps> = ({ protocoloSeleciona
 
   // Estados do Atualizador Python
   const [atualizandoPython, setAtualizandoPython] = useState(false);
+  const [modalCustomAberto, setModalCustomAberto] = useState(false);
+  const [modalBackupAberto, setModalBackupAberto] = useState(false);
+  const [protocoloEditando, setProtocoloEditando] = useState<ProtocoloClinico | null>(null);
   const [relatorioAtualizacao, setRelatorioAtualizacao] = useState<ResultadoAtualizacaoDiretrizes | null>(null);
   const [modalAtualizacaoAberto, setModalAtualizacaoAberto] = useState(false);
 
@@ -459,6 +467,27 @@ export const ProtocolsView: React.FC<ProtocolsViewProps> = ({ protocoloSeleciona
                 className="w-full bg-slate-950 border border-slate-750 focus:border-teal-500 rounded-xl pl-9 pr-4 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none transition-all"
               />
             </div>
+
+            {/* Botões de Protocolos Próprios e Backups */}
+            <button
+              onClick={() => {
+                setProtocoloEditando(null);
+                setModalCustomAberto(true);
+              }}
+              className="flex items-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition shadow-sm whitespace-nowrap shrink-0"
+              title="Criar um protocolo clínico personalizado próprio do seu consultório"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Novo Protocolo</span>
+            </button>
+
+            <button
+              onClick={() => setModalBackupAberto(true)}
+              className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs transition border border-slate-750 shrink-0"
+              title="Central de Importação e Exportação de Protocolos e Dados"
+            >
+              <Layers className="w-4 h-4 text-teal-400" />
+            </button>
 
             {/* Botão de Disparo do Atualizador Python */}
             <button

@@ -7,6 +7,7 @@ import {
   ItemPrescricaoCesta,
   ReceitaSalva,
   EvolucaoProntuario,
+  ProtocoloClinico,
 } from './types';
 
 // =============================================================================
@@ -22,6 +23,7 @@ const KEY_TEMPLATE_ATIVO_ID = 'openclinical_template_ativo_id';
 const KEY_RELATORIOS_TESTES = 'openclinical_relatorios_testes';
 const KEY_RECEITAS_HISTORICO = 'openclinical_receitas_historico';
 const KEY_EVOLUCOES_PRONTUARIO = 'openclinical_evolucoes_prontuario';
+const KEY_PROTOCOLOS_PERSONALIZADOS = 'openclinical_protocolos_personalizados';
 
 // =============================================================================
 // Dados Iniciais Padrão (Presets de Demonstração e Consultório)
@@ -554,4 +556,193 @@ export function trocarPerfilMedico(id: string): PerfilMedico | null {
     return escolhido;
   }
   return null;
+}
+
+
+// =============================================================================
+// Gestão de Protocolos Personalizados do Médico
+// =============================================================================
+
+export function listarProtocolosPersonalizados(): ProtocoloClinico[] {
+  try {
+    const data = localStorage.getItem(KEY_PROTOCOLOS_PERSONALIZADOS);
+    if (data) {
+      return JSON.parse(data);
+    }
+  } catch (e) {
+    console.error('Erro ao listar protocolos personalizados:', e);
+  }
+  return [];
+}
+
+export function salvarProtocoloPersonalizado(protocolo: ProtocoloClinico): void {
+  try {
+    const todos = listarProtocolosPersonalizados();
+    const idx = todos.findIndex((p) => p.id_protocolo === protocolo.id_protocolo);
+    if (idx >= 0) {
+      todos[idx] = protocolo;
+    } else {
+      todos.unshift(protocolo);
+    }
+    localStorage.setItem(KEY_PROTOCOLOS_PERSONALIZADOS, JSON.stringify(todos));
+    window.dispatchEvent(new CustomEvent('openclinical_protocolos_atualizados', { detail: todos }));
+  } catch (e) {
+    console.error('Erro ao salvar protocolo personalizado:', e);
+  }
+}
+
+export function excluirProtocoloPersonalizado(id: string): void {
+  try {
+    const todos = listarProtocolosPersonalizados().filter((p) => p.id_protocolo !== id);
+    localStorage.setItem(KEY_PROTOCOLOS_PERSONALIZADOS, JSON.stringify(todos));
+    window.dispatchEvent(new CustomEvent('openclinical_protocolos_atualizados', { detail: todos }));
+  } catch (e) {
+    console.error('Erro ao excluir protocolo personalizado:', e);
+  }
+}
+
+// =============================================================================
+// Central de Exportação e Importação de Dados Clínicos (JSON)
+// =============================================================================
+
+export function exportarProtocolosJson(): string {
+  const protocolos = listarProtocolosPersonalizados();
+  return JSON.stringify({ versao: '1.0', exportado_em: new Date().toISOString(), tipo: 'protocolos', dados: protocolos }, null, 2);
+}
+
+export function importarProtocolosJson(jsonStr: string): { adicionados: number; total: number } {
+  try {
+    const parsed = JSON.parse(jsonStr);
+    const lista: ProtocoloClinico[] = Array.isArray(parsed) ? parsed : (parsed.dados || []);
+    if (!Array.isArray(lista)) throw new Error('Formato inválido');
+    const atuais = listarProtocolosPersonalizados();
+    let adicionados = 0;
+    for (const item of lista) {
+      if (!item.id_protocolo || !item.titulo) continue;
+      const idx = atuais.findIndex((p) => p.id_protocolo === item.id_protocolo);
+      if (idx >= 0) {
+        atuais[idx] = item;
+      } else {
+        atuais.push(item);
+        adicionados++;
+      }
+    }
+    localStorage.setItem(KEY_PROTOCOLOS_PERSONALIZADOS, JSON.stringify(atuais));
+    window.dispatchEvent(new CustomEvent('openclinical_protocolos_atualizados', { detail: atuais }));
+    return { adicionados, total: atuais.length };
+  } catch (e) {
+    throw new Error('Falha ao processar arquivo JSON de protocolos.');
+  }
+}
+
+export function exportarReceitasJson(): string {
+  const receitas = listarReceitasSalvas();
+  return JSON.stringify({ versao: '1.0', exportado_em: new Date().toISOString(), tipo: 'receitas', dados: receitas }, null, 2);
+}
+
+export function importarReceitasJson(jsonStr: string): { adicionadas: number; total: number } {
+  try {
+    const parsed = JSON.parse(jsonStr);
+    const lista: ReceitaSalva[] = Array.isArray(parsed) ? parsed : (parsed.dados || []);
+    if (!Array.isArray(lista)) throw new Error('Formato inválido');
+    const atuais = listarReceitasSalvas();
+    let adicionadas = 0;
+    for (const item of lista) {
+      if (!item.id || !item.blocos) continue;
+      const idx = atuais.findIndex((r) => r.id === item.id);
+      if (idx >= 0) {
+        atuais[idx] = item;
+      } else {
+        atuais.unshift(item);
+        adicionadas++;
+      }
+    }
+    localStorage.setItem(KEY_RECEITAS_HISTORICO, JSON.stringify(atuais));
+    window.dispatchEvent(new CustomEvent('openclinical_receitas_atualizadas', { detail: atuais }));
+    return { adicionadas, total: atuais.length };
+  } catch (e) {
+    throw new Error('Falha ao processar arquivo JSON de receitas.');
+  }
+}
+
+export function exportarProntuariosJson(): string {
+  const pacientes = listarPacientes();
+  const evolucoesRaw = localStorage.getItem(KEY_EVOLUCOES_PRONTUARIO);
+  const evolucoes: EvolucaoProntuario[] = evolucoesRaw ? JSON.parse(evolucoesRaw) : [];
+  return JSON.stringify({ versao: '1.0', exportado_em: new Date().toISOString(), tipo: 'prontuarios', pacientes, evolucoes }, null, 2);
+}
+
+export function importarProntuariosJson(jsonStr: string): { pacientes: number; evolucoes: number } {
+  try {
+    const parsed = JSON.parse(jsonStr);
+    const pacientesLista: Paciente[] = parsed.pacientes || (Array.isArray(parsed) ? parsed : []);
+    const evolucoesLista: EvolucaoProntuario[] = parsed.evolucoes || [];
+
+    const atuaisPacientes = listarPacientes();
+    let pacAdicionados = 0;
+    for (const p of pacientesLista) {
+      if (!p.id || !p.nome_completo) continue;
+      const idx = atuaisPacientes.findIndex((x) => x.id === p.id);
+      if (idx >= 0) {
+        atuaisPacientes[idx] = p;
+      } else {
+        atuaisPacientes.push(p);
+        pacAdicionados++;
+      }
+    }
+    localStorage.setItem(KEY_PACIENTES, JSON.stringify(atuaisPacientes));
+
+    const atuaisEvolucoesRaw = localStorage.getItem(KEY_EVOLUCOES_PRONTUARIO);
+    const atuaisEvolucoes: EvolucaoProntuario[] = atuaisEvolucoesRaw ? JSON.parse(atuaisEvolucoesRaw) : [];
+    let evAdicionadas = 0;
+    for (const ev of evolucoesLista) {
+      if (!ev.id || !ev.paciente_id) continue;
+      const idx = atuaisEvolucoes.findIndex((x) => x.id === ev.id);
+      if (idx >= 0) {
+        atuaisEvolucoes[idx] = ev;
+      } else {
+        atuaisEvolucoes.unshift(ev);
+        evAdicionadas++;
+      }
+    }
+    localStorage.setItem(KEY_EVOLUCOES_PRONTUARIO, JSON.stringify(atuaisEvolucoes));
+
+    window.dispatchEvent(new CustomEvent('openclinical_paciente_alterado', { detail: obterPacienteAtivo() }));
+    return { pacientes: pacAdicionados, evolucoes: evAdicionadas };
+  } catch (e) {
+    throw new Error('Falha ao processar arquivo JSON de prontuários.');
+  }
+}
+
+export function exportarBackupCompletoJson(): string {
+  return JSON.stringify({
+    versao: '1.0',
+    exportado_em: new Date().toISOString(),
+    tipo: 'backup_completo_openclinical',
+    medicos: listarPerfisMedicos(),
+    pacientes: listarPacientes(),
+    protocolos_personalizados: listarProtocolosPersonalizados(),
+    receitas: listarReceitasSalvas(),
+    evolucoes: JSON.parse(localStorage.getItem(KEY_EVOLUCOES_PRONTUARIO) || '[]'),
+    templates: obterTemplatesReceituario(),
+  }, null, 2);
+}
+
+export function importarBackupCompletoJson(jsonStr: string): { sucesso: boolean; mensagem: string } {
+  try {
+    const backup = JSON.parse(jsonStr);
+    if (backup.pacientes) localStorage.setItem(KEY_PACIENTES, JSON.stringify(backup.pacientes));
+    if (backup.protocolos_personalizados) localStorage.setItem(KEY_PROTOCOLOS_PERSONALIZADOS, JSON.stringify(backup.protocolos_personalizados));
+    if (backup.receitas) localStorage.setItem(KEY_RECEITAS_HISTORICO, JSON.stringify(backup.receitas));
+    if (backup.evolucoes) localStorage.setItem(KEY_EVOLUCOES_PRONTUARIO, JSON.stringify(backup.evolucoes));
+    if (backup.templates) localStorage.setItem(KEY_TEMPLATES_RECEITA, JSON.stringify(backup.templates));
+    if (backup.medicos) localStorage.setItem(KEY_PERFIS_MEDICOS, JSON.stringify(backup.medicos));
+
+    window.dispatchEvent(new CustomEvent('openclinical_prescricao_atualizada', { detail: obterBlocosPrescricao() }));
+    window.dispatchEvent(new CustomEvent('openclinical_paciente_alterado', { detail: obterPacienteAtivo() }));
+    window.dispatchEvent(new CustomEvent('openclinical_medico_alterado', { detail: obterPerfilMedicoAtivo() }));
+    return { sucesso: true, mensagem: 'Backup completo importado com sucesso!' };
+  } catch (e) {
+    throw new Error('Arquivo de backup inválido ou corrompido.');
+  }
 }

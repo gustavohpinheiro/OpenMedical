@@ -30,6 +30,7 @@ import {
   Copy,
   Building,
   HeartPulse,
+  FileUp,
 } from 'lucide-react';
 import {
   BlocoPrescricao,
@@ -48,6 +49,7 @@ import {
   adicionarItemPrescricaoModular,
 } from '../storage_clinico';
 import { avaliarSegurancaMedicamentosa5g } from '../medication_safety_5g';
+import { importarReceitasDePdfs } from '../prescription_importer';
 import { exportarElementosParaPdf } from '../pdf_generator';
 import { buscarGeral } from '../api';
 
@@ -123,6 +125,13 @@ export const PrescriptionSideDrawer: React.FC<PrescriptionSideDrawerProps> = ({
 
   const [salvandoMsg, setSalvandoMsg] = useState(false);
   const [copiadoTextoMsg, setCopiadoTextoMsg] = useState(false);
+  const fileInputPdfRef = React.useRef<HTMLInputElement>(null);
+  const [importandoPdf, setImportandoPdf] = useState(false);
+  const [msgImportacao, setMsgImportacao] = useState<{
+    texto: string;
+    tipo: 'sucesso' | 'erro' | 'alerta';
+    detalhes?: string[];
+  } | null>(null);
 
   // Busca rápida de medicamentos diretamente na gaveta da receita
   const [buscaTermo, setBuscaTermo] = useState('');
@@ -404,6 +413,62 @@ export const PrescriptionSideDrawer: React.FC<PrescriptionSideDrawerProps> = ({
     setTimeout(() => setSalvandoMsg(false), 3000);
   };
 
+  // Importação e Reconversão Reversa de Receitas em PDF (com auditoria de alergias e 5G)
+  const handleSelecionarArquivosPdf = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    try {
+      setImportandoPdf(true);
+      setMsgImportacao(null);
+      const resultados = await importarReceitasDePdfs(Array.from(files), pacienteAtivo);
+      let novosBlocos: BlocoPrescricao[] = [...blocos];
+      let totalItensAdicionados = 0;
+      const todosAlertasAlergia: string[] = [];
+      const todosAlertasInteracoes: string[] = [];
+
+      for (const res of resultados) {
+        if (res.sucesso && res.blocos.length > 0) {
+          totalItensAdicionados += res.blocos.length;
+          novosBlocos = [...novosBlocos, ...res.blocos];
+          todosAlertasAlergia.push(...res.alertas_alergia);
+          todosAlertasInteracoes.push(...res.alertas_interacoes);
+        }
+      }
+
+      if (totalItensAdicionados > 0) {
+        salvarBlocosPrescricao(novosBlocos);
+        setBlocos(novosBlocos);
+        const alertasTotal = [...todosAlertasAlergia, ...todosAlertasInteracoes];
+        if (alertasTotal.length > 0) {
+          setMsgImportacao({
+            texto: `${totalItensAdicionados} item(ns) importado(s) de ${files.length} PDF(s), mas foram detectados alertas críticos de segurança!`,
+            tipo: 'alerta',
+            detalhes: alertasTotal,
+          });
+        } else {
+          setMsgImportacao({
+            texto: `${totalItensAdicionados} item(ns) importado(s) com sucesso de ${files.length} receita(s) em PDF!`,
+            tipo: 'sucesso',
+          });
+        }
+        setTimeout(() => setMsgImportacao(null), 8000);
+      } else {
+        setMsgImportacao({
+          texto: 'Não foi possível extrair medicamentos válidos dos arquivos PDF enviados.',
+          tipo: 'erro',
+        });
+      }
+    } catch (err: any) {
+      setMsgImportacao({
+        texto: err.message || 'Erro ao processar importação de PDF.',
+        tipo: 'erro',
+      });
+    } finally {
+      setImportandoPdf(false);
+      if (fileInputPdfRef.current) fileInputPdfRef.current.value = '';
+    }
+  };
+
   // Exportar PDF Direto
   const handleExportarPdf = async () => {
     try {
@@ -413,7 +478,12 @@ export const PrescriptionSideDrawer: React.FC<PrescriptionSideDrawerProps> = ({
         await exportarElementosParaPdf(
           [el],
           `Receita_${pacienteAtivo?.nome_completo || 'Paciente'}_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}`,
-          formato
+          formato,
+          {
+            blocos,
+            paciente: pacienteAtivo,
+            medico: perfilMedico,
+          }
         );
       } else {
         window.print();
@@ -562,6 +632,26 @@ export const PrescriptionSideDrawer: React.FC<PrescriptionSideDrawerProps> = ({
               </button>
             </div>
 
+            {/* Botão de Importação Reversa de Receitas em PDF */}
+            <input
+              ref={fileInputPdfRef}
+              type="file"
+              accept=".pdf"
+              multiple={true}
+              onChange={handleSelecionarArquivosPdf}
+              className="hidden"
+            />
+            <button
+              type="button"
+              onClick={() => fileInputPdfRef.current?.click()}
+              disabled={importandoPdf}
+              className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold text-teal-700 dark:text-teal-300 bg-teal-50 dark:bg-teal-950/60 border border-teal-300 dark:border-teal-700 rounded-xl hover:bg-teal-100 transition"
+              title="Importar receita(s) em PDF e converter em blocos inteligentes com checagem de alergias"
+            >
+              <FileUp className="w-3.5 h-3.5" />
+              <span>{importandoPdf ? 'Lendo...' : 'Importar PDF'}</span>
+            </button>
+
             <button
               type="button"
               onClick={() => setAberto(false)}
@@ -572,6 +662,36 @@ export const PrescriptionSideDrawer: React.FC<PrescriptionSideDrawerProps> = ({
             </button>
           </div>
         </div>
+
+        {/* Mensagem de Feedback de Importação de PDF */}
+        {msgImportacao && (
+          <div
+            className={`p-3 mx-3 my-2 rounded-xl text-xs flex flex-col gap-1 border animate-in fade-in ${
+              msgImportacao.tipo === 'sucesso'
+                ? 'bg-emerald-50 dark:bg-emerald-950/60 border-emerald-300 text-emerald-800 dark:text-emerald-200'
+                : msgImportacao.tipo === 'alerta'
+                ? 'bg-amber-50 dark:bg-amber-950/60 border-amber-300 text-amber-900 dark:text-amber-200'
+                : 'bg-rose-50 dark:bg-rose-950/60 border-rose-300 text-rose-800 dark:text-rose-200'
+            }`}
+          >
+            <div className="font-bold flex items-center justify-between gap-1.5">
+              <span className="flex items-center gap-1.5">
+                {msgImportacao.tipo === 'sucesso' ? <Check className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
+                {msgImportacao.texto}
+              </span>
+              <button onClick={() => setMsgImportacao(null)} className="p-0.5 hover:text-slate-900">
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+            {msgImportacao.detalhes && (
+              <ul className="list-disc list-inside space-y-0.5 text-[11px] pt-1">
+                {msgImportacao.detalhes.map((det, idx) => (
+                  <li key={idx} className="font-semibold text-rose-700 dark:text-rose-300">{det}</li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
 
         {/* ===================================================================
             BUSCADOR RÁPIDO INTEGRADO DIRETO NA GAVETA

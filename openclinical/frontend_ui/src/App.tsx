@@ -9,6 +9,7 @@ import {
   HeartPulse,
   Check,
   Database,
+  Sparkles,
   FileCheck,
   AlertTriangle,
   Store,
@@ -32,6 +33,8 @@ import { PrescriptionModularCanvas } from './components/PrescriptionModularCanva
 import { PrescriptionSideDrawer } from './components/PrescriptionSideDrawer';
 import { PatientProfileView } from './components/PatientProfileView';
 import { RapidClinicTestsView } from './components/RapidClinicTestsView';
+import { SymptomDiagnosticoView } from './components/SymptomDiagnosticoView';
+import { DataBackupModal } from './components/DataBackupModal';
 import { DoctorProfileModal } from './components/DoctorProfileModal';
 import { PatientSelectorBar } from './components/PatientSelectorBar';
 import { AntimicrobialGuideView } from './components/AntimicrobialGuideView';
@@ -66,7 +69,8 @@ export type SecaoApp =
   | 'interacoes'
   | 'calculadoras'
   | 'testes_rapidos'
-  | 'prontuario';
+  | 'prontuario'
+  | 'sintomas';
 
 export interface ItemNavegacao {
   id: SecaoApp;
@@ -156,6 +160,13 @@ export const GRUPOS_NAVEGACAO: GrupoNavegacao[] = [
     icone: '⚡',
     itens: [
       {
+        id: 'sintomas',
+        label: 'Investigador de Sintomas',
+        icon: Sparkles,
+        badge: 'Diagnóstico',
+        descricao: 'Busca determinística de sintomas, hipóteses e conduta',
+      },
+      {
         id: 'testes_rapidos',
         label: 'Testes de Consultório',
         icon: Brain,
@@ -193,6 +204,7 @@ export const App: React.FC = () => {
   const modoNativo = isTauri();
   const [buscaAberta, setBuscaAberta] = useState(false);
   const [modalMedicoAberto, setModalMedicoAberto] = useState(false);
+  const [modalBackupAberto, setModalBackupAberto] = useState(false);
   const [perfilMedico, setPerfilMedico] = useState<PerfilMedico>(obterPerfilMedicoAtivo());
   const [termoBuscaInicial, setTermoBuscaInicial] = useState<string | undefined>(undefined);
   const [temaAtual, setTemaAtual] = useState<TemaClinico>(obterTemaAtual());
@@ -498,13 +510,13 @@ export const App: React.FC = () => {
           <div className="flex-1 max-w-lg mx-2 hidden md:block">
             <button
               onClick={() => setBuscaAberta(true)}
-              className="w-full flex items-center justify-between px-3.5 py-2 bg-slate-900/90 hover:bg-slate-850 border border-slate-750 hover:border-teal-500/60 rounded-xl text-slate-400 text-xs transition-all shadow-inner group"
+              className="w-full flex items-center justify-between px-3.5 py-2 bg-slate-100 hover:bg-slate-200/80 dark:bg-slate-900/90 dark:hover:bg-slate-850 border border-slate-300 dark:border-slate-750 hover:border-teal-500/60 rounded-xl text-slate-600 dark:text-slate-400 text-xs transition-all shadow-inner group"
             >
               <div className="flex items-center space-x-2 truncate">
-                <Search className="w-3.5 h-3.5 text-teal-400 group-hover:scale-110 transition-transform flex-shrink-0" />
-                <span className="truncate">Buscar fármacos (ex: Dipirona, Amoxil), CIDs, receitas...</span>
+                <Search className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400 group-hover:scale-110 transition-transform flex-shrink-0" />
+                <span className="truncate font-medium">Buscar fármacos (ex: Dipirona, Amoxil), CIDs, receitas...</span>
               </div>
-              <kbd className="px-1.5 py-0.5 text-[9px] font-mono font-semibold bg-slate-950 text-slate-400 border border-slate-800 rounded shadow-sm">
+              <kbd className="px-1.5 py-0.5 text-[9px] font-mono font-semibold bg-white dark:bg-slate-950 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-800 rounded shadow-sm">
                 Ctrl+K
               </kbd>
             </button>
@@ -525,6 +537,16 @@ export const App: React.FC = () => {
               ) : (
                 <Moon className="w-4 h-4 text-slate-700" />
               )}
+            </button>
+
+            {/* Botão de Central de Dados & Backups */}
+            <button
+              type="button"
+              onClick={() => setModalBackupAberto(true)}
+              className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-300 dark:border-slate-700/80 text-slate-700 dark:text-slate-300 transition"
+              title="Central de Dados & Backups (Exportar/Importar Protocolos, Prontuários e Receitas)"
+            >
+              <Database className="w-4 h-4 text-teal-600 dark:text-teal-400" />
             </button>
 
             {/* Botão de Perfil do Médico */}
@@ -569,32 +591,14 @@ export const App: React.FC = () => {
             </div>
         </header>
 
-        {/* Aviso clínico regulatório (Discreto e Fechável) */}
-        {avisoAberto && (
-          <div className="bg-amber-50 dark:bg-amber-950/40 border-b border-amber-200 dark:border-amber-800/40 px-4 sm:px-6 py-1.5 text-[11px] text-amber-900 dark:text-amber-200/90 flex items-center justify-between gap-2 transition-all">
-            <div className="flex items-center gap-2">
-              <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 text-amber-600 dark:text-amber-400" />
-              <span>
-                Suporte à decisão clínica: consulte a bula ANVISA e o PCDT oficial antes de prescrever.
-              </span>
-            </div>
-            <button
-              type="button"
-              onClick={fecharAviso}
-              className="p-1 hover:bg-amber-200 dark:hover:bg-amber-900/50 rounded text-amber-700 dark:text-amber-400 transition"
-              title="Fechar aviso regulatório"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        )}
+
 
         {/* Estrutura Principal: Sidebar Lateral + Área de Trabalho */}
         <div className="flex-1 flex flex-row w-full items-stretch">
           {/* SIDEBAR DESKTOP (COLLAPSIBLE) */}
           <aside
             className={`hidden lg:flex flex-col border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-[#080e1a] sticky top-[57px] h-[calc(100vh-57px)] transition-all duration-300 flex-shrink-0 z-20 ${
-              sidebarColapsada ? 'w-16' : 'w-64'
+              sidebarColapsada ? 'w-16' : 'w-72'
             }`}
           >
             <div className="flex-1 overflow-y-auto py-2.5 space-y-4 scrollbar-none">
@@ -602,7 +606,7 @@ export const App: React.FC = () => {
                 // MODO EXPANDIDO: 3 MÓDULOS CLÍNICOS AGRUPADOS
                 GRUPOS_NAVEGACAO.map((grupo, idx) => (
                   <div key={idx} className="space-y-1">
-                    <div className="px-3 pt-2 pb-1 text-[10px] font-extrabold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                    <div className="px-3 pt-2.5 pb-1 text-[11px] font-black uppercase tracking-wider text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
                       <span>{grupo.icone}</span>
                       <span>{grupo.titulo}</span>
                     </div>
@@ -618,17 +622,17 @@ export const App: React.FC = () => {
                             className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-all text-left ${
                               ativo
                                 ? 'bg-gradient-to-r from-teal-600 to-emerald-600 text-white shadow-md shadow-teal-950/40 ring-1 ring-white/20'
-                                : 'text-slate-300 hover:text-white hover:bg-slate-800/70 border border-transparent'
+                                : 'text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/70 border border-transparent'
                             }`}
                             title={item.descricao}
                           >
                             <div className="flex items-center space-x-2.5 truncate">
-                              <Icone className={`w-4 h-4 flex-shrink-0 ${ativo ? 'text-white' : 'text-teal-400'}`} />
+                              <Icone className={`w-4 h-4 flex-shrink-0 ${ativo ? 'text-white' : 'text-teal-600 dark:text-teal-400'}`} />
                               <span className="truncate">{item.label}</span>
                             </div>
                             <span
-                              className={`text-[9px] px-1.5 py-0.5 rounded-md font-mono flex-shrink-0 ml-1 ${
-                                ativo ? 'bg-black/30 text-teal-100' : 'bg-slate-800/90 text-slate-400'
+                              className={`text-[9px] px-1.5 py-0.5 rounded-md font-mono flex-shrink-0 ml-1 border ${
+                                ativo ? 'bg-black/20 text-teal-100 border-white/20' : 'bg-slate-100 dark:bg-slate-800/90 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700/60'
                               }`}
                             >
                               {item.badge}
@@ -722,16 +726,16 @@ export const App: React.FC = () => {
                               className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all text-left ${
                                 ativo
                                   ? 'bg-gradient-to-r from-teal-600 to-emerald-600 text-white shadow-md shadow-teal-950/40'
-                                  : 'text-slate-300 hover:bg-slate-800/80'
+                                  : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/80'
                               }`}
                             >
                               <div className="flex items-center space-x-2.5 truncate">
-                                <Icone className={`w-4 h-4 flex-shrink-0 ${ativo ? 'text-white' : 'text-teal-400'}`} />
+                                <Icone className={`w-4 h-4 flex-shrink-0 ${ativo ? 'text-white' : 'text-teal-600 dark:text-teal-400'}`} />
                                 <span className="truncate">{item.label}</span>
                               </div>
                               <span
-                                className={`text-[9px] px-1.5 py-0.5 rounded-md font-mono ${
-                                  ativo ? 'bg-black/30 text-teal-100' : 'bg-slate-800 text-slate-400'
+                                className={`text-[9px] px-1.5 py-0.5 rounded-md font-mono border ${
+                                  ativo ? 'bg-black/20 text-teal-100 border-white/20' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700/60'
                                 }`}
                               >
                                 {item.badge}
@@ -810,6 +814,16 @@ export const App: React.FC = () => {
 
             {secaoAtiva === 'calculadoras' && <ClinicalCalculators />}
 
+            {secaoAtiva === 'sintomas' && (
+              <SymptomDiagnosticoView
+                onAbrirProtocolo={(id) => {
+                  setProtocoloSelecionadoId(id);
+                  setSecaoAtiva('protocolos');
+                }}
+                onNavegarParaPrescricao={() => setSecaoAtiva('prescricao')}
+              />
+            )}
+
             {secaoAtiva === 'protocolos' && (
               <ProtocolsView protocoloSelecionadoId={protocoloSelecionadoId} />
             )}
@@ -842,7 +856,13 @@ export const App: React.FC = () => {
           </main>
         </div>
 
-                {/* Modal de Gestão e Identificação do Médico Prescritor */}
+                {/* Modal da Central de Dados & Backups */}
+        <DataBackupModal
+          aberto={modalBackupAberto}
+          onFechar={() => setModalBackupAberto(false)}
+        />
+
+        {/* Modal de Gestão e Identificação do Médico Prescritor */}
         <DoctorProfileModal
           isOpen={modalMedicoAberto}
           onClose={() => setModalMedicoAberto(false)}

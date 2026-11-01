@@ -4,6 +4,7 @@ import {
   Plus,
   Trash2,
   Printer,
+  FileUp,
   Download,
   ShoppingBag,
   ShieldAlert,
@@ -48,6 +49,7 @@ import {
 import { cotarPrecosFarmacias } from '../pharmacy_pricing';
 import { avaliarSegurancaMedicamentosa5g } from '../medication_safety_5g';
 import { exportarElementosParaPdf } from '../pdf_generator';
+import { importarReceitasDePdfs } from '../prescription_importer';
 
 export const PrescriptionModularCanvas: React.FC = () => {
   const [perfilMedico, setPerfilMedico] = useState<PerfilMedico>(obterPerfilMedicoAtivo());
@@ -76,6 +78,64 @@ export const PrescriptionModularCanvas: React.FC = () => {
 
   // Estado de geração de PDF
   const [gerandoPdf, setGerandoPdf] = useState(false);
+  const [importandoPdf, setImportandoPdf] = useState(false);
+  const fileInputCanvasRef = useRef<HTMLInputElement>(null);
+  const [msgImportacaoCanvas, setMsgImportacaoCanvas] = useState<{ texto: string; tipo: 'sucesso' | 'erro' | 'alerta'; detalhes?: string[] } | null>(null);
+
+  const handleImportarPdfsCanvas = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    try {
+      setImportandoPdf(true);
+      setMsgImportacaoCanvas(null);
+      const resultados = await importarReceitasDePdfs(Array.from(files), pacienteAtivo);
+      let novosBlocos: BlocoPrescricao[] = [...blocos];
+      let totalItensAdicionados = 0;
+      const todosAlertasAlergia: string[] = [];
+      const todosAlertasInteracoes: string[] = [];
+
+      for (const res of resultados) {
+        if (res.sucesso && res.blocos.length > 0) {
+          totalItensAdicionados += res.blocos.length;
+          novosBlocos = [...novosBlocos, ...res.blocos];
+          todosAlertasAlergia.push(...res.alertas_alergia);
+          todosAlertasInteracoes.push(...res.alertas_interacoes);
+        }
+      }
+
+      if (totalItensAdicionados > 0) {
+        salvarBlocosPrescricao(novosBlocos);
+        setBlocos(novosBlocos);
+        const alertasTotal = [...todosAlertasAlergia, ...todosAlertasInteracoes];
+        if (alertasTotal.length > 0) {
+          setMsgImportacaoCanvas({
+            texto: `${totalItensAdicionados} item(ns) importado(s) de ${files.length} PDF(s), mas foram detectados alertas críticos de segurança!`,
+            tipo: 'alerta',
+            detalhes: alertasTotal,
+          });
+        } else {
+          setMsgImportacaoCanvas({
+            texto: `${totalItensAdicionados} item(ns) importado(s) com sucesso de ${files.length} receita(s) em PDF!`,
+            tipo: 'sucesso',
+          });
+        }
+        setTimeout(() => setMsgImportacaoCanvas(null), 8000);
+      } else {
+        setMsgImportacaoCanvas({
+          texto: 'Não foi possível extrair medicamentos válidos dos arquivos PDF enviados.',
+          tipo: 'erro',
+        });
+      }
+    } catch (err: any) {
+      setMsgImportacaoCanvas({
+        texto: err.message || 'Erro ao processar importação de PDF.',
+        tipo: 'erro',
+      });
+    } finally {
+      setImportandoPdf(false);
+      if (fileInputCanvasRef.current) fileInputCanvasRef.current.value = '';
+    }
+  };
   const printPagesRef = useRef<HTMLDivElement>(null);
 
   // Carregar dados e sincronizar com eventos
@@ -354,7 +414,16 @@ export const PrescriptionModularCanvas: React.FC = () => {
         ? pacienteAtivo.nome_completo.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 20)
         : 'Paciente';
       const dataHoje = new Date().toISOString().substring(0, 10);
-      await exportarElementosParaPdf(paginasEl, `Receituario_${nomePac}_${dataHoje}.pdf`);
+      await exportarElementosParaPdf(
+        paginasEl,
+        `Receituario_${nomePac}_${dataHoje}.pdf`,
+        'a4',
+        {
+          blocos: itensAtivos,
+          paciente: pacienteAtivo,
+          medico: perfilMedico,
+        }
+      );
     } catch (err) {
       console.error('Erro ao gerar PDF da receita:', err);
       alert('Houve um erro ao processar o PDF. Utilize o botão Imprimir para salvar em PDF.');
@@ -387,6 +456,24 @@ export const PrescriptionModularCanvas: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2.5 flex-wrap">
+          <input
+            ref={fileInputCanvasRef}
+            type="file"
+            accept=".pdf"
+            multiple={true}
+            onChange={handleImportarPdfsCanvas}
+            className="hidden"
+          />
+          <button
+            onClick={() => fileInputCanvasRef.current?.click()}
+            disabled={importandoPdf}
+            className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition shadow-lg shadow-emerald-950/40"
+            title="Importar uma ou múltiplas receitas em PDF e recuperar blocos inteligentes"
+          >
+            <FileUp className="w-4 h-4" />
+            {importandoPdf ? 'Lendo PDFs...' : 'Importar Receitas em PDF'}
+          </button>
+
           <button
             onClick={dispararDownloadPdf}
             disabled={itensAtivos.length === 0 || gerandoPdf}

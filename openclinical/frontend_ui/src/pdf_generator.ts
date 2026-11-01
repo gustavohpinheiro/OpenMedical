@@ -8,7 +8,8 @@ import { PerfilMedico, Paciente, RelatorioTesteRealizado } from './types';
 export async function exportarElementosParaPdf(
   elementos: HTMLElement[],
   nomeArquivo: string,
-  formato: 'a4' | 'a5' = 'a4'
+  formato: 'a4' | 'a5' = 'a4',
+  dadosPrescricaoEmbedados?: any
 ): Promise<void> {
   if (!elementos || elementos.length === 0) return;
 
@@ -18,6 +19,30 @@ export async function exportarElementosParaPdf(
     format: formato,
     compress: true,
   });
+
+  // Embeda payload estruturado para recuperação reversa 100% perfeita
+  if (dadosPrescricaoEmbedados) {
+    try {
+      const payloadStr = JSON.stringify({
+        versao: '1.0',
+        gerado_em: new Date().toISOString(),
+        ...dadosPrescricaoEmbedados,
+      });
+      const b64 = btoa(unescape(encodeURIComponent(payloadStr)));
+      pdf.setProperties({
+        title: nomeArquivo,
+        subject: 'Receita Digital Inteligente OpenClinical',
+        author: dadosPrescricaoEmbedados.medico?.nome_completo || 'OpenClinical',
+        keywords: `OPENCLINICAL_SMART_RX:${b64}`,
+      });
+      // Microtexto invisível (cor branca tamanho 0.1) no canto superior da página
+      pdf.setFontSize(0.1);
+      pdf.setTextColor(255, 255, 255);
+      pdf.text(`[OPENCLINICAL_SMART_PAYLOAD]${b64}[/OPENCLINICAL_SMART_PAYLOAD]`, 1, 1);
+    } catch (e) {
+      console.warn('Falha ao embedar metadados inteligentes no PDF:', e);
+    }
+  }
 
   const largura = formato === 'a5' ? 148 : 210;
   const altura = formato === 'a5' ? 210 : 297;
