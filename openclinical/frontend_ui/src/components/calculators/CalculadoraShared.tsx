@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Star, Copy, Check, ArrowRight, LucideIcon } from 'lucide-react';
+import { Star, Copy, Check, ArrowRight, LucideIcon, Plus } from 'lucide-react';
+import { adicionarItemPrescricaoModular } from '../../storage_clinico';
 import { MetaCalculadora } from './catalogo';
 
 interface CardCalculadoraProps {
@@ -24,6 +25,21 @@ export const CardCalculadora: React.FC<CardCalculadoraProps> = ({
   children,
 }) => {
   const [copiado, setCopiado] = useState(false);
+  const [adicionadoReceita, setAdicionadoReceita] = useState(false);
+
+  const adicionarReceita = () => {
+    if (!textoProntuario) return;
+    adicionarItemPrescricaoModular(
+      'orientacao',
+      `Escore: ${meta.nome}`,
+      textoProntuario,
+      undefined,
+      'Calculadora Clínica OpenClinical',
+      ['Calculadora', meta.sigla]
+    );
+    setAdicionadoReceita(true);
+    setTimeout(() => setAdicionadoReceita(false), 2200);
+  };
 
   const copiarProntuario = async () => {
     try {
@@ -82,8 +98,17 @@ export const CardCalculadora: React.FC<CardCalculadoraProps> = ({
           </div>
         </div>
 
-        {/* Botão Copiar para Prontuário */}
+        {/* Botões de Ação: Adicionar à Receita e Copiar */}
         <div className="flex items-center gap-2 self-end sm:self-auto">
+          <button
+            type="button"
+            onClick={adicionarReceita}
+            disabled={!textoProntuario}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-teal-600 hover:bg-teal-500 text-white shadow-sm transition disabled:opacity-40"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>{adicionadoReceita ? 'Na Receita ✓' : 'Adicionar à Receita'}</span>
+          </button>
           <button
             type="button"
             onClick={copiarProntuario}
@@ -95,7 +120,7 @@ export const CardCalculadora: React.FC<CardCalculadoraProps> = ({
             }`}
           >
             {copiado ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5 text-teal-400" />}
-            <span>{copiado ? 'Copiado para o Prontuário!' : 'Copiar para Prontuário'}</span>
+            <span>{copiado ? 'Copiado!' : 'Copiar'}</span>
           </button>
         </div>
       </div>

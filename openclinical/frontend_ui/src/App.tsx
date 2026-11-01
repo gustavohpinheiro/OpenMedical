@@ -28,8 +28,14 @@ import { PediatricCalculator } from './components/PediatricCalculator';
 import { InteractionChecker } from './components/InteractionChecker';
 import { ClinicalCalculators } from './components/ClinicalCalculators';
 import { ProtocolsView } from './components/ProtocolsView';
-import { PrescriptionBuilderView } from './components/PrescriptionBuilderView';
+import { PrescriptionModularCanvas } from './components/PrescriptionModularCanvas';
+import { RapidClinicTestsView } from './components/RapidClinicTestsView';
+import { DoctorProfileModal } from './components/DoctorProfileModal';
+import { PatientSelectorBar } from './components/PatientSelectorBar';
 import { AntimicrobialGuideView } from './components/AntimicrobialGuideView';
+import { obterPerfilMedicoAtivo } from './storage_clinico';
+import { PerfilMedico } from './types';
+import { UserCheck, Brain } from 'lucide-react';
 import { PharmacyPriceFinder } from './components/PharmacyPriceFinder';
 import type { SelecaoBasePublica } from './components/PublicDatabasesView';
 
@@ -55,7 +61,8 @@ export type SecaoApp =
   | 'pcdt'
   | 'pediatria'
   | 'interacoes'
-  | 'calculadoras';
+  | 'calculadoras'
+  | 'testes_rapidos';
 
 export interface ItemNavegacao {
   id: SecaoApp;
@@ -119,10 +126,10 @@ export const GRUPOS_NAVEGACAO: GrupoNavegacao[] = [
       },
       {
         id: 'prescricao',
-        label: 'Cesta de Receita & Orçamento',
+        label: 'Cesta Modular & Receita PDF',
         icon: FileText,
-        badge: 'SUS · RDC 471',
-        descricao: 'Validador e-SUS e cálculo de orçamento CMED',
+        badge: 'Port. 344 · RDC',
+        descricao: 'Peças modulares, separação em 2 vias, templates e PDF',
       },
       {
         id: 'guia_antimicrobiano',
@@ -137,6 +144,13 @@ export const GRUPOS_NAVEGACAO: GrupoNavegacao[] = [
     titulo: 'Decisão Clínica & Urgência',
     icone: '⚡',
     itens: [
+      {
+        id: 'testes_rapidos',
+        label: 'Testes de Consultório',
+        icon: Brain,
+        badge: 'MEEM · PHQ-9 · AVC',
+        descricao: 'Escalas cognitivas, depressão, ansiedade e laudo PDF',
+      },
       {
         id: 'pediatria',
         label: 'Calculadora Pediátrica',
@@ -167,6 +181,8 @@ const TODAS_SECOES = GRUPOS_NAVEGACAO.flatMap((g) => g.itens);
 export const App: React.FC = () => {
   const modoNativo = isTauri();
   const [buscaAberta, setBuscaAberta] = useState(false);
+  const [modalMedicoAberto, setModalMedicoAberto] = useState(false);
+  const [perfilMedico, setPerfilMedico] = useState<PerfilMedico>(obterPerfilMedicoAtivo());
   const [termoBuscaInicial, setTermoBuscaInicial] = useState<string | undefined>(undefined);
 
   // Controle da barra lateral retrátil (Sidebar)
@@ -464,6 +480,21 @@ export const App: React.FC = () => {
 
           {/* Status Operacional & Atalhos Rápidos */}
           <div className="flex items-center space-x-2.5">
+            {/* Botão de Perfil do Médico */}
+            <button
+              onClick={() => setModalMedicoAberto(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-700/80 rounded-xl text-xs text-slate-200 transition"
+              title="Configurar médico prescritor, CRM e papel timbrado"
+            >
+              <UserCheck className="w-4 h-4 text-teal-400" />
+              <span className="hidden xl:inline font-bold">
+                {perfilMedico.nome_completo.split(' ')[0]} {perfilMedico.nome_completo.split(' ').slice(-1)[0]}
+              </span>
+              <span className="text-[10px] text-teal-300 font-mono hidden sm:inline">
+                CRM/{perfilMedico.uf_crm} {perfilMedico.crm}
+              </span>
+            </button>
+
             {/* Acesso direto à dose pediátrica */}
             <button
               onClick={() => navegarPara('pediatria')}
@@ -519,6 +550,9 @@ export const App: React.FC = () => {
             </div>
           )}
         </div>
+
+        {/* Barra Global de Paciente Ativo no Consultório */}
+        <PatientSelectorBar />
 
         {/* Estrutura Principal: Sidebar Lateral + Área de Trabalho */}
         <div className="flex-1 flex flex-row w-full items-stretch">
@@ -741,7 +775,9 @@ export const App: React.FC = () => {
               <ProtocolsView protocoloSelecionadoId={protocoloSelecionadoId} />
             )}
 
-            {secaoAtiva === 'prescricao' && <PrescriptionBuilderView />}
+            {secaoAtiva === 'prescricao' && <PrescriptionModularCanvas />}
+
+            {secaoAtiva === 'testes_rapidos' && <RapidClinicTestsView />}
 
             {secaoAtiva === 'guia_antimicrobiano' && <AntimicrobialGuideView />}
 

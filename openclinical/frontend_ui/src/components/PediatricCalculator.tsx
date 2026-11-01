@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Baby, AlertTriangle, ShieldCheck, Copy, Check, Search, X } from 'lucide-react';
 import { ResultadoDosePediatrica } from '../types';
+import { adicionarItemPrescricaoModular, obterPacienteAtivo } from '../storage_clinico';
+import { Plus } from 'lucide-react';
 import { apresentacoesComerciaisDoFarmaco, executarCalculoClinico } from '../api';
 import type { EsquemaAdministracaoFtn, MonografiaFtn } from '../data/formulario_terapeutico';
 import { carregarFormulario, capitalizar, filtrarMonografias } from '../formulario_utils';
@@ -66,6 +68,47 @@ export const PediatricCalculator: React.FC<PediatricCalculatorProps> = ({
   const [formulacaoEmGotas, setFormulacaoEmGotas] = useState<boolean>(/gota/i.test(nomeMedicamento ?? ''));
   const [resultado, setResultado] = useState<ResultadoDosePediatrica | null>(null);
   const [copiado, setCopiado] = useState(false);
+  const [adicionadoPrescricao, setAdicionadoPrescricao] = useState(false);
+
+  // Auto-preenche peso do paciente ativo se disponível
+  useEffect(() => {
+    const pac = obterPacienteAtivo();
+    if (pac?.peso_kg && peso === null) {
+      setPeso(pac.peso_kg);
+    }
+  }, []);
+
+  const adicionarReceitaPediatrica = () => {
+    if (!resultado) return;
+    const volume = resultado.volume_ml_por_tomada;
+    const quantidade =
+      volume === null
+        ? `${formatar(resultado.dose_por_tomada_mg)} mg`
+        : formulacaoEmGotas
+          ? `${resultado.numero_gotas_por_tomada} gotas (${volume.toFixed(1)} mL)`
+          : `${volume.toFixed(1)} mL`;
+    const posologia = `Dar ${quantidade} por via oral ${doseUnica ? 'em dose única' : `a cada ${resultado.intervalo_horas} horas`}.\n(Dose por tomada: ${resultado.dose_por_tomada_mg.toFixed(1)} mg | Peso: ${resultado.peso_kg} kg | Teto de segurança diário: ${resultado.dose_teto_aplicada_mg_dia.toFixed(1)} mg)`;
+
+    adicionarItemPrescricaoModular(
+      'medicamento',
+      `${nome || 'Medicamento Pediátrico'}${concentracao !== null ? ` ${formatar(concentracao)} mg/mL` : ''}`,
+      posologia,
+      {
+        id: `ped_${Date.now()}`,
+        nome_medicamento: nome || 'Medicamento Pediátrico',
+        principio_ativo: (nome || 'FÁRMACO').toUpperCase(),
+        apresentacao: concentracao !== null ? `${formatar(concentracao)} mg/mL Suspensão/Gotas` : 'Uso Oral',
+        posologia,
+        quantidade_embalagens: 1,
+        tipo_receituario: 'simples',
+        preco_pmc: 20.0,
+      },
+      referenciaDose || 'Calculadora Pediátrica OpenClinical',
+      ['Pediatria', 'Dose por Peso']
+    );
+    setAdicionadoPrescricao(true);
+    setTimeout(() => setAdicionadoPrescricao(false), 2200);
+  };
   const [erroCalculo, setErroCalculo] = useState<string | null>(null);
 
   // Seletor de medicamento (Formulário Terapêutico Nacional)
@@ -579,13 +622,22 @@ Dar ${quantidade} ${doseUnica ? 'em dose única' : `a cada ${resultado.intervalo
               </span>
             </div>
 
-            <button
-              onClick={copiarReceitaPediatrica}
-              className="flex items-center space-x-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-xs font-semibold rounded-xl transition-all shadow-lg shadow-teal-900/30"
-            >
-              {copiado ? <Check className="w-4 h-4 text-white" /> : <Copy className="w-4 h-4" />}
-              <span>{copiado ? 'Copiado para o Prontuário!' : 'Copiar para Prontuário'}</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={adicionarReceitaPediatrica}
+                className="flex items-center space-x-1.5 px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold rounded-xl transition-all shadow-lg shadow-teal-900/30"
+              >
+                <Plus className="w-4 h-4 text-white" />
+                <span>{adicionadoPrescricao ? 'Adicionado à Receita ✓' : 'Adicionar à Receita'}</span>
+              </button>
+              <button
+                onClick={copiarReceitaPediatrica}
+                className="flex items-center space-x-1.5 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl transition-all border border-slate-700"
+              >
+                {copiado ? <Check className="w-4 h-4 text-teal-400" /> : <Copy className="w-4 h-4" />}
+                <span>{copiado ? 'Copiado!' : 'Copiar'}</span>
+              </button>
+            </div>
           </div>
         </div>
       )}

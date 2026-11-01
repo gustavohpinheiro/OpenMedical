@@ -23,6 +23,8 @@ import {
   Terminal,
   X,
 } from 'lucide-react';
+import { Plus, ShoppingBag } from 'lucide-react';
+import { adicionarItemPrescricaoModular } from '../storage_clinico';
 import { ProtocoloClinico, ResultadoAtualizacaoDiretrizes } from '../types';
 import { listarProtocolos, normalizarTexto, atualizarDiretrizesPython } from '../api';
 import { FARMACOS_POR_PROTOCOLO, CATEGORIAS_POR_PROTOCOLO } from '../catalog_protocolos';
@@ -222,6 +224,22 @@ export const ProtocolsView: React.FC<ProtocolsViewProps> = ({ protocoloSeleciona
   const [protocolos, setProtocolos] = useState<ProtocoloClinico[]>([]);
   const [selecionado, setSelecionado] = useState<ProtocoloClinico | null>(null);
   const [copiado, setCopiado] = useState(false);
+  const [adicionadoPrescricao, setAdicionadoPrescricao] = useState(false);
+
+  const adicionarPrescricaoModular = () => {
+    if (!selecionado || !selecionado.bloco_prescricao_copiavel) return;
+    const fonte = selecionado.agencia ? `${selecionado.agencia} (${selecionado.pais || 'Oficial'})` : 'PCDT SUS';
+    adicionarItemPrescricaoModular(
+      'medicamento',
+      selecionado.titulo,
+      selecionado.bloco_prescricao_copiavel,
+      undefined,
+      fonte,
+      ['Protocolo Clínico', selecionado.nivel_atencao]
+    );
+    setAdicionadoPrescricao(true);
+    setTimeout(() => setAdicionadoPrescricao(false), 2200);
+  };
   const [termoFiltro, setTermoFiltro] = useState('');
   const [categoriaAtiva, setCategoriaAtiva] = useState<CategoriaFiltro>('todos');
   const [jurisdicaoAtiva, setJurisdicaoAtiva] = useState<FiltroJurisdicao>('todas');
@@ -1099,13 +1117,22 @@ export const ProtocolsView: React.FC<ProtocolsViewProps> = ({ protocoloSeleciona
                           <ShieldCheck className="w-4 h-4 text-teal-400" />
                           <span>Modelo de Prescrição Médica para Prontuário / e-SUS</span>
                         </div>
-                        <button
-                          onClick={copiarPrescricao}
-                          className="text-xs text-teal-300 hover:text-white flex items-center space-x-1 font-semibold"
-                        >
-                          {copiado ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                          <span>{copiado ? 'Copiado!' : 'Copiar Texto'}</span>
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={adicionarPrescricaoModular}
+                            className="text-xs bg-teal-600 hover:bg-teal-500 text-white px-3 py-1.5 rounded-xl font-bold flex items-center space-x-1.5 shadow-md shadow-teal-950/40 transition"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                            <span>{adicionadoPrescricao ? 'Adicionado à Receita ✓' : 'Adicionar à Receita'}</span>
+                          </button>
+                          <button
+                            onClick={copiarPrescricao}
+                            className="text-xs text-teal-300 hover:text-white flex items-center space-x-1 font-semibold px-2.5 py-1.5 bg-slate-900 border border-slate-800 rounded-xl"
+                          >
+                            {copiado ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                            <span>{copiado ? 'Copiado!' : 'Copiar Texto'}</span>
+                          </button>
+                        </div>
                       </div>
 
                       <pre className="p-4 bg-slate-900/90 border border-slate-800 rounded-xl text-slate-200 font-mono text-xs overflow-x-auto whitespace-pre-wrap leading-relaxed selection:bg-teal-500 selection:text-white">

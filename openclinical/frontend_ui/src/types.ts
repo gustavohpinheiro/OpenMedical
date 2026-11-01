@@ -723,3 +723,151 @@ export interface ResultadoSofaCompleto {
   sirs_positivo: boolean;
   conduta_sepse: string;
 }
+
+
+// =============================================================================
+// Gestão de Perfil Médico & Autenticação Local
+// =============================================================================
+
+export interface PerfilMedico {
+  id: string;
+  nome_completo: string;
+  crm: string;
+  uf_crm: string;
+  rqe?: string;
+  especialidade?: string;
+  nome_clinica?: string;
+  endereco_consultorio?: string;
+  telefone_consultorio?: string;
+  email_contato?: string;
+  logo_base64?: string;
+  assinatura_base64?: string;
+  papel_timbrado_base64?: string;
+  usar_papel_timbrado_proprio?: boolean;
+}
+
+// =============================================================================
+// Gestão e Prontuário Resumido do Paciente
+// =============================================================================
+
+export interface Paciente {
+  id: string;
+  nome_completo: string;
+  cpf?: string;
+  cns?: string; // Cartão Nacional de Saúde
+  data_nascimento: string; // AAAA-MM-DD
+  idade_anos: number;
+  sexo: 'M' | 'F';
+  peso_kg?: number;
+  altura_cm?: number;
+  endereco?: string;
+  telefone?: string;
+  alergias: string[];
+  comorbidades: string[];
+  observacoes_clinicas?: string;
+  criado_em: string;
+}
+
+// =============================================================================
+// Composição Modular de Prescrição (Peças Modulares / Blocos)
+// =============================================================================
+
+export type TipoBlocoPrescricao =
+  | 'medicamento'
+  | 'orientacao'
+  | 'dieta'
+  | 'exame'
+  | 'atestado'
+  | 'encaminhamento';
+
+export interface BlocoPrescricao {
+  id: string;
+  tipo: TipoBlocoPrescricao;
+  titulo: string;
+  conteudo: string;
+  medicamento_detalhe?: ItemPrescricaoCesta;
+  tags?: string[];
+  ordem: number;
+  origem_fonte?: string; // ex: 'PCDT Asma 2024', 'NICE NG136', 'Manual'
+  ativo: boolean;
+}
+
+export interface TemplateReceituario {
+  id: string;
+  nome: string;
+  descricao: string;
+  estilo: 'moderno' | 'classico' | 'hospitalar' | 'minimalista' | 'customizado';
+  imagem_fundo_base64?: string;
+  cor_primaria: string;
+  cor_secundaria: string;
+  fonte_familia: 'sans' | 'serif' | 'mono';
+  mostrar_linha_assinatura: boolean;
+  mostrar_qr_code: boolean;
+  margem_superior_mm: number;
+  margem_inferior_mm: number;
+}
+
+// =============================================================================
+// Testes Rápidos de Consultório & Avaliação Médica
+// =============================================================================
+
+export interface OpcaoQuestaoTeste {
+  rotulo: string;
+  pontos: number;
+}
+
+export interface QuestaoTesteRapido {
+  id: string;
+  enunciado: string;
+  dominio?: string;
+  pontos_maximos?: number;
+  opcoes?: OpcaoQuestaoTeste[];
+  tipo_resposta?: 'sim_nao' | 'multipla_escolha' | 'numerico' | 'pontuacao_direta';
+}
+
+export interface FonteCientificaTeste {
+  autores: string;
+  ano: number;
+  titulo: string;
+  periodico_ou_diretriz: string;
+  link_referencia?: string;
+}
+
+export interface TesteRapidoDefinicao {
+  id: string;
+  nome: string;
+  sigla: string;
+  area_clinica: string;
+  tempo_estimado_minutos: number;
+  descricao_curta: string;
+  fonte_cientifica: FonteCientificaTeste;
+  pontuacao_maxima: number;
+  questoes: QuestaoTesteRapido[];
+  obterInterpretacao: (score: number, dadosExtras?: Record<string, any>) => {
+    resultado: string;
+    gravidade: 'normal' | 'alerta' | 'grave';
+    interpretacao_detalhada: string;
+    conduta_recomendada: string;
+    bloco_prescricao_sugerido?: string;
+  };
+}
+
+export interface RelatorioTesteRealizado {
+  id: string;
+  paciente_id?: string;
+  paciente_nome: string;
+  paciente_idade?: number;
+  paciente_cpf?: string;
+  medico_nome: string;
+  medico_crm: string;
+  teste_id: string;
+  teste_nome: string;
+  data_hora: string;
+  pontuacao_obtida: number;
+  pontuacao_maxima: number;
+  classificacao: string;
+  interpretacao_clinica: string;
+  conduta_proposta: string;
+  referencia_bibliografica: string;
+  respostas_detalhadas: { enunciado: string; resposta: string; pontos: number }[];
+}
