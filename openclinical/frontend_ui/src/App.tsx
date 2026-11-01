@@ -45,7 +45,7 @@ const SECOES: { id: SecaoApp; label: string; icon: React.ComponentType<{ classNa
   { id: 'formulario', label: 'Medicamentos & Receitas', icon: BookMarked, badge: 'FTN · 346' },
   { id: 'medicamentos', label: 'Bulas Estruturadas', icon: Pill, badge: '10 DCB' },
   { id: 'precos', label: 'Preço & Farmácia Popular', icon: Store, badge: 'PMC · SUS' },
-  { id: 'protocolos', label: 'Receitas & Prescrições', icon: BookOpen, badge: '45 Protocolos' },
+  { id: 'protocolos', label: 'Receitas & Diretrizes', icon: BookOpen, badge: 'SUS · NICE · 62' },
   { id: 'prescricao', label: 'Cesta de Receita & Orçamento', icon: FileText, badge: 'SUS · RDC 471' },
   { id: 'guia_antimicrobiano', label: 'Guia Antimicrobiano & CCIH', icon: Stethoscope, badge: '15 ATBs · IV→VO' },
   { id: 'pcdt', label: 'Bases Públicas', icon: FileCheck, badge: 'CMED · PCDT · LME' },

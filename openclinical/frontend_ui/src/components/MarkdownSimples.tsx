@@ -7,7 +7,7 @@ import React from 'react';
 
 function renderizarTrechosInline(texto: string, chaveBase: string): React.ReactNode[] {
   const partes: React.ReactNode[] = [];
-  const padrao = /(\*\*[^*]+\*\*|`[^`]+`|\*[^*\s][^*]*\*)/g;
+  const padrao = /(\*\*[^*]+\*\*|`[^`]+`|\*[^*\s][^*]*\*|\[([^\]]+)\]\((https?:\/\/[^\s)]+)\))/g;
   let ultimoIndice = 0;
   let correspondencia: RegExpExecArray | null;
   let contador = 0;
@@ -22,6 +22,20 @@ function renderizarTrechosInline(texto: string, chaveBase: string): React.ReactN
       partes.push(<strong key={chave} className="font-semibold text-slate-100">{trecho.slice(2, -2)}</strong>);
     } else if (trecho.startsWith('`')) {
       partes.push(<code key={chave} className="font-mono text-teal-300 bg-slate-900 px-1 rounded">{trecho.slice(1, -1)}</code>);
+    } else if (trecho.startsWith('[')) {
+      const rotulo = correspondencia[2];
+      const url = correspondencia[3];
+      partes.push(
+        <a
+          key={chave}
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-teal-400 underline hover:text-teal-300 break-all"
+        >
+          {rotulo}
+        </a>
+      );
     } else {
       partes.push(<em key={chave} className="text-slate-200">{trecho.slice(1, -1)}</em>);
     }

@@ -132,11 +132,26 @@ export interface ProtocoloClinico {
   titulo: string;
   cids_relacionados: string[];
   ciaps_relacionados: string[];
+  categoria?: string;
   nivel_atencao: string;
   data_revisao: string;
   status_revisao_clinica?: string;
   conteudo_markdown: string;
   bloco_prescricao_copiavel: string;
+
+  // Extensões para Protocolos Internacionais (NICE, CDC, OMS, etc.)
+  jurisdicao?: 'BR_SUS' | 'UK_NICE' | 'US_CDC_FDA' | 'GLOBAL_WHO' | 'CA_HEALTH' | 'FR_HAS';
+  pais?: string;
+  agencia?: string;
+  codigo_diretriz?: string;
+  url_fonte?: string;
+  data_publicacao?: string;
+  idioma_original?: string;
+  equivalente_sus_id?: string | null;
+  tem_equivalente_sus?: boolean;
+  disponibilidade_farmacos_rename_sus?: 'total' | 'parcial' | 'ausente_no_sus';
+  medicamentos_exclusivos_estrangeiros?: string[];
+  divergencias_relevantes_vs_sus?: string[];
 }
 
 export interface LinkPesquisaPreco {
