@@ -461,3 +461,241 @@ export interface ItemPrescricaoCesta {
   tipo_receituario: 'simples' | 'controle_especial_c1' | 'antimicrobiano' | 'notificacao_b_azul' | 'notificacao_a_amarela';
   preco_pmc: number;
 }
+
+// -----------------------------------------------------------------------------
+// Calculadoras Clínicas 2.1 (Novos Escores e Protocolos)
+// -----------------------------------------------------------------------------
+
+export interface ResultadoDengueMs {
+  grupo: string;
+  classificacao_risco: string;
+  volume_total_dia_ml: number;
+  volume_sro_ml: number;
+  volume_outros_liquidos_ml: number;
+  fase_expansao_imediata_ml: number;
+  tempo_infusao_expansao_horas: number;
+  vazao_expansao_ml_h: number;
+  vazao_manutencao_ml_h: number;
+  orientacao_clinica: string;
+  criterios_alarme_presentes: string[];
+}
+
+export interface ResultadoParkland {
+  peso_kg: number;
+  percentual_scq: number;
+  volume_total_24h_parkland_ml: number;
+  volume_total_24h_atls10_ml: number;
+  volume_primeira_fase_ml: number;
+  horas_primeira_fase: number;
+  vazao_primeira_fase_ml_h: number;
+  volume_segunda_fase_ml: number;
+  vazao_segunda_fase_ml_h: number;
+  meta_diurese_ml_h: string;
+  conduta_resfriamento_e_acesso: string;
+}
+
+export interface ResultadoMetabolicoCad {
+  sodio_medido: number;
+  glicemia_mg_dl: number;
+  sodio_corrigido_katz: number;
+  sodio_corrigido_hillier: number;
+  osmolaridade_efetiva_m_osm_kg: number;
+  classificacao_osmolaridade: string;
+  calcio_total_medido: number;
+  albumina_medida: number;
+  calcio_corrigido_payne: number;
+  potassio_medido: number;
+  conduta_insulina_e_potassio: string;
+  alerta_critico_bloqueio_insulina: boolean;
+}
+
+export interface ResultadoFenaFeureia {
+  fena_percentual?: number | null;
+  feureia_percentual?: number | null;
+  diagnostico_provavel: string;
+  interpretacao_clinica: string;
+  ressalva_diuretico?: string | null;
+}
+
+export interface ResultadoPamPpc {
+  pas_mmhg: number;
+  pad_mmhg: number;
+  pam_mmhg: number;
+  pic_mmhg?: number | null;
+  ppc_mmhg?: number | null;
+  classificacao_hemodinamica: string;
+  alvo_terapeutico: string;
+}
+
+export interface ResultadoHeartScore {
+  pontuacao_total: number;
+  categoria_risco: string;
+  mace_percentual: string;
+  conduta_sugerida: string;
+  detalhamento_pontos: string[];
+}
+
+export interface ResultadoHasBled {
+  pontuacao_total: number;
+  categoria_risco: string;
+  taxa_sangramento_anual: string;
+  fatores_modificaveis: string[];
+  recomendacao_anticoagulacao: string;
+}
+
+export interface ResultadoQtcCorrigido {
+  qt_medido_ms: number;
+  fc_bpm: number;
+  qtc_bazett_ms: number;
+  qtc_fridericia_ms: number;
+  qtc_framingham_ms: number;
+  status_intervalo: string;
+  alerta_torsades: boolean;
+  recomendacao: string;
+}
+
+export interface ResultadoPerc {
+  criterios_positivos: number;
+  tep_descartado: boolean;
+  probabilidade_residual_percentual: string;
+  conduta: string;
+}
+
+export interface ResultadoWellsTvp {
+  pontuacao_total: number;
+  categoria_probabilidade: string;
+  incidencia_estimada: string;
+  conduta_indicada: string;
+}
+
+export interface ResultadoPaduaTev {
+  pontuacao_total: number;
+  alto_risco_tev: boolean;
+  profilaxia_indicada: string;
+  esquema_enoxaparina: string;
+}
+
+export interface ResultadoTromboliseAvc {
+  peso_kg: number;
+  dose_total_alteplase_mg: number;
+  bolus_alteplase_10_porcento_mg: number;
+  infusao_alteplase_90_porcento_mg_h: number;
+  dose_tenecteplase_mg: number;
+  metas_pressoricas: string;
+  contraindicacoes_absolutas: string[];
+}
+
+export interface ResultadoGlasgowP {
+  escore_glasgow: number;
+  reacao_pupilar_pontos: number;
+  gcs_p_final: number;
+  gravidade_tce: string;
+  indicacao_intubacao: boolean;
+  conduta: string;
+}
+
+export interface ResultadoCranioCervical {
+  indicacao_tc_cranio: boolean;
+  justificativa_cranio: string;
+  criterios_nexus_atendidos: boolean;
+  indicacao_imagem_cervical: boolean;
+  justificativa_coluna: string;
+}
+
+export interface ResultadoMeldNa {
+  score_meld_inicial: number;
+  score_meld_na: number;
+  mortalidade_90d_percentual: string;
+  prioridade_transplante: string;
+  conduta_clinica: string;
+}
+
+export interface ResultadoChildPugh {
+  pontuacao_total: number;
+  classe: string;
+  sobrevida_1ano_percentual: string;
+  sobrevida_2anos_percentual: string;
+  risco_cirurgico_mortalidade: string;
+  conduta_geral: string;
+}
+
+export interface ResultadoFib4 {
+  score_fib4: number;
+  estratificacao_fibrose: string;
+  valor_preditivo: string;
+  conduta_encaminhamento: string;
+}
+
+export interface ResultadoGlasgowBlatchford {
+  pontuacao_total: number;
+  baixo_risco_ambulatorial: boolean;
+  necessidade_intervencao_percentual: string;
+  conduta_sugerida: string;
+}
+
+export interface ResultadoBisap {
+  pontuacao_total: number;
+  categoria_gravidade: string;
+  mortalidade_prevista_percentual: string;
+  indicacao_uti: boolean;
+  conduta: string;
+}
+
+export interface ResultadoAlvarado {
+  pontuacao_total: number;
+  probabilidade_apendicite: string;
+  conduta_cirurgica: string;
+}
+
+export interface ItemDoseEquivalente {
+  farmaco: string;
+  dose_equivalente_mg: number;
+  potencia_antiinflamatoria_relativa: number;
+  duracao_efeito_horas: string;
+}
+
+export interface ResultadoEquivalenciaCorticoide {
+  farmaco_origem: string;
+  dose_origem_mg: number;
+  doses_equivalentes: ItemDoseEquivalente[];
+  esquema_desmame_sugerido: string;
+}
+
+export interface ResultadoAntropometriaFarmacologica {
+  peso_real_kg: number;
+  altura_cm: number;
+  peso_ideal_devine_kg: number;
+  peso_ajustado_obesidade_kg: number;
+  superficie_corporal_mosteller_m2: number;
+  imc: number;
+  classificacao_imc: string;
+  recomendacao_drogas_hidrofilicas: string;
+}
+
+export interface ResultadoCentorMcIsaac {
+  pontuacao_total: number;
+  probabilidade_strepto_percentual: string;
+  indicacao_teste_rapido_ou_atb: string;
+}
+
+export interface ResultadoIdadeGestacionalDpp {
+  idade_gestacional_semanas: number;
+  idade_gestacional_dias: number;
+  data_provavel_parto_naegele: string;
+  trimestre_atual: string;
+  exames_do_trimestre: string[];
+}
+
+export interface ResultadoSofaCompleto {
+  sofa_total: number;
+  mortalidade_estimada_uti: string;
+  pontuacao_respiratoria: number;
+  pontuacao_coagulacao: number;
+  pontuacao_hepatica: number;
+  pontuacao_cardiovascular: number;
+  pontuacao_neurologica: number;
+  pontuacao_renal: number;
+  criterios_sirs_presentes: number;
+  sirs_positivo: boolean;
+  conduta_sepse: string;
+}

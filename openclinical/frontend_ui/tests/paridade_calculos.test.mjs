@@ -314,3 +314,164 @@ test('Segurança Farmacológica 5G (Cascatas, ACB, Triple Whammy, Tisdale, CPIC)
   const cpic = consultarAlertasFarmacogenomicosCpic(['Clopidogrel 75mg', 'Sinvastatina 40mg']);
   assert.equal(cpic.length, 2);
 });
+
+test('Dengue MS 6ª Edição (Grupos A, B, C, D)', () => {
+  const gA = executarCalculoLocal('dengue_ms', { peso_kg: 70, sinais_alarme: false, sinais_choque_ou_sangramento_grave: false, condicao_especial_ou_plaquetopenia: false, idade_anos: 35 });
+  assert.equal(gA.grupo, 'A');
+  assert.equal(gA.volume_total_dia_ml, 4200);
+  assert.equal(gA.volume_sro_ml, 1400);
+
+  const gC = executarCalculoLocal('dengue_ms', { peso_kg: 60, sinais_alarme: true, sinais_choque_ou_sangramento_grave: false, condicao_especial_ou_plaquetopenia: false });
+  assert.equal(gC.grupo, 'C');
+  assert.equal(gC.fase_expansao_imediata_ml, 600);
+
+  const gD = executarCalculoLocal('dengue_ms', { peso_kg: 80, sinais_alarme: true, sinais_choque_ou_sangramento_grave: true, condicao_especial_ou_plaquetopenia: false });
+  assert.equal(gD.grupo, 'D');
+  assert.equal(gD.fase_expansao_imediata_ml, 1600);
+});
+
+test('Parkland & ATLS 10ª Edição para Queimados', () => {
+  const park = executarCalculoLocal('parkland', { peso_kg: 70, percentual_scq: 30, horas_desde_queimadura: 2 });
+  assert.equal(park.volume_total_24h_parkland_ml, 8400);
+  assert.equal(park.volume_total_24h_atls10_ml, 4200);
+  assert.equal(park.volume_primeira_fase_ml, 4200);
+  assert.equal(park.horas_primeira_fase, 6);
+  assert.equal(park.vazao_primeira_fase_ml_h, 700);
+  assert.equal(park.volume_segunda_fase_ml, 4200);
+  assert.equal(park.vazao_segunda_fase_ml_h, 262.5);
+});
+
+test('Distúrbios Metabólicos CAD & Calemia (Katz, Hillier, Payne)', () => {
+  const cad = executarCalculoLocal('metabolico_cad', { sodio_medido: 130, glicemia_mg_dl: 600, potassio_medido: 3.1, calcio_total: 8.0, albumina_g_dl: 2.5 });
+  assert.equal(cad.sodio_corrigido_katz, 138);
+  assert.equal(cad.sodio_corrigido_hillier, 142);
+  assert.equal(cad.alerta_critico_bloqueio_insulina, true);
+  assert.match(cad.conduta_insulina_e_potassio, /NÃO INICIAR INSULINA/);
+  assert.equal(cad.calcio_corrigido_payne, 9.2);
+});
+
+test('FENa & FEUreia com Ressalva de Diurético', () => {
+  const res = executarCalculoLocal('fena_feureia', { na_serico: 140, cr_serica: 2.0, ureia_serica: 120, na_urinario: 10, cr_urinaria: 100, ureia_urinaria: 600, usa_diuretico: false });
+  assert.ok(res.fena_percentual < 1.0);
+  assert.match(res.diagnostico_provavel, /Pré-Renal/);
+
+  const resDiur = executarCalculoLocal('fena_feureia', { na_serico: 140, cr_serica: 2.0, ureia_serica: 120, na_urinario: 50, cr_urinaria: 100, ureia_urinaria: 300, usa_diuretico: true });
+  assert.ok(resDiur.ressalva_diuretico !== null);
+});
+
+test('PAM & Pressão de Perfusão Cerebral (PPC)', () => {
+  const pam = executarCalculoLocal('pam_ppc', { pas_mmhg: 120, pad_mmhg: 80, pic_mmhg: 15 });
+  assert.equal(pam.pam_mmhg, 93.3);
+  assert.equal(pam.ppc_mmhg, 78.3);
+  assert.match(pam.alvo_terapeutico, /PPC/);
+});
+
+test('HEART Score para Dor Torácica', () => {
+  const baixo = executarCalculoLocal('heart_score', { historia: 0, ecg: 0, idade: 0, fatores_risco: 0, troponina: 0 });
+  assert.equal(baixo.pontuacao_total, 0);
+  assert.equal(baixo.categoria_risco, 'Baixo Risco');
+
+  const alto = executarCalculoLocal('heart_score', { historia: 2, ecg: 2, idade: 1, fatores_risco: 1, troponina: 2 });
+  assert.equal(alto.pontuacao_total, 8);
+  assert.equal(alto.categoria_risco, 'Alto Risco');
+});
+
+test('HAS-BLED para Risco Hemorrágico', () => {
+  const hb = executarCalculoLocal('has_bled', { hipertensao_nao_controlada: true, funcao_renal_anormal: false, funcao_hepatica_anormal: false, avc_previo: true, sangramento_previo: false, inr_labil: false, idade_maior_65: true, uso_antiplaquetarios_ou_aine: true, uso_drogas_ou_alcool: false });
+  assert.equal(hb.pontuacao_total, 4);
+  assert.match(hb.categoria_risco, /Alto Risco/);
+});
+
+test('QTc Corrigido (Bazett, Fridericia, Framingham)', () => {
+  const normal = executarCalculoLocal('qtc_corrigido', { qt_medido_ms: 400, fc_bpm: 60, sexo_feminino: false });
+  assert.equal(normal.qtc_bazett_ms, 400);
+  assert.equal(normal.qtc_fridericia_ms, 400);
+  assert.equal(normal.alerta_torsades, false);
+
+  const torsades = executarCalculoLocal('qtc_corrigido', { qt_medido_ms: 500, fc_bpm: 100, sexo_feminino: false });
+  assert.equal(torsades.alerta_torsades, true);
+});
+
+test('PERC, Wells TVP e Pádua TEV', () => {
+  const perc = executarCalculoLocal('perc', { idade_maior_igual_50: false, fc_maior_igual_100: false, sat_o2_ar_ambiente_menor_95: false, hemoptise: false, uso_estrogenio: false, tev_previo: false, cirurgia_trauma_ultimas_4sem: false, edema_unilateral_membro_inferior: false });
+  assert.equal(perc.criterios_positivos, 0);
+  assert.equal(perc.tep_descartado, true);
+
+  const wells = executarCalculoLocal('wells_tvp', { cancer_ativo: true, edema_panturrilha_maior_3cm: true });
+  assert.equal(wells.pontuacao_total, 2);
+  assert.match(wells.categoria_probabilidade, /Moderada/);
+
+  const padua = executarCalculoLocal('padua_tev', { cancer_ativo: true, mobilidade_reduzida: true });
+  assert.equal(padua.pontuacao_total, 6);
+  assert.equal(padua.alto_risco_tev, true);
+});
+
+test('Trombólise AVC e Glasgow Pupilar (GCS-P)', () => {
+  const avc = executarCalculoLocal('trombolise_avc', { peso_kg: 70 });
+  assert.equal(avc.dose_total_alteplase_mg, 63);
+  assert.equal(avc.bolus_alteplase_10_porcento_mg, 6.3);
+  assert.equal(avc.infusao_alteplase_90_porcento_mg_h, 56.7);
+  assert.equal(avc.dose_tenecteplase_mg, 17.5);
+
+  const gp = executarCalculoLocal('glasgow_p', { abertura_ocular: 2, resposta_verbal: 2, resposta_motora: 4, pupilas_sem_resposta_luz: 1 });
+  assert.equal(gp.escore_glasgow, 8);
+  assert.equal(gp.reacao_pupilar_pontos, 1);
+  assert.equal(gp.gcs_p_final, 7);
+  assert.equal(gp.indicacao_intubacao, true);
+});
+
+test('Canadian CT Head & NEXUS Cervical', () => {
+  const cc = executarCalculoLocal('cranio_cervical', { gcs_menor_15_apos_2h: true });
+  assert.equal(cc.indicacao_tc_cranio, true);
+  assert.equal(cc.criterios_nexus_atendidos, true);
+});
+
+test('MELD-Na, Child-Pugh e FIB-4', () => {
+  const meld = executarCalculoLocal('meld_na', { creatinina: 2.0, bilirrubina: 3.0, inr: 1.8, sodio: 130, dialise_recente: false });
+  assert.ok(meld.score_meld_na > 20);
+
+  const child = executarCalculoLocal('child_pugh', { bilirrubina_mg_dl: 3.5, albumina_g_dl: 2.5, inr: 2.4, grau_ascite: 3, grau_encefalopatia: 2 });
+  assert.equal(child.pontuacao_total, 14);
+  assert.match(child.classe, /Classe C/);
+
+  const fib = executarCalculoLocal('fib4', { idade_anos: 50, ast_tgo: 80, alt_tgp: 40, plaquetas_milhares: 150 });
+  assert.ok(fib.score_fib4 > 3.25);
+  assert.match(fib.estratificacao_fibrose, /Alta Probabilidade/);
+});
+
+test('Glasgow-Blatchford, BISAP e Alvarado', () => {
+  const gbs = executarCalculoLocal('glasgow_blatchford', { ureia_mg_dl: 60, hemoglobina_g_dl: 9, pas_mmhg: 95, fc_bpm: 105, sexo_feminino: false, melena: true, sincope: false, doenca_hepatica: false, insuficiencia_cardiaca: false });
+  assert.equal(gbs.pontuacao_total, 15);
+  assert.equal(gbs.baixo_risco_ambulatorial, false);
+
+  const bisap = executarCalculoLocal('bisap', { ureia_maior_44: true, glasgow_menor_15: true, sirs_presente: true, idade_maior_60: false, derrame_pleural: false });
+  assert.equal(bisap.pontuacao_total, 3);
+  assert.equal(bisap.indicacao_uti, true);
+
+  const alv = executarCalculoLocal('alvarado', { dor_fossa_iliaca_direita: true, descompressao_brusca_positiva: true, migracao_da_dor: true, febre_maior_37_3: true, anorexia: true, nauseas_ou_vomitos: true, leucocitose_maior_10000: false, desvio_a_esquerda: false });
+  assert.equal(alv.pontuacao_total, 8);
+});
+
+test('Corticoides, Antropometria, Centor, Naegele e SOFA Completo', () => {
+  const cort = executarCalculoLocal('equivalencia_corticoide', { farmaco_origem: 'Prednisona', dose_origem_mg: 20 });
+  const dex = cort.doses_equivalentes.find(d => d.farmaco.includes('Dexametasona'));
+  assert.equal(dex.dose_equivalente_mg, 3.0);
+  const hid = cort.doses_equivalentes.find(d => d.farmaco.includes('Hidrocortisona'));
+  assert.equal(hid.dose_equivalente_mg, 80.0);
+
+  const ant = executarCalculoLocal('antropometria_farmacologica', { peso_kg: 100, altura_cm: 175, sexo_feminino: false });
+  assert.equal(ant.peso_ideal_devine_kg, 70.6);
+  assert.equal(ant.peso_ajustado_obesidade_kg, 82.3);
+  assert.equal(ant.superficie_corporal_mosteller_m2, 2.2);
+
+  const centor = executarCalculoLocal('centor_mcisaac', { idade_anos: 20, febre_maior_38: true, ausencia_de_tosse: true, adenomegalia_cervical_anterior_dolorosa: true, exsudato_amigdaliano: true });
+  assert.equal(centor.pontuacao_total, 4);
+
+  const gest = executarCalculoLocal('idade_gestacional_dpp', { dum_ano: 2026, dum_mes: 5, dum_dia: 10, consulta_ano: 2026, consulta_mes: 7, consulta_dia: 15 });
+  assert.equal(gest.data_provavel_parto_naegele, '17/02/2027');
+
+  const sofa = executarCalculoLocal('sofa_completo', { pao2_fio2: 150, em_ventilacao_mecanica: true, plaquetas_milhares: 80, bilirrubina: 2.5, pam: 65, dopamina_mcg: 0, noradrenalina_mcg: 0.2, glasgow: 10, creatinina: 2.5, diurese_ml_dia: 800, temp_celsius: 38.5, fc_bpm: 110, fr_irpm: 24, leucocitos_totais: 15000 });
+  assert.equal(sofa.sofa_total, 15);
+  assert.equal(sofa.sirs_positivo, true);
+  assert.match(sofa.conduta_sepse, /Falência de múltiplos órgãos/);
+});

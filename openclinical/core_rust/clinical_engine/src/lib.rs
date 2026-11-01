@@ -8,9 +8,12 @@ pub mod bulas_importadas;
 pub mod pcdt_conitec;
 pub mod acid_base;
 pub mod calculators;
+pub mod cardio_neuro_scores;
 pub mod database;
 pub mod emergency;
 pub mod errors;
+pub mod fluid_electrolytes;
+pub mod gastro_hepato_aps;
 pub mod interactions;
 pub mod medication_safety_5g;
 pub mod models;
@@ -26,11 +29,33 @@ pub use calculators::{
     calcular_escore_qsofa, calcular_escore_wells_tep, calcular_tfg_ckd_epi_2021,
     calcular_vazao_infusao,
 };
+pub use cardio_neuro_scores::{
+    calcular_cranio_cervical, calcular_criterios_perc, calcular_escore_padua, calcular_glasgow_p,
+    calcular_has_bled, calcular_heart_score, calcular_qtc_corrigido, calcular_trombolise_avc,
+    calcular_wells_tvp, ResultadoCranioCervical, ResultadoGlasgowP, ResultadoHasBled,
+    ResultadoHeartScore, ResultadoPaduaTev, ResultadoPerc, ResultadoQtcCorrigido,
+    ResultadoTromboliseAvc, ResultadoWellsTvp,
+};
 pub use emergency::{
     calcular_emergencia_pediatrica, calcular_intubacao_sri, ItemFarmacoEmergencia,
     ParametrosVentilacaoInicial, ResultadoEmergenciaPediatrica, ResultadoIntubacaoSri,
 };
 pub use errors::ClinicalError;
+pub use fluid_electrolytes::{
+    calcular_fena_feureia, calcular_manejo_dengue_ms, calcular_metabolico_cad_calemia,
+    calcular_pam_ppc, calcular_parkland_queimado, ResultadoDengueMs, ResultadoFenaFeureia,
+    ResultadoMetabolicoCad, ResultadoPamPpc, ResultadoParkland,
+};
+pub use gastro_hepato_aps::{
+    calcular_alvarado, calcular_antropometria_farmacologica, calcular_bisap, calcular_child_pugh,
+    calcular_centor_mcisaac, calcular_equivalencia_corticoide, calcular_fib4,
+    calcular_glasgow_blatchford, calcular_idade_gestacional_dpp, calcular_meld_na,
+    calcular_sofa_completo, ItemDoseEquivalente, ResultadoAlvarado,
+    ResultadoAntropometriaFarmacologica, ResultadoBisap, ResultadoCentorMcIsaac,
+    ResultadoChildPugh, ResultadoEquivalenciaCorticoide, ResultadoFib4,
+    ResultadoGlasgowBlatchford, ResultadoIdadeGestacionalDpp, ResultadoMeldNa,
+    ResultadoSofaCompleto,
+};
 pub use interactions::{gerar_pares_combinatorios, verificar_interacoes_em_memoria};
 pub use medication_safety_5g::{
     avaliar_seguranca_medicamentosa_5g, calcular_carga_anticolinergica_acb,

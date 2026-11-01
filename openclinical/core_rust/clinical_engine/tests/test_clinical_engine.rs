@@ -1,3 +1,18 @@
+use clinical_engine::cardio_neuro_scores::{
+    calcular_cranio_cervical, calcular_criterios_perc, calcular_escore_padua, calcular_glasgow_p,
+    calcular_has_bled, calcular_heart_score, calcular_qtc_corrigido, calcular_trombolise_avc,
+    calcular_wells_tvp,
+};
+use clinical_engine::fluid_electrolytes::{
+    calcular_fena_feureia, calcular_manejo_dengue_ms, calcular_metabolico_cad_calemia,
+    calcular_pam_ppc, calcular_parkland_queimado,
+};
+use clinical_engine::gastro_hepato_aps::{
+    calcular_alvarado, calcular_antropometria_farmacologica, calcular_bisap, calcular_child_pugh,
+    calcular_centor_mcisaac, calcular_equivalencia_corticoide, calcular_fib4,
+    calcular_glasgow_blatchford, calcular_idade_gestacional_dpp, calcular_meld_na,
+    calcular_sofa_completo,
+};
 use clinical_engine::calculators::{
     avaliar_curb65_detalhado, avaliar_estagio_drc, calcular_clearance_cockcroft_gault,
     calcular_escore_curb65, calcular_escore_wells_tep, calcular_tfg_ckd_epi_2021,
@@ -873,4 +888,218 @@ fn test_seguranca_5g_cascatas_acb_triple_whammy_tisdale_cpic() {
     assert_eq!(cpic.len(), 2);
     assert!(cpic.iter().any(|c| c.gene == "CYP2C19"));
     assert!(cpic.iter().any(|c| c.gene == "SLCO1B1"));
+}
+
+// ============================================================================
+// TESTES DAS 24 NOVAS CALCULADORAS CLÍNICAS (FASES 1 A 4)
+// ============================================================================
+
+#[test]
+fn test_manejo_dengue_ms_grupos() {
+    // Grupo A: sem alarme, sem choque, peso 70kg
+    let g_a = calcular_manejo_dengue_ms(70.0, false, false, false, Some(35.0)).unwrap();
+    assert_eq!(g_a.grupo, "A");
+    assert_eq!(g_a.volume_total_dia_ml, 4200.0); // 60 mL/kg/dia
+    assert_eq!(g_a.volume_sro_ml, 1400.0); // 1/3 SRO
+
+    // Grupo C: com sinal de alarme (dor abdominal intensa)
+    let g_c = calcular_manejo_dengue_ms(60.0, true, false, false, Some(28.0)).unwrap();
+    assert_eq!(g_c.grupo, "C");
+    assert_eq!(g_c.fase_expansao_imediata_ml, 600.0); // 10 mL/kg
+
+    // Grupo D: choque
+    let g_d = calcular_manejo_dengue_ms(80.0, true, true, false, None).unwrap();
+    assert_eq!(g_d.grupo, "D");
+    assert_eq!(g_d.fase_expansao_imediata_ml, 1600.0); // 20 mL/kg em 20 min
+}
+
+#[test]
+fn test_parkland_queimados_atls10() {
+    // Paciente de 70 kg com 30% SCQ, atendido 2h pós-trauma
+    let park = calcular_parkland_queimado(70.0, 30.0, 2.0).unwrap();
+    assert_eq!(park.volume_total_24h_parkland_ml, 8400.0); // 4 * 70 * 30
+    assert_eq!(park.volume_total_24h_atls10_ml, 4200.0); // 2 * 70 * 30
+    assert_eq!(park.volume_primeira_fase_ml, 4200.0); // metade nas primeiras 8h
+    assert_eq!(park.horas_primeira_fase, 6.0); // 8 - 2 = 6h restantes
+    assert_eq!(park.vazao_primeira_fase_ml_h, 700.0); // 4200 / 6 = 700 mL/h
+    assert_eq!(park.volume_segunda_fase_ml, 4200.0);
+    assert_eq!(park.vazao_segunda_fase_ml_h, 262.5); // 4200 / 16 = 262.5 mL/h
+}
+
+#[test]
+fn test_metabolico_cad_katz_hillier_calemia() {
+    // Sódio 130, Glicemia 600, Potássio 3.1 (hipocalemia grave), Cálcio 8.0, Albumina 2.5
+    let cad = calcular_metabolico_cad_calemia(130.0, 600.0, 3.1, 8.0, 2.5).unwrap();
+    assert_eq!(cad.sodio_corrigido_katz, 138.0); // 130 + 1.6 * 5 = 138.0
+    assert_eq!(cad.sodio_corrigido_hillier, 142.0); // 130 + 2.4 * 5 = 142.0
+    assert!(cad.alerta_critico_bloqueio_insulina); // K+ < 3.3 bloqueia insulina
+    assert!(cad.conduta_insulina_e_potassio.contains("NÃO INICIAR INSULINA"));
+    assert_eq!(cad.calcio_corrigido_payne, 9.2); // 8.0 + 0.8 * (4 - 2.5) = 9.2
+}
+
+#[test]
+fn test_fena_feureia_pre_renal() {
+    // Pré-renal: FENa < 1%, FEUreia < 35%
+    // Na_s: 140, Cr_s: 2.0, Ur_s: 120, Na_u: 10, Cr_u: 100, Ur_u: 600
+    let res = calcular_fena_feureia(140.0, 2.0, 120.0, 10.0, 100.0, Some(600.0), false).unwrap();
+    assert!(res.fena_percentual.unwrap() < 1.0);
+    assert!(res.diagnostico_provavel.contains("Pré-Renal"));
+
+    // Com diurético
+    let res_diur = calcular_fena_feureia(140.0, 2.0, 120.0, 50.0, 100.0, Some(300.0), true).unwrap();
+    assert!(res_diur.ressalva_diuretico.is_some());
+}
+
+#[test]
+fn test_pam_ppc() {
+    let pam = calcular_pam_ppc(120.0, 80.0, Some(15.0)).unwrap();
+    assert_eq!(pam.pam_mmhg, 93.3);
+    assert_eq!(pam.ppc_mmhg, Some(78.3));
+    assert!(pam.alvo_terapeutico.contains("PPC"));
+}
+
+#[test]
+fn test_heart_score_baixo_e_alto() {
+    // 0 pontos: baixo risco
+    let hs_baixo = calcular_heart_score(0, 0, 0, 0, 0).unwrap();
+    assert_eq!(hs_baixo.pontuacao_total, 0);
+    assert_eq!(hs_baixo.categoria_risco, "Baixo Risco");
+
+    // 8 pontos: alto risco
+    let hs_alto = calcular_heart_score(2, 2, 1, 1, 2).unwrap();
+    assert_eq!(hs_alto.pontuacao_total, 8);
+    assert_eq!(hs_alto.categoria_risco, "Alto Risco");
+}
+
+#[test]
+fn test_has_bled() {
+    // HAS + AVC + Idoso (>65) + AINE = 4 pontos (Alto risco)
+    let hb = calcular_has_bled(true, false, false, true, false, false, true, true, false);
+    assert_eq!(hb.pontuacao_total, 4);
+    assert!(hb.categoria_risco.contains("Alto Risco"));
+}
+
+#[test]
+fn test_qtc_bazett_fridericia() {
+    // QT 400ms, FC 60bpm -> QTc Bazett = 400ms, Fridericia = 400ms
+    let qtc = calcular_qtc_corrigido(400.0, 60.0, false).unwrap();
+    assert_eq!(qtc.qtc_bazett_ms, 400.0);
+    assert_eq!(qtc.qtc_fridericia_ms, 400.0);
+    assert!(!qtc.alerta_torsades);
+
+    // QTc prolongado > 500ms
+    let qtc_longo = calcular_qtc_corrigido(500.0, 100.0, false).unwrap();
+    assert!(qtc_longo.alerta_torsades);
+}
+
+#[test]
+fn test_perc_wells_tvp_padua() {
+    // PERC: tudo falso -> TEP descartado se baixa prob
+    let perc = calcular_criterios_perc(false, false, false, false, false, false, false, false);
+    assert_eq!(perc.criterios_positivos, 0);
+    assert!(perc.tep_descartado);
+
+    // Wells TVP: Câncer (1) + Edema unilateral >3cm (1) = 2 pontos (Moderada)
+    let wells = calcular_wells_tvp(true, false, false, false, false, true, false, false, false, false);
+    assert_eq!(wells.pontuacao_total, 2);
+    assert!(wells.categoria_probabilidade.contains("Moderada"));
+
+    // Pádua TEV: Câncer (3) + Mobilidade (3) = 6 pontos (Alto risco >= 4)
+    let padua = calcular_escore_padua(true, false, true, false, false, false, false, false, false, false, false);
+    assert_eq!(padua.pontuacao_total, 6);
+    assert!(padua.alto_risco_tev);
+}
+
+#[test]
+fn test_trombolise_avc_e_glasgow_p() {
+    // Paciente 70 kg
+    let tnk = calcular_trombolise_avc(70.0).unwrap();
+    assert_eq!(tnk.dose_total_alteplase_mg, 63.0); // 0.9 * 70 = 63 mg
+    assert_eq!(tnk.bolus_alteplase_10_porcento_mg, 6.3);
+    assert_eq!(tnk.infusao_alteplase_90_porcento_mg_h, 56.7);
+    assert_eq!(tnk.dose_tenecteplase_mg, 17.5); // 0.25 * 70 = 17.5 mg
+
+    // Glasgow-P: GCS 8 - 1 pupila sem resposta = GCS-P 7
+    let gp = calcular_glasgow_p(2, 2, 4, 1).unwrap();
+    assert_eq!(gp.escore_glasgow, 8);
+    assert_eq!(gp.reacao_pupilar_pontos, 1);
+    assert_eq!(gp.gcs_p_final, 7);
+    assert!(gp.indicacao_intubacao);
+}
+
+#[test]
+fn test_cranio_cervical_canadian_nexus() {
+    let cc = calcular_cranio_cervical(
+        true, false, false, false, false, false, false,
+        false, false, false, false
+    );
+    assert!(cc.indicacao_tc_cranio);
+    assert!(cc.criterios_nexus_atendidos); // sem critérios NEXUS -> não indicada imagem cervical
+}
+
+#[test]
+fn test_meld_na_e_child_pugh_e_fib4() {
+    // MELD-Na: Cr 2.0, Bili 3.0, INR 1.8, Na 130
+    let meld = calcular_meld_na(2.0, 3.0, 1.8, 130.0, false).unwrap();
+    assert!(meld.score_meld_na > 20.0);
+
+    // Child-Pugh: Bili 3.5 (3), Alb 2.5 (3), INR 2.4 (3), Ascite moderada (3), Encef grau 2 (2) = 14 pt (Classe C)
+    let child = calcular_child_pugh(3.5, 2.5, 2.4, 3, 2).unwrap();
+    assert_eq!(child.pontuacao_total, 14);
+    assert!(child.classe.contains("Classe C"));
+
+    // FIB-4: Idade 50, AST 80, ALT 40, Plaq 150
+    // FIB-4 = (50 * 80) / (150 * sqrt(40)) = 4000 / (150 * 6.3245) = 4000 / 948.68 = 4.22 (Alto Risco)
+    let fib = calcular_fib4(50, 80.0, 40.0, 150.0).unwrap();
+    assert!(fib.score_fib4 > 3.25);
+    assert!(fib.estratificacao_fibrose.contains("Alta Probabilidade"));
+}
+
+#[test]
+fn test_hda_blatchford_e_bisap_e_alvarado() {
+    // Blatchford: Ureia 60 (3), Hb 9 (3), PAS 95 (1), FC 105 (1), Melena (1) = 9 pontos
+    let gbs = calcular_glasgow_blatchford(60.0, 9.0, 95.0, 105.0, false, true, false, false, false).unwrap();
+    assert_eq!(gbs.pontuacao_total, 15);
+    assert!(!gbs.baixo_risco_ambulatorial);
+
+    // BISAP: 3 critérios positivos = 3 pontos
+    let bisap = calcular_bisap(true, true, true, false, false);
+    assert_eq!(bisap.pontuacao_total, 3);
+    assert!(bisap.indicacao_uti);
+
+    // Alvarado: 7 pontos
+    let alv = calcular_alvarado(true, true, true, true, true, true, false, false);
+    assert_eq!(alv.pontuacao_total, 8);
+    assert!(alv.probabilidade_apendicite.contains("Alta Probabilidade"));
+}
+
+#[test]
+fn test_corticoide_antropometria_centor_naegele_sofa() {
+    // Corticoide: 20mg Prednisona -> Dexametasona ~3mg, Hidrocortisona ~80mg
+    let cort = calcular_equivalencia_corticoide("Prednisona", 20.0).unwrap();
+    let dex = cort.doses_equivalentes.iter().find(|d| d.farmaco.contains("Dexametasona")).unwrap();
+    assert_eq!(dex.dose_equivalente_mg, 3.0);
+    let hid = cort.doses_equivalentes.iter().find(|d| d.farmaco.contains("Hidrocortisona")).unwrap();
+    assert_eq!(hid.dose_equivalente_mg, 80.0);
+
+    // Antropometria: Homem 100 kg, 175 cm
+    let ant = calcular_antropometria_farmacologica(100.0, 175.0, false).unwrap();
+    assert_eq!(ant.peso_ideal_devine_kg, 70.6); // 50 + 0.91 * (175 - 152.4) = 70.5 kg
+    assert_eq!(ant.peso_ajustado_obesidade_kg, 82.3); // 70.5 + 0.4 * (100 - 70.5) = 82.3 kg
+    assert_eq!(ant.superficie_corporal_mosteller_m2, 2.2);
+
+    // Centor: Idade 20 (1), Febre (1), Sem tosse (1), Adenomegalia (1), Exsudato (1) = 5 pontos
+    let centor = calcular_centor_mcisaac(20, true, true, true, true);
+    assert_eq!(centor.pontuacao_total, 4);
+    assert!(centor.indicacao_teste_rapido_ou_atb.contains("Tratamento antibiótico empírico"));
+
+    // Naegele: DUM 10/05/2026, Consulta 15/07/2026 -> DPP 17/02/2027
+    let gest = calcular_idade_gestacional_dpp(2026, 5, 10, 2026, 7, 15).unwrap();
+    assert_eq!(gest.data_provavel_parto_naegele, "17/02/2027");
+
+    // SOFA: PaO2/FiO2 150 em VM (3), Plaq 80 (2), Bili 2.5 (2), PAM 65 (0), Noradrenalina 0.2 (4), GCS 10 (2), Cr 2.5 (2) = 15 pontos
+    let sofa = calcular_sofa_completo(150.0, true, 80.0, 2.5, 65.0, 0.0, 0.2, 10, 2.5, 800.0, 38.5, 110.0, 24.0, 15000.0);
+    assert_eq!(sofa.sofa_total, 15);
+    assert!(sofa.sirs_positivo);
+    assert!(sofa.conduta_sepse.contains("Falência de múltiplos órgãos"));
 }
