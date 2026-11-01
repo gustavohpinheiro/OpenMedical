@@ -1,0 +1,21 @@
+{
+  "sucesso": true,
+  "timestamp_utc": "2026-11-01T19:55:25.603411+00:00",
+  "duracao_segundos": 0.03,
+  "total_diretrizes_coletadas": 16,
+  "total_erros": 0,
+  "erros": [],
+  "distribuicao_jurisdicao": {
+    "US_CDC_FDA": 5,
+    "CA_HEALTH": 1,
+    "UK_NICE": 8,
+    "GLOBAL_WHO": 2
+  },
+  "cobertura_sus": {
+    "com_equivalente_pcdt_sus": 10,
+    "sem_equivalente_pcdt_sus_sugestoes": 6
+  },
+  "bundle_typescript_atualizado": true,
+  "caminho_bundle": "E:\\source\\OpenMedical\\openclinical\\frontend_ui\\src\\data\\protocolos_internacionais_gerados.ts",
+  "status_urls_oficiais": {}
+}

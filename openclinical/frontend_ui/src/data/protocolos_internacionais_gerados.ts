@@ -1,4 +1,4 @@
-// ARQUIVO GERADO por etl_pipeline/cadastrar_protocolos_internacionais.py - NÃO EDITAR MANUALMENTE.
+// ARQUIVO GERADO AUTOMATICAMENTE pelo atualizador_diretrizes.py - NÃO EDITAR MANUALMENTE.
 import { ProtocoloClinico } from '../types';
 
 export const PROTOCOLOS_INTERNACIONAIS_GERADOS: ProtocoloClinico[] = [
@@ -37,7 +37,8 @@ export const PROTOCOLOS_INTERNACIONAIS_GERADOS: ProtocoloClinico[] = [
       "Inexistência de protocolo clínico PCDT formal no SUS para Doença de Lyme clássica (*Borrelia burgdorferi* sensu stricto), uma vez que a infecção é hiperendêmica na América do Norte e Europa temperada, existindo no Brasil apenas uma variante sindrômica atípica rara (Síndrome de Baggio-Yoshinari).",
       "Definição de profilaxia antimicrobiana pós-picada: dose única de Doxiciclina 200 mg dentro de 72 horas após a remoção de carrapato *Ixodes* ingurgitado em áreas de alta transmissão.",
       "O Eritema Migratório é um diagnóstico puramente dermatológico e clínico: a solicitação de sorologia na fase aguda de lesão cutânea é expressamente desaconselhada pelo CDC devido à alta taxa de falso-negativo por soroconversão tardia."
-    ]
+    ],
+    "tamanho_markdown_bytes": 6182
   },
   {
     "id_protocolo": "cdc_ntca_tuberculose_latente_3hp",
@@ -75,7 +76,8 @@ export const PROTOCOLOS_INTERNACIONAIS_GERADOS: ProtocoloClinico[] = [
       "CDC e NTCA posicionam esquemas ultracurtos baseados em rifamicinas (3HP: 12 doses semanais de Rifapentina + Isoniazida; e 4R: 4 meses de Rifampicina diária) como 1ª linha prioritária estrita, em detrimento do antigo esquema de 9 meses de Isoniazida diária.",
       "A monoterapia com Isoniazida (6H ou 9H) foi rebaixada a esquema de exceção devido à elevada taxa de abandono do tratamento e risco 3 a 5 vezes maior de hepatotoxicidade medicamentosa severa.",
       "Nos Estados Unidos, o teste de liberação de interferon-gama (IGRA) é o método preferencial para quem recebeu vacina BCG; no SUS brasileiro, a Prova Tuberculínica (PPD) por método de Mantoux ainda é a ferramenta mais comumente ofertada nas unidades de saúde."
-    ]
+    ],
+    "tamanho_markdown_bytes": 5410
   },
   {
     "id_protocolo": "cdc_sti_gonorreia_clamidia_2021",
@@ -113,7 +115,8 @@ export const PROTOCOLOS_INTERNACIONAIS_GERADOS: ProtocoloClinico[] = [
       "CDC elevou a dose padrão de Ceftriaxona de 250 mg para 500 mg IM dose única (e 1 g se peso >= 150 kg) em monoterapia para Neisseria gonorrhoeae não complicada, eliminando a prescrição compulsória associada de Azitromicina para diminuir a pressão de resistência.",
       "Para Chlamydia trachomatis, o CDC estabeleceu a Doxiciclina (100 mg 2x/dia por 7 dias) como primeira escolha estrita em substituição à Azitromicina 1 g dose única, devido à maior eficácia microbiológica na mucosa retal e prevenção de resistência no Mycoplasma genitalium.",
       "No SUS, a abordagem sindrômica brasileira ainda utiliza a Azitromicina 1 g oral dose única combinada com Ceftriaxona 500 mg para assegurar adesão imediata em populações vulneráveis na atenção primária."
-    ]
+    ],
+    "tamanho_markdown_bytes": 4359
   },
   {
     "id_protocolo": "cdc_sti_sifilis_2021",
@@ -152,7 +155,8 @@ export const PROTOCOLOS_INTERNACIONAIS_GERADOS: ProtocoloClinico[] = [
       "CDC padroniza a triagem sorológica pelo algoritmo reverso (início por teste treponêmico automatizado imunoensaio EIA/CIA, seguido por teste não treponêmico RPR; se discordante, desempate com TP-PA), que identifica mais casos de infecção precoce ou tratada previamente.",
       "Inclusão recente de diretrizes formais para profilaxia pós-exposição com Doxiciclina (Doxy-PEP 200 mg dose única até 72h após relação desprotegida) para populações sob risco substancial nos EUA.",
       "Concordância absoluta no tratamento de gestantes: Penicilina Benzatina é o único agente eficaz contra a sífilis congênita; qualquer gestante alérgica deve ser obrigatoriamente dessensibilizada em ambiente hospitalar."
-    ]
+    ],
+    "tamanho_markdown_bytes": 5138
   },
   {
     "id_protocolo": "fda_aha_avc_trombolise_tnk",
@@ -190,7 +194,8 @@ export const PROTOCOLOS_INTERNACIONAIS_GERADOS: ProtocoloClinico[] = [
       "A diretriz 2026 da AHA/ASA estabelece equiparação Classe I entre Tenecteplase (TNK em bólus IV único de 5 a 10 segundos) e Alteplase (infusão de 60 minutos em bomba) na janela de até 4,5 horas.",
       "A simplicidade logística do bólus único de Tenecteplase revolucionou o modelo de transferência inter-hospitalar (*drip-and-ship*) para centros com hemodinâmica e trombectomia mecânica, reduzindo significativamente o atraso agulha-punção arterial.",
       "No SUS brasileiro, a Alteplase 0,9 mg/kg ainda é o padrão hegemônico da maioria das Unidades de AVC habilitadas pelo Ministério da Saúde, estando a Tenecteplase em expansão e implantação gradual em serviços de emergência e SAMU."
-    ]
+    ],
+    "tamanho_markdown_bytes": 5575
   },
   {
     "id_protocolo": "health_canada_ccs_insuficiencia_cardiaca",
@@ -229,7 +234,8 @@ export const PROTOCOLOS_INTERNACIONAIS_GERADOS: ProtocoloClinico[] = [
       "A diretriz canadense padroniza o início rápido dos 'Quatro Pilares' fundamentais (ARNI + Betabloqueador + Espironolactona + iSGLT2) nas primeiras 4 a 6 semanas de diagnóstico para todos os pacientes com FEVE <= 40%, independentemente de glicemia.",
       "Sacubitril/Valsartana (ARNI) é posicionado como substituto prioritário de 1ª linha em relação a IECA/BRA, enquanto no SUS o Enalapril continua sendo a droga básica fornecida pela UBS.",
       "Uso rotineiro de peptídeos natriuréticos (BNP ou NT-proBNP) na atenção primária canadense para diagnóstico diferencial célere de dispneia aguda e acompanhamento de resposta terapêutica."
-    ]
+    ],
+    "tamanho_markdown_bytes": 5931
   },
   {
     "id_protocolo": "nice_ng136_hipertensao",
@@ -263,7 +269,8 @@ export const PROTOCOLOS_INTERNACIONAIS_GERADOS: ProtocoloClinico[] = [
       "NICE estabelece confirmação mandatória por MAPA (diurno >= 135/85 mmHg) ou MRPA antes de rotular diagnóstico ou iniciar fármaco no estágio 1 sem lesão de órgão-alvo; no SUS, 2 ou mais aferições de consultório em consultas distintas ainda constituem a prática mais comum.",
       "Estratificação farmacológica inicial por etnia e idade: NICE preconiza Bloqueadores dos Canais de Cálcio (BCC) como monoterapia de 1ª linha para indivíduos com idade >= 55 anos ou de etnia negra (origem africana/caribenha), e IECA/BRA para não-negros < 55 anos.",
       "Preferência por diuréticos tiazídicos-símile (Indapamida ou Clortalidona) em detrimento da Hidroclorotiazida comum, baseada em maior meia-vida e redução consistente de desfechos cardiovasculares."
-    ]
+    ],
+    "tamanho_markdown_bytes": 5215
   },
   {
     "id_protocolo": "nice_ng193_dor_cronica_fibromialgia",
@@ -301,7 +308,8 @@ export const PROTOCOLOS_INTERNACIONAIS_GERADOS: ProtocoloClinico[] = [
       "NICE estabelece contraindicação categórica para o início de opioides (incluindo Tramadol e Codeína), anti-inflamatórios não esteroidais (AINEs), paracetamol e gabapentinoides (Pregabalina/Gabapentina) para dor crônica primária e fibromialgia.",
       "Apenas antidepressivos (Duloxetina, Amitriptilina ou ISRS) possuem recomendação farmacológica favorável, sempre subordinados a terapias físicas e psicológicas ativas.",
       "No Brasil, na ausência de um PCDT unificado do SUS específico para Fibromialgia na APS, o uso crônico e iatrogênico de AINEs, analgésicos opioides e relaxantes musculares ainda é amplamente disseminado nos serviços de saúde."
-    ]
+    ],
+    "tamanho_markdown_bytes": 5034
   },
   {
     "id_protocolo": "nice_ng203_doenca_renal_cronica",
@@ -342,7 +350,8 @@ export const PROTOCOLOS_INTERNACIONAIS_GERADOS: ProtocoloClinico[] = [
       "NICE estabelece a Relação Albumina/Creatinina Urinária (RAC/ACR) em amostra isolada como exame obrigatório para rastreio e acompanhamento, condenando explicitamente fitas reagentes urinárias comuns e urina de 24 horas para este fim.",
       "Indicação formal de Inibidores de SGLT2 (Dapagliflozina) para qualquer paciente com DRC e TFGe entre 25 e 75 mL/min/1,73m² com RAC >= 200 mg/g (ou 22,6 mg/mmol), mesmo na ausência de Diabetes Mellitus.",
       "Uso da equação CKD-EPI sem ajuste por raça/etnia e cálculo do risco de falência renal em 5 anos (Kidney Failure Risk Equation - KFRE com escore de 4 variáveis) para decidir encaminhamento nefrológico ambulatorial."
-    ]
+    ],
+    "tamanho_markdown_bytes": 5058
   },
   {
     "id_protocolo": "nice_ng222_depressao_adulto",
@@ -383,7 +392,8 @@ export const PROTOCOLOS_INTERNACIONAIS_GERADOS: ProtocoloClinico[] = [
       "NICE orienta a NÃO prescrever antidepressivos rotineiramente como tratamento inicial para episódios de depressão leve, priorizando psicoterapias estruturadas (TCC de baixa intensidade, terapia comportamental ou exercícios em grupo).",
       "Sertralina é o Inibidor Seletivo da Recaptação de Serotonina (ISRS) de 1ª escolha padrão recomendado pelo NICE pelo menor índice de interações e maior segurança cardiológica; no SUS da atenção básica, a Fluoxetina 20 mg é a oferta preponderante nas farmácias de UBS.",
       "Instituição de protocolo obrigatório de retirada lenta e proporcional (desmame hiperbólico ao longo de semanas a meses) para prevenir síndrome de retirada de antidepressivos."
-    ]
+    ],
+    "tamanho_markdown_bytes": 5400
   },
   {
     "id_protocolo": "nice_ng245_asma_manejo_cronico",
@@ -421,7 +431,8 @@ export const PROTOCOLOS_INTERNACIONAIS_GERADOS: ProtocoloClinico[] = [
       "NICE/BTS/SIGN proíbem terminantemente a prescrição de broncodilatador de curta ação isolado (SABA como Salbutamol) como terapia única regular, devido ao risco aumentado de exacerbação grave e morte por asma.",
       "Adoção preferencial da estratégia MART (Maintenance and Reliever Therapy) com Budesonida + Formoterol em dose única, servindo simultaneamente para manutenção diária e alívio das crises.",
       "Exigência de testes fisiológicos objetivos (FeNO >= 40 ppb e reversibilidade na espirometria de pelo menos 12% e 200 mL) antes de firmar diagnóstico de asma em maiores de 5 anos; no SUS da APS, o diagnóstico clínico-empírico ainda prevalece."
-    ]
+    ],
+    "tamanho_markdown_bytes": 4506
   },
   {
     "id_protocolo": "nice_ng250_pneumonia_adquirida_comunidade",
@@ -457,7 +468,8 @@ export const PROTOCOLOS_INTERNACIONAIS_GERADOS: ProtocoloClinico[] = [
       "NICE orienta a utilização de dosagem rápida de Proteína C Reativa (PCR Point-of-Care) na atenção básica para diferenciar infecção autolimitada de pneumonia bacteriana: PCR < 20 mg/L contraindica antibiótico de rotina; PCR > 100 mg/L indica início imediato.",
       "Duração padrão do tratamento antibiótico reduzida para 5 dias em casos de gravidade baixa a moderada com boa resposta clínica, contrastando com os habituais 7 a 10 dias prescritos no Brasil.",
       "Uso padronizado e sistemático do escore CRB65 (que não exige dosagem sérica de ureia) para definir internação hospitalar imediata vs. tratamento domiciliar seguro."
-    ]
+    ],
+    "tamanho_markdown_bytes": 4732
   },
   {
     "id_protocolo": "nice_ng28_diabetes_tipo2",
@@ -496,7 +508,8 @@ export const PROTOCOLOS_INTERNACIONAIS_GERADOS: ProtocoloClinico[] = [
       "A diretriz NICE NG28 posiciona os inibidores de SGLT2 (Dapagliflozina, Empagliflozina) como terapia de 1ª linha em combinação com a Metformina desde o diagnóstico para pacientes com alto risco cardiovascular, insuficiência cardíaca ou doença renal crônica.",
       "Sulfonilureias (Gliclazida) perderam espaço como 2ª linha mandatória no NICE devido ao risco de hipoglicemia e ganho de peso, dando lugar a iSGLT2, agonistas do receptor GLP-1 e inibidores de DPP-4.",
       "No SUS (Conitec / RENAME), a Dapagliflozina 10 mg foi incorporada com critérios restritos de idade (idade >= 65 anos com DCV estabelecida) ou DRC com albuminúria, mantendo a Gliclazida MR e Insulina NPH como escolhas preponderantes na UBS após a Metformina."
-    ]
+    ],
+    "tamanho_markdown_bytes": 4667
   },
   {
     "id_protocolo": "nice_ta875_ta1026_obesidade_glp1_gip",
@@ -536,7 +549,8 @@ export const PROTOCOLOS_INTERNACIONAIS_GERADOS: ProtocoloClinico[] = [
       "O NICE e o FDA tratam a obesidade como doença crônica recidivante com indicação formal de farmacoterapia avançada com incretinomiméticos (Semaglutida 2,4 mg ou Tirzepatida até 15 mg semanal) como adjuvante de dieta hipocalórica e atividade física.",
       "Critérios objetivos de resposta (Stopping Rules): descontinuação mandatória se o paciente não perder pelo menos 5% do peso corporal total após 12 ou 26 semanas na dose de manutenção.",
       "No SUS brasileiro, nenhum análogo de GLP-1 ou coagonista GIP/GLP-1 é fornecido pela RENAME para obesidade, limitando a oferta pública a orientações de estilo de vida na UBS e cirurgia bariátrica hospitalar em longas filas de espera."
-    ]
+    ],
+    "tamanho_markdown_bytes": 4836
   },
   {
     "id_protocolo": "who_arboviroses_dengue_2025",
@@ -572,7 +586,8 @@ export const PROTOCOLOS_INTERNACIONAIS_GERADOS: ProtocoloClinico[] = [
       "A OMS adota a classificação tripartite simplificada (Dengue Sem Sinais de Alarme, Dengue Com Sinais de Alarme e Dengue Grave), enquanto o Ministério da Saúde do Brasil estrutura o fluxo assistencial em 4 Grupos Operacionais (A, B, C e D) para organização de filas de acolhimento e hidratação nas UBS e UPAs.",
       "Diretriz enfática da OMS sobre cessação imediata da reposição intravenosa vigorosa após a resolução da fase crítica (24 a 48h após a queda da febre), para prevenir edema agudo de pulmão iatrogênico por hiper-hidratação na fase de reabsorção capilar.",
       "Contraindicação formal reforçada pela OMS para a transfusão profilática de concentrado de plaquetas baseada unicamente no valor numérico da plaquetometria (mesmo < 20.000/mm³), reservando plaquetas para sangramento grave ativo ou procedimentos invasivos imediatos."
-    ]
+    ],
+    "tamanho_markdown_bytes": 6685
   },
   {
     "id_protocolo": "who_hemorragia_pos_parto_pph",
@@ -611,7 +626,8 @@ export const PROTOCOLOS_INTERNACIONAIS_GERADOS: ProtocoloClinico[] = [
       "A OMS estabelece o Ácido Tranexâmico (TXA 1 g IV) administrado obrigatoriamente dentro de até 3 horas do parto como conduta salvadora de vida Classe I em toda HPP clínica, comprovando redução de mais de 30% na mortalidade materna por sangramento.",
       "Recomendação da Carbetocina termoestável (100 mcg dose única) para prevenção no 3º estágio do parto em locais com cadeia de frio instável, superando o risco de inativação térmica da Ocitocina convencional.",
       "Adoção sistemática do pacote intervencionista precoce integrado (Bundle 'First-Response MOTIVE') guiado por coletores calibrados de volume, em substituição à estimativa visual subjetiva."
-    ]
+    ],
+    "tamanho_markdown_bytes": 6431
   }
 ];
 
