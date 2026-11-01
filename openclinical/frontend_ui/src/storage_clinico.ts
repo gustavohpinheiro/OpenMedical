@@ -5,6 +5,8 @@ import {
   TemplateReceituario,
   RelatorioTesteRealizado,
   ItemPrescricaoCesta,
+  ReceitaSalva,
+  EvolucaoProntuario,
 } from './types';
 
 // =============================================================================
@@ -18,6 +20,8 @@ const KEY_BLOCOS_PRESCRICAO = 'openclinical_blocos_prescricao';
 const KEY_TEMPLATES_RECEITA = 'openclinical_templates_receita';
 const KEY_TEMPLATE_ATIVO_ID = 'openclinical_template_ativo_id';
 const KEY_RELATORIOS_TESTES = 'openclinical_relatorios_testes';
+const KEY_RECEITAS_HISTORICO = 'openclinical_receitas_historico';
+const KEY_EVOLUCOES_PRONTUARIO = 'openclinical_evolucoes_prontuario';
 
 // =============================================================================
 // Dados Iniciais Padrão (Presets de Demonstração e Consultório)
@@ -464,4 +468,90 @@ export function listarRelatoriosTestes(pacienteId?: string): RelatorioTesteReali
     console.error('Erro ao listar relatórios clínicos:', e);
   }
   return [];
+}
+
+
+// =============================================================================
+// Gestão do Histórico de Prescrições do Paciente (Prontuário Digital)
+// =============================================================================
+
+export function salvarReceitaNoHistorico(receita: ReceitaSalva): void {
+  try {
+    const data = localStorage.getItem(KEY_RECEITAS_HISTORICO);
+    const lista: ReceitaSalva[] = data ? JSON.parse(data) : [];
+    lista.unshift(receita);
+    localStorage.setItem(KEY_RECEITAS_HISTORICO, JSON.stringify(lista));
+    window.dispatchEvent(new CustomEvent('openclinical_receita_salva', { detail: receita }));
+  } catch (e) {
+    console.error('Erro ao salvar receita no histórico:', e);
+  }
+}
+
+export function listarReceitasSalvas(pacienteId?: string): ReceitaSalva[] {
+  try {
+    const data = localStorage.getItem(KEY_RECEITAS_HISTORICO);
+    if (data) {
+      const lista: ReceitaSalva[] = JSON.parse(data);
+      if (pacienteId) {
+        return lista.filter((r) => r.paciente_id === pacienteId);
+      }
+      return lista;
+    }
+  } catch (e) {
+    console.error('Erro ao listar receitas salvas:', e);
+  }
+  return [];
+}
+
+export function excluirReceitaSalva(id: string): void {
+  try {
+    const todas = listarReceitasSalvas().filter((r) => r.id !== id);
+    localStorage.setItem(KEY_RECEITAS_HISTORICO, JSON.stringify(todas));
+    window.dispatchEvent(new CustomEvent('openclinical_receita_excluida', { detail: id }));
+  } catch (e) {
+    console.error('Erro ao excluir receita:', e);
+  }
+}
+
+// =============================================================================
+// Gestão de Evoluções e Anamnese Clínica do Paciente
+// =============================================================================
+
+export function salvarEvolucaoProntuario(evolucao: EvolucaoProntuario): void {
+  try {
+    const data = localStorage.getItem(KEY_EVOLUCOES_PRONTUARIO);
+    const lista: EvolucaoProntuario[] = data ? JSON.parse(data) : [];
+    lista.unshift(evolucao);
+    localStorage.setItem(KEY_EVOLUCOES_PRONTUARIO, JSON.stringify(lista));
+    window.dispatchEvent(new CustomEvent('openclinical_evolucao_salva', { detail: evolucao }));
+  } catch (e) {
+    console.error('Erro ao salvar evolução no prontuário:', e);
+  }
+}
+
+export function listarEvolucoesProntuario(pacienteId: string): EvolucaoProntuario[] {
+  try {
+    const data = localStorage.getItem(KEY_EVOLUCOES_PRONTUARIO);
+    if (data) {
+      const lista: EvolucaoProntuario[] = JSON.parse(data);
+      return lista.filter((ev) => ev.paciente_id === pacienteId);
+    }
+  } catch (e) {
+    console.error('Erro ao listar evoluções:', e);
+  }
+  return [];
+}
+
+// =============================================================================
+// Gestão de Autenticação / Troca Rápida de Médicos
+// =============================================================================
+
+export function trocarPerfilMedico(id: string): PerfilMedico | null {
+  const todos = listarPerfisMedicos();
+  const escolhido = todos.find((m) => m.id === id);
+  if (escolhido) {
+    salvarPerfilMedicoAtivo(escolhido);
+    return escolhido;
+  }
+  return null;
 }

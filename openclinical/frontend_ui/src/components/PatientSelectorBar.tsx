@@ -27,10 +27,12 @@ import {
 
 interface PatientSelectorBarProps {
   onPacienteSelecionado?: (paciente: Paciente | null) => void;
+  onAbrirProntuario?: () => void;
 }
 
 export const PatientSelectorBar: React.FC<PatientSelectorBarProps> = ({
   onPacienteSelecionado,
+  onAbrirProntuario,
 }) => {
   const [pacienteAtivo, setPacienteAtivo] = useState<Paciente | null>(null);
   const [modalListaAberto, setModalListaAberto] = useState(false);
@@ -182,126 +184,144 @@ export const PatientSelectorBar: React.FC<PatientSelectorBarProps> = ({
   );
 
   return (
-    <div className="bg-slate-900/90 border-b border-slate-800 px-4 py-2.5 backdrop-blur z-20 flex flex-wrap items-center justify-between gap-3 text-xs">
-      {/* Dados do Paciente Ativo */}
-      <div className="flex items-center gap-3 flex-wrap">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-teal-500/15 border border-teal-500/30 flex items-center justify-center text-teal-300 font-bold text-xs uppercase">
-            {pacienteAtivo ? pacienteAtivo.nome_completo.substring(0, 2) : '??'}
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="font-bold text-slate-100 text-sm">
-                {pacienteAtivo ? pacienteAtivo.nome_completo : 'Nenhum Paciente Selecionado'}
-              </span>
-              {pacienteAtivo && (
-                <span className="px-2 py-0.5 bg-slate-800 text-slate-300 rounded-md font-mono text-[10px]">
-                  {pacienteAtivo.idade_anos} anos &bull; {pacienteAtivo.sexo === 'M' ? 'Masc' : 'Fem'}
-                </span>
-              )}
+    <>
+      {/* Barra de Paciente Ativo */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl px-4 py-3 shadow-sm flex flex-wrap items-center justify-between gap-3 text-xs transition-colors">
+        {/* Identificação do Paciente */}
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-full bg-teal-500/15 border border-teal-500/30 flex items-center justify-center text-teal-700 dark:text-teal-300 font-bold text-xs uppercase shadow-sm">
+              {pacienteAtivo ? pacienteAtivo.nome_completo.substring(0, 2) : '??'}
             </div>
-            {pacienteAtivo && (
-              <div className="flex items-center gap-2 text-[11px] text-slate-400">
-                {pacienteAtivo.cpf && <span>CPF: {pacienteAtivo.cpf}</span>}
-                {pacienteAtivo.peso_kg && (
-                  <span className="font-mono text-teal-400">
-                    &bull; {pacienteAtivo.peso_kg} kg
-                  </span>
-                )}
-                {pacienteAtivo.altura_cm && (
-                  <span className="font-mono text-slate-400">
-                    &bull; {pacienteAtivo.altura_cm} cm
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-slate-900 dark:text-slate-100 text-sm">
+                  {pacienteAtivo ? pacienteAtivo.nome_completo : 'Nenhum Paciente Selecionado'}
+                </span>
+                {pacienteAtivo && (
+                  <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-md font-mono text-[10px] font-semibold">
+                    {pacienteAtivo.idade_anos} anos &bull; {pacienteAtivo.sexo === 'M' ? 'Masc' : 'Fem'}
                   </span>
                 )}
               </div>
-            )}
+              {pacienteAtivo && (
+                <div className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400">
+                  {pacienteAtivo.cpf && <span>CPF: {pacienteAtivo.cpf}</span>}
+                  {pacienteAtivo.peso_kg && (
+                    <span className="font-mono text-teal-600 dark:text-teal-400 font-bold">
+                      &bull; {pacienteAtivo.peso_kg} kg
+                    </span>
+                  )}
+                  {pacienteAtivo.altura_cm && (
+                    <span className="font-mono text-slate-500">
+                      &bull; {pacienteAtivo.altura_cm} cm
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
+
+          {/* Alertas Críticos de Alergia */}
+          {pacienteAtivo?.alergias && pacienteAtivo.alergias.length > 0 && (
+            <div className="flex items-center gap-1.5 bg-rose-500/15 border border-rose-500/40 px-3 py-1 rounded-xl text-rose-800 dark:text-rose-300 font-bold text-[11px] animate-pulse">
+              <AlertOctagon className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400 shrink-0" />
+              <span>Alergias:</span>
+              <span className="underline decoration-rose-500/60 font-black">
+                {pacienteAtivo.alergias.join(', ')}
+              </span>
+            </div>
+          )}
+
+          {/* Comorbidades */}
+          {pacienteAtivo?.comorbidades && pacienteAtivo.comorbidades.length > 0 && (
+            <div className="hidden xl:flex items-center gap-1.5 text-slate-600 dark:text-slate-400 text-[11px]">
+              <Activity className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
+              <span>Condições: {pacienteAtivo.comorbidades.slice(0, 2).join(', ')}</span>
+              {pacienteAtivo.comorbidades.length > 2 && (
+                <span className="text-[10px] text-slate-400 font-mono">
+                  (+{pacienteAtivo.comorbidades.length - 2})
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
-        {/* Alertas de Alergia do Paciente */}
-        {pacienteAtivo?.alergias && pacienteAtivo.alergias.length > 0 && (
-          <div className="flex items-center gap-1.5 bg-rose-500/15 border border-rose-500/30 px-2.5 py-1 rounded-xl text-rose-300 font-semibold text-[11px] animate-pulse">
-            <AlertOctagon className="w-3.5 h-3.5 text-rose-400 shrink-0" />
-            <span>Alergias:</span>
-            <span className="underline decoration-rose-400/60 font-bold">
-              {pacienteAtivo.alergias.join(', ')}
-            </span>
-          </div>
-        )}
+        {/* Botões de Ação do Paciente */}
+        <div className="flex items-center gap-2">
+          {pacienteAtivo && onAbrirProntuario && (
+            <button
+              type="button"
+              onClick={onAbrirProntuario}
+              className="flex items-center gap-1 px-3 py-1.5 bg-sky-500/10 hover:bg-sky-500/20 text-sky-700 dark:text-sky-300 border border-sky-500/30 rounded-xl font-bold transition text-xs"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5" />
+              <span>Ver Prontuário Digital</span>
+            </button>
+          )}
 
-        {/* Comorbidades */}
-        {pacienteAtivo?.comorbidades && pacienteAtivo.comorbidades.length > 0 && (
-          <div className="hidden lg:flex items-center gap-1.5 text-slate-400 text-[11px]">
-            <Activity className="w-3.5 h-3.5 text-teal-400" />
-            <span>Condições: {pacienteAtivo.comorbidades.slice(0, 2).join(', ')}</span>
-            {pacienteAtivo.comorbidades.length > 2 && (
-              <span className="text-[10px] text-slate-500">
-                (+{pacienteAtivo.comorbidades.length - 2})
-              </span>
-            )}
-          </div>
-        )}
-      </div>
+          {pacienteAtivo && (
+            <button
+              type="button"
+              onClick={() => abrirEditarPaciente(pacienteAtivo)}
+              className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 rounded-lg transition text-[11px] flex items-center gap-1 border border-slate-200 dark:border-slate-800"
+              title="Editar dados clínicos do paciente"
+            >
+              <Edit3 className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Editar Ficha</span>
+            </button>
+          )}
 
-      {/* Botões de Ação do Paciente */}
-      <div className="flex items-center gap-2">
-        {pacienteAtivo && (
           <button
-            onClick={() => abrirEditarPaciente(pacienteAtivo)}
-            className="p-1.5 hover:bg-slate-800 text-slate-400 hover:text-slate-200 rounded-lg transition text-[11px] flex items-center gap-1"
-            title="Editar dados clínicos do paciente"
+            type="button"
+            onClick={() => setModalListaAberto(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-200 rounded-xl font-medium transition text-xs border border-slate-200 dark:border-slate-700"
           >
-            <Edit3 className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Editar</span>
+            <Users className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
+            <span>Trocar Paciente</span>
+            <ChevronDown className="w-3 h-3 text-slate-400" />
           </button>
-        )}
 
-        <button
-          onClick={() => setModalListaAberto(true)}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl font-medium transition text-xs border border-slate-700"
-        >
-          <Users className="w-3.5 h-3.5 text-teal-400" />
-          <span>Trocar Paciente</span>
-          <ChevronDown className="w-3 h-3 text-slate-400" />
-        </button>
-
-        <button
-          onClick={abrirNovoPaciente}
-          className="flex items-center gap-1 px-3 py-1.5 bg-teal-600 hover:bg-teal-500 text-white rounded-xl font-semibold transition text-xs shadow-md shadow-teal-950/40"
-        >
-          <UserPlus className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">Novo Paciente</span>
-        </button>
+          <button
+            type="button"
+            onClick={abrirNovoPaciente}
+            className="flex items-center gap-1 px-3 py-1.5 bg-teal-600 hover:bg-teal-500 text-white rounded-xl font-bold transition text-xs shadow-md shadow-teal-950/20"
+          >
+            <UserPlus className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Novo Paciente</span>
+          </button>
+        </div>
       </div>
 
       {/* =====================================================================
           MODAL DE SELEÇÃO DE PACIENTE (LISTA)
          ===================================================================== */}
       {modalListaAberto && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-xl max-h-[85vh] overflow-hidden flex flex-col shadow-2xl">
-            <div className="p-5 border-b border-slate-800 flex items-center justify-between">
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in isolate">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-xl max-h-[85vh] overflow-hidden flex flex-col shadow-2xl text-slate-800 dark:text-slate-100">
+            <div className="p-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <div className="p-2 bg-teal-500/10 text-teal-400 rounded-xl">
+                <div className="p-2 bg-teal-500/10 text-teal-600 dark:text-teal-400 rounded-xl">
                   <Users className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-slate-100 text-sm">Diretório Local de Pacientes</h3>
-                  <p className="text-[11px] text-slate-400">
-                    Selecione o paciente ativo para que as prescrições e testes já recebam seus dados.
+                  <h3 className="font-bold text-sm">Diretório Local de Pacientes</h3>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                    Selecione o paciente ativo para que as prescrições e laudos já recebam seus dados.
                   </p>
                 </div>
               </div>
               <button
+                type="button"
                 onClick={() => setModalListaAberto(false)}
-                className="p-1.5 text-slate-400 hover:text-slate-200 rounded-lg"
+                className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-lg"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* Campo de Busca */}
-            <div className="p-4 border-b border-slate-800/60 bg-slate-950/40">
+            <div className="p-4 border-b border-slate-200 dark:border-slate-800/60 bg-slate-50 dark:bg-slate-950/40">
               <div className="relative">
                 <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
                 <input
@@ -309,7 +329,7 @@ export const PatientSelectorBar: React.FC<PatientSelectorBarProps> = ({
                   placeholder="Pesquisar por nome, CPF ou CNS..."
                   value={busca}
                   onChange={(e) => setBusca(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-teal-500"
+                  className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-teal-500"
                 />
               </div>
             </div>
@@ -332,28 +352,28 @@ export const PatientSelectorBar: React.FC<PatientSelectorBarProps> = ({
                       }}
                       className={`p-3.5 rounded-2xl border transition cursor-pointer flex items-center justify-between gap-3 ${
                         isAtivo
-                          ? 'bg-teal-500/15 border-teal-500/40 text-slate-100 shadow-md shadow-teal-950/20'
-                          : 'bg-slate-950/60 border-slate-800 hover:border-slate-700 text-slate-200'
+                          ? 'bg-teal-500/15 border-teal-500/40 text-slate-900 dark:text-slate-100 shadow-sm'
+                          : 'bg-slate-50/70 dark:bg-slate-950/60 border-slate-200 dark:border-slate-800 hover:border-slate-400 dark:hover:border-slate-700'
                       }`}
                     >
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
                           <span className="font-bold text-xs">{pac.nome_completo}</span>
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 font-mono">
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-400 font-mono">
                             {pac.idade_anos}a &bull; {pac.sexo}
                           </span>
                           {isAtivo && (
-                            <span className="text-[10px] px-2 py-0.5 rounded bg-teal-500/20 text-teal-300 font-bold">
+                            <span className="text-[10px] px-2 py-0.5 rounded bg-teal-500/20 text-teal-700 dark:text-teal-300 font-bold">
                               Ativo
                             </span>
                           )}
                         </div>
-                        <div className="text-[11px] text-slate-400 flex items-center gap-2">
+                        <div className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-2">
                           {pac.cpf && <span>CPF: {pac.cpf}</span>}
                           {pac.peso_kg && <span>&bull; {pac.peso_kg} kg</span>}
                         </div>
                         {pac.alergias.length > 0 && (
-                          <div className="text-[10px] text-rose-400 font-medium">
+                          <div className="text-[10px] text-rose-600 dark:text-rose-400 font-bold">
                             ⚠️ Alergias: {pac.alergias.join(', ')}
                           </div>
                         )}
@@ -361,23 +381,25 @@ export const PatientSelectorBar: React.FC<PatientSelectorBarProps> = ({
 
                       <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                         <button
+                          type="button"
                           onClick={() => {
                             setModalListaAberto(false);
                             abrirEditarPaciente(pac);
                           }}
-                          className="p-1.5 hover:bg-slate-800 text-slate-400 hover:text-slate-200 rounded-lg"
+                          className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-lg"
                           title="Editar"
                         >
                           <Edit3 className="w-3.5 h-3.5" />
                         </button>
                         <button
+                          type="button"
                           onClick={() => {
                             if (confirm(`Deseja excluir o paciente ${pac.nome_completo}?`)) {
                               excluirPaciente(pac.id);
                               recarregar();
                             }
                           }}
-                          className="p-1.5 hover:bg-rose-950/50 text-slate-400 hover:text-rose-400 rounded-lg"
+                          className="p-1.5 hover:bg-rose-500/20 text-slate-400 hover:text-rose-500 rounded-lg"
                           title="Excluir"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -389,8 +411,9 @@ export const PatientSelectorBar: React.FC<PatientSelectorBarProps> = ({
               )}
             </div>
 
-            <div className="p-4 border-t border-slate-800 bg-slate-950/40 flex items-center justify-between">
+            <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/40 flex items-center justify-between">
               <button
+                type="button"
                 onClick={() => {
                   setModalListaAberto(false);
                   abrirNovoPaciente();
@@ -400,11 +423,12 @@ export const PatientSelectorBar: React.FC<PatientSelectorBarProps> = ({
                 <UserPlus className="w-4 h-4" /> Cadastrar Novo Paciente
               </button>
               <button
+                type="button"
                 onClick={() => {
                   definirPacienteAtivo(null);
                   setModalListaAberto(false);
                 }}
-                className="text-slate-400 hover:text-slate-200 text-xs"
+                className="text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 text-xs"
               >
                 Desmarcar Paciente Ativo
               </button>
@@ -414,30 +438,31 @@ export const PatientSelectorBar: React.FC<PatientSelectorBarProps> = ({
       )}
 
       {/* =====================================================================
-          MODAL DE CADASTRO / EDIÇÃO DE PACIENTE
+          MODAL DE CADASTRO / EDIÇÃO DE PACIENTE (ISOLADO Z-[110])
          ===================================================================== */}
       {modalEdicaoAberto && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto flex flex-col shadow-2xl">
-            <div className="p-5 border-b border-slate-800 sticky top-0 bg-slate-900/95 backdrop-blur flex items-center justify-between z-10">
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in isolate">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto flex flex-col shadow-2xl text-slate-800 dark:text-slate-100">
+            <div className="p-5 border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur flex items-center justify-between z-10">
               <div className="flex items-center gap-2.5">
-                <div className="p-2 bg-teal-500/10 text-teal-400 rounded-xl">
+                <div className="p-2 bg-teal-500/10 text-teal-600 dark:text-teal-400 rounded-xl">
                   <User className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-slate-100 text-sm">
+                  <h3 className="font-bold text-sm">
                     {formPaciente.id && pacientes.some((p) => p.id === formPaciente.id)
                       ? 'Editar Ficha do Paciente'
                       : 'Novo Paciente Clínico'}
                   </h3>
-                  <p className="text-[11px] text-slate-400">
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
                     Dados utilizados para cálculo posológico pediátrico, função renal e impressão da receita.
                   </p>
                 </div>
               </div>
               <button
+                type="button"
                 onClick={() => setModalEdicaoAberto(false)}
-                className="p-1.5 text-slate-400 hover:text-slate-200 rounded-lg"
+                className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-lg"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -447,22 +472,22 @@ export const PatientSelectorBar: React.FC<PatientSelectorBarProps> = ({
               {/* Nome e Sexo */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="sm:col-span-2">
-                  <label className="text-slate-400 block mb-1">Nome Completo *</label>
+                  <label className="text-slate-600 dark:text-slate-400 block mb-1">Nome Completo *</label>
                   <input
                     type="text"
                     required
                     value={formPaciente.nome_completo || ''}
                     onChange={(e) => setFormPaciente({ ...formPaciente, nome_completo: e.target.value })}
                     placeholder="Ex: Dona Maria de Fátima..."
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-teal-500"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-slate-900 dark:text-slate-100 focus:outline-none focus:border-teal-500"
                   />
                 </div>
                 <div>
-                  <label className="text-slate-400 block mb-1">Sexo Biológico *</label>
+                  <label className="text-slate-600 dark:text-slate-400 block mb-1">Sexo Biológico *</label>
                   <select
                     value={formPaciente.sexo || 'F'}
                     onChange={(e) => setFormPaciente({ ...formPaciente, sexo: e.target.value as 'M' | 'F' })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-teal-500"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-slate-900 dark:text-slate-100 focus:outline-none focus:border-teal-500"
                   >
                     <option value="F">Feminino</option>
                     <option value="M">Masculino</option>
@@ -473,7 +498,7 @@ export const PatientSelectorBar: React.FC<PatientSelectorBarProps> = ({
               {/* Data Nascimento e Documentos */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="text-slate-400 block mb-1">Data de Nascimento</label>
+                  <label className="text-slate-600 dark:text-slate-400 block mb-1">Data de Nascimento</label>
                   <input
                     type="date"
                     value={formPaciente.data_nascimento || '1985-01-01'}
@@ -485,36 +510,36 @@ export const PatientSelectorBar: React.FC<PatientSelectorBarProps> = ({
                         idade_anos: calcularIdade(dt),
                       });
                     }}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-teal-500 font-mono"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-slate-900 dark:text-slate-100 focus:outline-none focus:border-teal-500 font-mono"
                   />
                 </div>
                 <div>
-                  <label className="text-slate-400 block mb-1">CPF</label>
+                  <label className="text-slate-600 dark:text-slate-400 block mb-1">CPF</label>
                   <input
                     type="text"
                     value={formPaciente.cpf || ''}
                     onChange={(e) => setFormPaciente({ ...formPaciente, cpf: e.target.value })}
                     placeholder="000.000.000-00"
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-teal-500 font-mono"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-slate-900 dark:text-slate-100 focus:outline-none focus:border-teal-500 font-mono"
                   />
                 </div>
                 <div>
-                  <label className="text-slate-400 block mb-1">Cartão SUS (CNS)</label>
+                  <label className="text-slate-600 dark:text-slate-400 block mb-1">Cartão SUS (CNS)</label>
                   <input
                     type="text"
                     value={formPaciente.cns || ''}
                     onChange={(e) => setFormPaciente({ ...formPaciente, cns: e.target.value })}
                     placeholder="7000..."
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-teal-500 font-mono"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-slate-900 dark:text-slate-100 focus:outline-none focus:border-teal-500 font-mono"
                   />
                 </div>
               </div>
 
               {/* Antropometria (Peso, Altura, IMC) */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3 bg-slate-950/60 border border-slate-800 rounded-2xl">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3 bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 rounded-2xl">
                 <div>
-                  <label className="text-slate-400 block mb-1 flex items-center gap-1">
-                    <Weight className="w-3.5 h-3.5 text-teal-400" /> Peso Real (kg)
+                  <label className="text-slate-600 dark:text-slate-400 block mb-1 flex items-center gap-1">
+                    <Weight className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" /> Peso Real (kg)
                   </label>
                   <input
                     type="number"
@@ -525,12 +550,12 @@ export const PatientSelectorBar: React.FC<PatientSelectorBarProps> = ({
                     onChange={(e) =>
                       setFormPaciente({ ...formPaciente, peso_kg: parseFloat(e.target.value) || undefined })
                     }
-                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 font-mono"
+                    className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-slate-100 font-mono"
                   />
                 </div>
                 <div>
-                  <label className="text-slate-400 block mb-1 flex items-center gap-1">
-                    <Ruler className="w-3.5 h-3.5 text-teal-400" /> Altura (cm)
+                  <label className="text-slate-600 dark:text-slate-400 block mb-1 flex items-center gap-1">
+                    <Ruler className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" /> Altura (cm)
                   </label>
                   <input
                     type="number"
@@ -540,12 +565,12 @@ export const PatientSelectorBar: React.FC<PatientSelectorBarProps> = ({
                     onChange={(e) =>
                       setFormPaciente({ ...formPaciente, altura_cm: parseInt(e.target.value) || undefined })
                     }
-                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 font-mono"
+                    className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-slate-100 font-mono"
                   />
                 </div>
                 <div>
-                  <label className="text-slate-400 block mb-1">IMC Calculado</label>
-                  <div className="bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 font-mono font-bold flex items-center justify-between">
+                  <label className="text-slate-600 dark:text-slate-400 block mb-1">IMC Calculado</label>
+                  <div className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-slate-100 font-mono font-bold flex items-center justify-between">
                     <span>
                       {formPaciente.peso_kg && formPaciente.altura_cm
                         ? (
@@ -554,14 +579,14 @@ export const PatientSelectorBar: React.FC<PatientSelectorBarProps> = ({
                           ).toFixed(1)
                         : '--'}
                     </span>
-                    <span className="text-[10px] text-slate-400 font-normal">kg/m²</span>
+                    <span className="text-[10px] text-slate-500 font-normal">kg/m²</span>
                   </div>
                 </div>
               </div>
 
               {/* Alergias Conhecidas (Tags) */}
               <div className="space-y-2">
-                <label className="text-slate-400 block font-semibold text-rose-400 flex items-center gap-1">
+                <label className="block font-bold text-rose-600 dark:text-rose-400 flex items-center gap-1">
                   <AlertOctagon className="w-3.5 h-3.5" /> Alergias a Medicamentos / Alimentos
                 </label>
                 <div className="flex gap-2">
@@ -576,12 +601,12 @@ export const PatientSelectorBar: React.FC<PatientSelectorBarProps> = ({
                       }
                     }}
                     placeholder="Ex: Dipirona, Penicilinas, AINEs... (Pressione Enter para adicionar)"
-                    className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 text-xs"
+                    className="flex-1 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-slate-900 dark:text-slate-100 text-xs"
                   />
                   <button
                     type="button"
                     onClick={adicionarAlergiaTag}
-                    className="px-3 py-2 bg-rose-600/30 hover:bg-rose-600/50 text-rose-200 border border-rose-500/40 rounded-xl font-bold text-xs"
+                    className="px-3 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-500/30 rounded-xl font-bold text-xs"
                   >
                     Adicionar
                   </button>
@@ -590,13 +615,13 @@ export const PatientSelectorBar: React.FC<PatientSelectorBarProps> = ({
                   {(formPaciente.alergias || []).map((alergia) => (
                     <span
                       key={alergia}
-                      className="px-2.5 py-1 bg-rose-500/20 text-rose-300 border border-rose-500/40 rounded-lg text-xs font-semibold flex items-center gap-1.5"
+                      className="px-2.5 py-1 bg-rose-500/15 text-rose-800 dark:text-rose-300 border border-rose-500/40 rounded-lg text-xs font-bold flex items-center gap-1.5"
                     >
                       {alergia}
                       <button
                         type="button"
                         onClick={() => removerAlergiaTag(alergia)}
-                        className="hover:text-rose-100"
+                        className="hover:text-rose-600 dark:hover:text-rose-100"
                       >
                         <X className="w-3 h-3" />
                       </button>
@@ -607,7 +632,7 @@ export const PatientSelectorBar: React.FC<PatientSelectorBarProps> = ({
 
               {/* Comorbidades e Condições Prévias */}
               <div className="space-y-2">
-                <label className="text-slate-400 block font-semibold text-teal-400 flex items-center gap-1">
+                <label className="block font-bold text-teal-600 dark:text-teal-400 flex items-center gap-1">
                   <Activity className="w-3.5 h-3.5" /> Comorbidades & Doenças Crônicas
                 </label>
                 <div className="flex gap-2">
@@ -622,12 +647,12 @@ export const PatientSelectorBar: React.FC<PatientSelectorBarProps> = ({
                       }
                     }}
                     placeholder="Ex: Hipertensão, Diabetes Tipo 2, Asma... (Pressione Enter)"
-                    className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 text-xs"
+                    className="flex-1 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-slate-900 dark:text-slate-100 text-xs"
                   />
                   <button
                     type="button"
                     onClick={adicionarComorbidadeTag}
-                    className="px-3 py-2 bg-teal-600/30 hover:bg-teal-600/50 text-teal-200 border border-teal-500/40 rounded-xl font-bold text-xs"
+                    className="px-3 py-2 bg-teal-600/10 hover:bg-teal-600/20 text-teal-700 dark:text-teal-300 border border-teal-500/30 rounded-xl font-bold text-xs"
                   >
                     Adicionar
                   </button>
@@ -636,13 +661,13 @@ export const PatientSelectorBar: React.FC<PatientSelectorBarProps> = ({
                   {(formPaciente.comorbidades || []).map((comorbidade) => (
                     <span
                       key={comorbidade}
-                      className="px-2.5 py-1 bg-teal-500/20 text-teal-300 border border-teal-500/40 rounded-lg text-xs font-semibold flex items-center gap-1.5"
+                      className="px-2.5 py-1 bg-teal-500/15 text-teal-800 dark:text-teal-300 border border-teal-500/40 rounded-lg text-xs font-semibold flex items-center gap-1.5"
                     >
                       {comorbidade}
                       <button
                         type="button"
                         onClick={() => removerComorbidadeTag(comorbidade)}
-                        className="hover:text-teal-100"
+                        className="hover:text-teal-900 dark:hover:text-teal-100"
                       >
                         <X className="w-3 h-3" />
                       </button>
@@ -654,39 +679,39 @@ export const PatientSelectorBar: React.FC<PatientSelectorBarProps> = ({
               {/* Endereço e Contato */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                 <div>
-                  <label className="text-slate-400 block mb-1">Endereço Residencial (Obrigatório em Controle Especial)</label>
+                  <label className="text-slate-600 dark:text-slate-400 block mb-1">Endereço Residencial (Obrigatório em Controle Especial)</label>
                   <input
                     type="text"
                     value={formPaciente.endereco || ''}
                     onChange={(e) => setFormPaciente({ ...formPaciente, endereco: e.target.value })}
                     placeholder="Rua, número, bairro e cidade..."
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 text-xs"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-slate-900 dark:text-slate-100 text-xs"
                   />
                 </div>
                 <div>
-                  <label className="text-slate-400 block mb-1">Telefone / WhatsApp</label>
+                  <label className="text-slate-600 dark:text-slate-400 block mb-1">Telefone / WhatsApp</label>
                   <input
                     type="text"
                     value={formPaciente.telefone || ''}
                     onChange={(e) => setFormPaciente({ ...formPaciente, telefone: e.target.value })}
                     placeholder="(00) 00000-0000"
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 text-xs"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-slate-900 dark:text-slate-100 text-xs"
                   />
                 </div>
               </div>
 
               {/* Botões */}
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-800">
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-800">
                 <button
                   type="button"
                   onClick={() => setModalEdicaoAberto(false)}
-                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-bold"
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-bold"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2 bg-teal-600 hover:bg-teal-500 text-white rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-teal-950/40"
+                  className="px-6 py-2 bg-teal-600 hover:bg-teal-500 text-white rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-teal-950/20"
                 >
                   <Check className="w-4 h-4" /> Salvar Paciente
                 </button>
@@ -695,6 +720,6 @@ export const PatientSelectorBar: React.FC<PatientSelectorBarProps> = ({
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 };

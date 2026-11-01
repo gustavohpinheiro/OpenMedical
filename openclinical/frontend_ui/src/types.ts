@@ -744,6 +744,31 @@ export interface PerfilMedico {
   assinatura_base64?: string;
   papel_timbrado_base64?: string;
   usar_papel_timbrado_proprio?: boolean;
+  pin_acesso?: string;
+}
+
+export interface ReceitaSalva {
+  id: string;
+  paciente_id: string;
+  paciente_nome: string;
+  medico_id?: string;
+  medico_nome: string;
+  medico_crm: string;
+  data_hora: string;
+  blocos: BlocoPrescricao[];
+  total_itens: number;
+  total_pmc_estimado: number;
+  observacoes?: string;
+}
+
+export interface EvolucaoProntuario {
+  id: string;
+  paciente_id: string;
+  medico_nome: string;
+  data_hora: string;
+  motivo_consulta?: string;
+  anamnese_evolucao: string;
+  conduta_planejada?: string;
 }
 
 // =============================================================================

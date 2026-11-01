@@ -29,13 +29,16 @@ import { InteractionChecker } from './components/InteractionChecker';
 import { ClinicalCalculators } from './components/ClinicalCalculators';
 import { ProtocolsView } from './components/ProtocolsView';
 import { PrescriptionModularCanvas } from './components/PrescriptionModularCanvas';
+import { PrescriptionSideDrawer } from './components/PrescriptionSideDrawer';
+import { PatientProfileView } from './components/PatientProfileView';
 import { RapidClinicTestsView } from './components/RapidClinicTestsView';
 import { DoctorProfileModal } from './components/DoctorProfileModal';
 import { PatientSelectorBar } from './components/PatientSelectorBar';
 import { AntimicrobialGuideView } from './components/AntimicrobialGuideView';
 import { obterPerfilMedicoAtivo } from './storage_clinico';
 import { PerfilMedico } from './types';
-import { UserCheck, Brain } from 'lucide-react';
+import { obterTemaAtual, aplicarTema, alternarTema, TemaClinico } from './tema';
+import { UserCheck, Brain, Sun, Moon, FileSpreadsheet } from 'lucide-react';
 import { PharmacyPriceFinder } from './components/PharmacyPriceFinder';
 import type { SelecaoBasePublica } from './components/PublicDatabasesView';
 
@@ -62,7 +65,8 @@ export type SecaoApp =
   | 'pediatria'
   | 'interacoes'
   | 'calculadoras'
-  | 'testes_rapidos';
+  | 'testes_rapidos'
+  | 'prontuario';
 
 export interface ItemNavegacao {
   id: SecaoApp;
@@ -117,6 +121,13 @@ export const GRUPOS_NAVEGACAO: GrupoNavegacao[] = [
     titulo: 'Prescrição & Protocolos',
     icone: '📋',
     itens: [
+      {
+        id: 'prontuario',
+        label: 'Prontuário & Paciente',
+        icon: FileSpreadsheet,
+        badge: 'Histórico · Evolução',
+        descricao: 'Ficha do paciente, histórico de receitas e laudos',
+      },
       {
         id: 'protocolos',
         label: 'Receitas & Diretrizes',
@@ -184,6 +195,27 @@ export const App: React.FC = () => {
   const [modalMedicoAberto, setModalMedicoAberto] = useState(false);
   const [perfilMedico, setPerfilMedico] = useState<PerfilMedico>(obterPerfilMedicoAtivo());
   const [termoBuscaInicial, setTermoBuscaInicial] = useState<string | undefined>(undefined);
+  const [temaAtual, setTemaAtual] = useState<TemaClinico>(obterTemaAtual());
+  const [avisoAberto, setAvisoAberto] = useState<boolean>(() => {
+    return localStorage.getItem('openclinical_aviso_fechado') !== 'true';
+  });
+
+  useEffect(() => {
+    aplicarTema(temaAtual);
+    const handleTema = (e: any) => setTemaAtual(e.detail);
+    window.addEventListener('openclinical_tema_alterado', handleTema);
+    return () => window.removeEventListener('openclinical_tema_alterado', handleTema);
+  }, []);
+
+  const toggleTema = () => {
+    const novo = alternarTema();
+    setTemaAtual(novo);
+  };
+
+  const fecharAviso = () => {
+    setAvisoAberto(false);
+    localStorage.setItem('openclinical_aviso_fechado', 'true');
+  };
 
   // Controle da barra lateral retrátil (Sidebar)
   const [sidebarColapsada, setSidebarColapsada] = useState<boolean>(() => {
@@ -480,17 +512,33 @@ export const App: React.FC = () => {
 
           {/* Status Operacional & Atalhos Rápidos */}
           <div className="flex items-center space-x-2.5">
+            {/* Botão de Alternar Tema Claro/Escuro */}
+            <button
+              type="button"
+              onClick={toggleTema}
+              className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-300 dark:border-slate-700/80 text-slate-700 dark:text-slate-300 transition"
+              title={temaAtual === 'escuro' ? 'Alternar para Tema Hospitalar Claro' : 'Alternar para Tema Noturno/Sala Vermelha'}
+              aria-label="Alternar tema visual"
+            >
+              {temaAtual === 'escuro' ? (
+                <Sun className="w-4 h-4 text-amber-400" />
+              ) : (
+                <Moon className="w-4 h-4 text-slate-700" />
+              )}
+            </button>
+
             {/* Botão de Perfil do Médico */}
             <button
+              type="button"
               onClick={() => setModalMedicoAberto(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-700/80 rounded-xl text-xs text-slate-200 transition"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-300 dark:border-slate-700/80 rounded-xl text-xs text-slate-800 dark:text-slate-200 transition"
               title="Configurar médico prescritor, CRM e papel timbrado"
             >
-              <UserCheck className="w-4 h-4 text-teal-400" />
-              <span className="hidden xl:inline font-bold">
+              <UserCheck className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+              <span className="font-bold">
                 {perfilMedico.nome_completo.split(' ')[0]} {perfilMedico.nome_completo.split(' ').slice(-1)[0]}
               </span>
-              <span className="text-[10px] text-teal-300 font-mono hidden sm:inline">
+              <span className="text-[10px] text-teal-600 dark:text-teal-300 font-mono hidden sm:inline">
                 CRM/{perfilMedico.uf_crm} {perfilMedico.crm}
               </span>
             </button>
@@ -534,31 +582,31 @@ export const App: React.FC = () => {
           </div>
         </header>
 
-        {/* Aviso permanente de uso clínico regulatório */}
-        <div className="bg-amber-950/40 border-b border-amber-800/40 px-4 sm:px-6 py-1.5 text-[11px] text-amber-200/90 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 text-amber-400" />
-            <span>
-              Protótipo de apoio à decisão: conteúdo clínico pendente de validação formal. Confira a bula e o PCDT oficial antes de prescrever.
-            </span>
-          </div>
-
-          {itemAtivoAtual && (
-            <div className="hidden md:flex items-center gap-1.5 text-[10px] text-slate-400 bg-slate-900/80 border border-slate-800 px-2 py-0.5 rounded-md">
-              <span className="font-semibold text-teal-300">{itemAtivoAtual.label}</span>
-              <span className="text-slate-500 font-mono">({itemAtivoAtual.badge})</span>
+        {/* Aviso clínico regulatório (Discreto e Fechável) */}
+        {avisoAberto && (
+          <div className="bg-amber-50 dark:bg-amber-950/40 border-b border-amber-200 dark:border-amber-800/40 px-4 sm:px-6 py-1.5 text-[11px] text-amber-900 dark:text-amber-200/90 flex items-center justify-between gap-2 transition-all">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 text-amber-600 dark:text-amber-400" />
+              <span>
+                Suporte à decisão clínica: consulte a bula ANVISA e o PCDT oficial antes de prescrever.
+              </span>
             </div>
-          )}
-        </div>
-
-        {/* Barra Global de Paciente Ativo no Consultório */}
-        <PatientSelectorBar />
+            <button
+              type="button"
+              onClick={fecharAviso}
+              className="p-1 hover:bg-amber-200 dark:hover:bg-amber-900/50 rounded text-amber-700 dark:text-amber-400 transition"
+              title="Fechar aviso regulatório"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
 
         {/* Estrutura Principal: Sidebar Lateral + Área de Trabalho */}
         <div className="flex-1 flex flex-row w-full items-stretch">
           {/* SIDEBAR DESKTOP (COLLAPSIBLE) */}
           <aside
-            className={`hidden lg:flex flex-col border-r border-slate-800 bg-[#080e1a] sticky top-[57px] h-[calc(100vh-57px)] transition-all duration-300 flex-shrink-0 z-20 ${
+            className={`hidden lg:flex flex-col border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-[#080e1a] sticky top-[57px] h-[calc(100vh-57px)] transition-all duration-300 flex-shrink-0 z-20 ${
               sidebarColapsada ? 'w-16' : 'w-64'
             }`}
           >
@@ -714,6 +762,10 @@ export const App: React.FC = () => {
 
           {/* ÁREA PRINCIPAL DE TRABALHO */}
           <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-6 min-w-0">
+            {/* Barra de Paciente Ativo no Consultório */}
+            <PatientSelectorBar
+              onAbrirProntuario={() => setSecaoAtiva('prontuario')}
+            />
             {secaoAtiva === 'medicamentos' && erroMedicamento && !medicamentoAtual && (
               <div role="alert" className="p-4 bg-rose-950/50 border border-rose-700/60 rounded-2xl text-sm text-rose-200">
                 Não foi possível carregar a base de medicamentos: {erroMedicamento}
@@ -776,6 +828,12 @@ export const App: React.FC = () => {
             )}
 
             {secaoAtiva === 'prescricao' && <PrescriptionModularCanvas />}
+
+            {secaoAtiva === 'prontuario' && (
+              <PatientProfileView
+                onNavegarPrescricao={() => setSecaoAtiva('prescricao')}
+              />
+            )}
 
             {secaoAtiva === 'testes_rapidos' && <RapidClinicTestsView />}
 

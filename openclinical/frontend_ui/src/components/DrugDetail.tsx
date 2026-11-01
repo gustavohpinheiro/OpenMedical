@@ -13,7 +13,9 @@ import {
   AlertTriangle,
   Store,
 } from 'lucide-react';
-import { DetalheMedicamentoCompleto, FaixaAjusteRenal, GuiaDiluicao } from '../types';
+import { DetalheMedicamentoCompleto, FaixaAjusteRenal, GuiaDiluicao, ItemPrescricaoCesta } from '../types';
+import { adicionarItemPrescricaoModular } from '../storage_clinico';
+import { Plus } from 'lucide-react';
 import { BotaoBulaAnvisa, BulaVigenteAnvisa } from './PosologiaFtnProduto';
 import { BulaImportadaDoProduto } from './BulaImportada';
 
@@ -54,6 +56,36 @@ export const DrugDetail: React.FC<DrugDetailProps> = ({
 }) => {
   const [abaAtiva, setAbaAtiva] = useState<'posologia' | 'apresentacoes' | 'renal_gestacao' | 'diluicao'>('posologia');
   const [copiado, setCopiado] = useState(false);
+  const [adicionadoReceita, setAdicionadoReceita] = useState(false);
+
+  const adicionarNaReceita = () => {
+    const tipo = medicamento.tipo_receituario.toLowerCase().includes('controle') || medicamento.tipo_receituario.toLowerCase().includes('antimicrobiano')
+      ? 'controle_especial_c1'
+      : 'simples';
+
+    const item: ItemPrescricaoCesta = {
+      id: `med_${Date.now()}`,
+      nome_medicamento: medicamento.nome_comercial,
+      principio_ativo: principio_ativo.nome_dcb,
+      apresentacao: medicamento.apresentacao_comercial,
+      posologia: bula?.posologia_adulto_padrao || 'Tomar 1 dose por via oral conforme orientação clínica.',
+      quantidade_embalagens: 1,
+      tipo_receituario: tipo as any,
+      preco_pmc: medicamento.preco_maximo_consumidor || 25.0,
+    };
+
+    adicionarItemPrescricaoModular(
+      'medicamento',
+      medicamento.nome_comercial,
+      item.posologia,
+      item,
+      'Bula Estruturada ANVISA / RENAME',
+      [principio_ativo.classe_terapeutica, tipo]
+    );
+
+    setAdicionadoReceita(true);
+    setTimeout(() => setAdicionadoReceita(false), 2200);
+  };
 
   const { medicamento, principio_ativo, bula } = detalhe;
 
@@ -158,11 +190,19 @@ Receituário: ${medicamento.tipo_receituario.toUpperCase()}`;
               </button>
             )}
             <button
+              type="button"
+              onClick={adicionarNaReceita}
+              className="flex items-center space-x-1.5 px-3.5 py-1.5 bg-teal-600 hover:bg-teal-500 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-teal-950/40"
+            >
+              <Plus className="w-4 h-4" />
+              <span>{adicionadoReceita ? 'Adicionado à Receita ✓' : 'Adicionar à Receita'}</span>
+            </button>
+            <button
               onClick={copiarPrescricaoAdulto}
               className="flex items-center space-x-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-750 text-slate-200 border border-slate-700 rounded-xl text-xs font-semibold transition-all shadow"
             >
               {copiado ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4 text-teal-400" />}
-              <span>{copiado ? 'Prescrição Copiada!' : 'Copiar Prescrição'}</span>
+              <span>{copiado ? 'Prescrição Copiada!' : 'Copiar'}</span>
             </button>
           </div>
         </div>
