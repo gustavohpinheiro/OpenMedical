@@ -152,6 +152,7 @@ export interface ProtocoloClinico {
   disponibilidade_farmacos_rename_sus?: 'total' | 'parcial' | 'ausente_no_sus';
   medicamentos_exclusivos_estrangeiros?: string[];
   divergencias_relevantes_vs_sus?: string[];
+  tamanho_markdown_bytes?: number;
 }
 
 export interface LinkPesquisaPreco {
@@ -208,6 +209,14 @@ export interface EstadoFonteAtualizacao {
   registros: number | null;
   situacao: string | null;
   mensagem: string | null;
+}
+
+export interface ResultadoAtualizacaoDiretrizes {
+  sucesso: boolean;
+  mensagem: string;
+  total_diretrizes: number;
+  duracao_segundos: number;
+  saida_log: string;
 }
 
 export interface ResultadoAtualizacaoBase {

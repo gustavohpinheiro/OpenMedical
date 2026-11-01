@@ -10,7 +10,7 @@ use commands::{
     estado_credenciais_anvisa, remover_credenciais_anvisa, salvar_credenciais_anvisa, testar_api_anvisa,
     apresentacoes_cmed_por_substancias, listar_substancias_cmed,
     listar_bulas_importadas, obter_bulas_importadas, remover_bula_importada, salvar_bula_importada,
-    listar_pcdt_conitec, obter_pcdt_conitec, avaliar_seguranca_medicamentosa_5g,
+    listar_pcdt_conitec, obter_pcdt_conitec, avaliar_seguranca_medicamentosa_5g, atualizar_diretrizes_python,
 };
 use std::sync::Mutex;
 use tauri::Manager;
@@ -67,7 +67,8 @@ fn main() {
             remover_bula_importada,
             listar_pcdt_conitec,
             obter_pcdt_conitec,
-            avaliar_seguranca_medicamentosa_5g
+            avaliar_seguranca_medicamentosa_5g,
+            atualizar_diretrizes_python
         ])
         .run(tauri::generate_context!());
 

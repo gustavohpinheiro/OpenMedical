@@ -19,9 +19,12 @@ import {
   ShieldAlert,
   Info,
   Layers,
+  RefreshCw,
+  Terminal,
+  X,
 } from 'lucide-react';
-import { ProtocoloClinico } from '../types';
-import { listarProtocolos, normalizarTexto } from '../api';
+import { ProtocoloClinico, ResultadoAtualizacaoDiretrizes } from '../types';
+import { listarProtocolos, normalizarTexto, atualizarDiretrizesPython } from '../api';
 import { FARMACOS_POR_PROTOCOLO, CATEGORIAS_POR_PROTOCOLO } from '../catalog_protocolos';
 import { MarkdownSimples } from './MarkdownSimples';
 import { LinkMedicamento } from './LinkMedicamento';
@@ -225,6 +228,11 @@ export const ProtocolsView: React.FC<ProtocolsViewProps> = ({ protocoloSeleciona
   const [abaAtiva, setAbaAtiva] = useState<AbaVisualizacao>('diretriz');
   const [erroCarga, setErroCarga] = useState<string | null>(null);
 
+  // Estados do Atualizador Python
+  const [atualizandoPython, setAtualizandoPython] = useState(false);
+  const [relatorioAtualizacao, setRelatorioAtualizacao] = useState<ResultadoAtualizacaoDiretrizes | null>(null);
+  const [modalAtualizacaoAberto, setModalAtualizacaoAberto] = useState(false);
+
   const painelDetalheRef = useRef<HTMLDivElement>(null);
   const listaRef = useRef<HTMLDivElement>(null);
 
@@ -257,7 +265,6 @@ export const ProtocolsView: React.FC<ProtocolsViewProps> = ({ protocoloSeleciona
 
   const selecionarProtocolo = (p: ProtocoloClinico) => {
     setSelecionado(p);
-    // Se o protocolo tiver prescrição e estiver na aba de prescrição, mantém; se não tiver, garante aba de diretriz
     if (abaAtiva === 'prescricao' && !p.bloco_prescricao_copiavel) {
       setAbaAtiva('diretriz');
     }
@@ -270,7 +277,6 @@ export const ProtocolsView: React.FC<ProtocolsViewProps> = ({ protocoloSeleciona
     const p = protocolos.find((item) => item.id_protocolo === idProtocolo);
     if (p) {
       selecionarProtocolo(p);
-      // Se a jurisdição ativa estava filtrando e esconderia esse protocolo, abrimos para todas
       if (jurisdicaoAtiva !== 'todas' && (p.jurisdicao || 'BR_SUS') !== jurisdicaoAtiva) {
         setJurisdicaoAtiva('todas');
       }
@@ -288,6 +294,29 @@ export const ProtocolsView: React.FC<ProtocolsViewProps> = ({ protocoloSeleciona
       .catch(() =>
         window.alert('Não foi possível acessar a área de transferência. Selecione o texto e copie manualmente.')
       );
+  };
+
+  const dispararAtualizadorPython = async (online: boolean = false) => {
+    setAtualizandoPython(true);
+    try {
+      const res = await atualizarDiretrizesPython(online);
+      setRelatorioAtualizacao(res);
+      setModalAtualizacaoAberto(true);
+      // Recarrega os protocolos atualizados
+      const novaLista = await listarProtocolos();
+      setProtocolos(novaLista);
+    } catch (e) {
+      setRelatorioAtualizacao({
+        sucesso: false,
+        mensagem: e instanceof Error ? e.message : String(e),
+        total_diretrizes: 0,
+        duracao_segundos: 0,
+        saida_log: String(e),
+      });
+      setModalAtualizacaoAberto(true);
+    } finally {
+      setAtualizandoPython(false);
+    }
   };
 
   const filtrarPorTexto = (p: ProtocoloClinico, t: string) => {
@@ -374,13 +403,13 @@ export const ProtocolsView: React.FC<ProtocolsViewProps> = ({ protocoloSeleciona
   const temComparativo = useMemo(() => {
     if (!selecionado) return false;
     const jur = selecionado.jurisdicao || 'BR_SUS';
-    if (jur !== 'BR_SUS') return true; // Qualquer protocolo internacional tem lente comparativa
+    if (jur !== 'BR_SUS') return true;
     return relacaoProtocolos.contrapartesInternacionais.length > 0;
   }, [selecionado, relacaoProtocolos]);
 
   return (
     <div className="space-y-6">
-      {/* Barra de Filtro, Busca Rápida e Seletores de Jurisdição */}
+      {/* Barra de Filtro, Busca Rápida e Botão do Atualizador Python */}
       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
         <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
           <div className="flex items-center space-x-3 w-full md:w-auto">
@@ -400,16 +429,35 @@ export const ProtocolsView: React.FC<ProtocolsViewProps> = ({ protocoloSeleciona
             </div>
           </div>
 
-          {/* Campo de Busca Rápida */}
-          <div className="relative w-full md:w-96">
-            <Search className="w-4 h-4 text-teal-400 absolute left-3 top-2.5" />
-            <input
-              type="text"
-              value={termoFiltro}
-              onChange={(e) => setTermoFiltro(e.target.value)}
-              placeholder="Buscar por doença, remédio, CID, NICE, CDC, OMS..."
-              className="w-full bg-slate-950 border border-slate-750 focus:border-teal-500 rounded-xl pl-9 pr-4 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none transition-all"
-            />
+          {/* Grupo de Ações: Busca Rápida + Disparo do Atualizador Python */}
+          <div className="flex items-center gap-2.5 w-full md:w-auto">
+            <div className="relative flex-1 md:w-80">
+              <Search className="w-4 h-4 text-teal-400 absolute left-3 top-2.5" />
+              <input
+                type="text"
+                value={termoFiltro}
+                onChange={(e) => setTermoFiltro(e.target.value)}
+                placeholder="Buscar por doença, remédio, CID, NICE, CDC, OMS..."
+                className="w-full bg-slate-950 border border-slate-750 focus:border-teal-500 rounded-xl pl-9 pr-4 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none transition-all"
+              />
+            </div>
+
+            {/* Botão de Disparo do Atualizador Python */}
+            <button
+              onClick={() => dispararAtualizadorPython(false)}
+              disabled={atualizandoPython}
+              title="Dispara o pipeline Python para verificar integridade e sincronizar as prescrições e diretrizes"
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 border flex-shrink-0 shadow-md ${
+                atualizandoPython
+                  ? 'bg-slate-800 text-teal-300 border-teal-500/50 cursor-wait'
+                  : 'bg-teal-950/70 hover:bg-teal-900 text-teal-300 border-teal-700/60 hover:text-white shadow-teal-950/30'
+              }`}
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${atualizandoPython ? 'animate-spin text-teal-400' : ''}`} />
+              <span className="hidden sm:inline">
+                {atualizandoPython ? 'Atualizando...' : 'Atualizar Prescrições (Python)'}
+              </span>
+            </button>
           </div>
         </div>
 
@@ -739,7 +787,6 @@ export const ProtocolsView: React.FC<ProtocolsViewProps> = ({ protocoloSeleciona
                     )}
                   </div>
                 ) : (
-                  // Caso o protocolo selecionado seja do SUS: se houver contrapartes internacionais, avisa o médico
                   relacaoProtocolos.contrapartesInternacionais.length > 0 && (
                     <div className="bg-slate-950/80 border border-teal-800/60 rounded-xl p-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 text-xs">
                       <div className="flex items-center gap-2 text-slate-300">
@@ -844,7 +891,6 @@ export const ProtocolsView: React.FC<ProtocolsViewProps> = ({ protocoloSeleciona
               {/* ABA 2: COMPARATIVO SUS vs. INTERNACIONAL */}
               {abaAtiva === 'comparativo' && (
                 <div className="space-y-4">
-                  {/* Se o protocolo ativo for internacional: mostra a análise comparada com o Brasil */}
                   {(selecionado.jurisdicao || 'BR_SUS') !== 'BR_SUS' ? (
                     <div className="space-y-4">
                       {/* Semáforo de Disponibilidade de Fármacos no SUS (RENAME) */}
@@ -962,7 +1008,6 @@ export const ProtocolsView: React.FC<ProtocolsViewProps> = ({ protocoloSeleciona
                       )}
                     </div>
                   ) : (
-                    // Caso o protocolo selecionado seja do SUS: lista as diretrizes internacionais alternativas
                     <div className="space-y-4">
                       {relacaoProtocolos.contrapartesInternacionais.length > 0 ? (
                         <div className="space-y-3">
@@ -1106,6 +1151,95 @@ export const ProtocolsView: React.FC<ProtocolsViewProps> = ({ protocoloSeleciona
           )}
         </div>
       </div>
+
+      {/* Modal / Dialog de Relatório de Atualização via Python */}
+      {modalAtualizacaoAberto && relatorioAtualizacao && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-slate-900 border border-slate-750 rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl space-y-4">
+            {/* Cabeçalho do Modal */}
+            <div className="px-6 py-4 bg-slate-950 border-b border-slate-800 flex items-center justify-between">
+              <div className="flex items-center space-x-2.5">
+                <div
+                  className={`p-2 rounded-xl ${
+                    relatorioAtualizacao.sucesso
+                      ? 'bg-emerald-500/10 text-emerald-400'
+                      : 'bg-rose-500/10 text-rose-400'
+                  }`}
+                >
+                  <Terminal className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
+                    Atualização e Auditoria de Diretrizes & Prescrições (Python)
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    Executado via pipeline automatizado OpenMedical ETL
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setModalAtualizacaoAberto(false)}
+                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-all"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Conteúdo do Relatório */}
+            <div className="px-6 space-y-4">
+              <div
+                className={`p-4 rounded-xl border text-xs flex items-start gap-3 ${
+                  relatorioAtualizacao.sucesso
+                    ? 'bg-emerald-950/40 border-emerald-700/60 text-emerald-200'
+                    : 'bg-rose-950/40 border-rose-700/60 text-rose-200'
+                }`}
+              >
+                {relatorioAtualizacao.sucesso ? (
+                  <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
+                ) : (
+                  <AlertCircle className="w-5 h-5 text-rose-400 flex-shrink-0 mt-0.5" />
+                )}
+                <div className="space-y-1">
+                  <span className="font-bold block text-sm">
+                    {relatorioAtualizacao.sucesso ? 'Sincronização Concluída com Êxito' : 'Atenção na Execução'}
+                  </span>
+                  <p className="text-slate-300 leading-relaxed">{relatorioAtualizacao.mensagem}</p>
+                </div>
+              </div>
+
+              {/* Console de Saída do Script Python */}
+              <div className="space-y-1.5">
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <Terminal className="w-3.5 h-3.5 text-teal-400" /> Log de Execução do Python:
+                </span>
+                <pre className="p-3.5 bg-slate-950 border border-slate-800 rounded-xl text-slate-300 font-mono text-[11px] max-h-56 overflow-y-auto whitespace-pre-wrap leading-relaxed select-text">
+                  {relatorioAtualizacao.saida_log}
+                </pre>
+              </div>
+            </div>
+
+            {/* Rodapé do Modal */}
+            <div className="px-6 py-4 bg-slate-950/80 border-t border-slate-800 flex items-center justify-between">
+              <button
+                onClick={() => dispararAtualizadorPython(true)}
+                disabled={atualizandoPython}
+                className="text-xs text-sky-400 hover:text-sky-300 font-semibold flex items-center gap-1.5 transition-all"
+              >
+                <Globe className="w-3.5 h-3.5" />
+                <span>Checar Conexão Online com Portais Governamentais</span>
+              </button>
+
+              <button
+                onClick={() => setModalAtualizacaoAberto(false)}
+                className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-teal-950/40"
+              >
+                Concluir
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
