@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, BookMarked, Check, Copy, ExternalLink, FileCheck, Filter, Pill, Search } from 'lucide-react';
+import { AlertTriangle, BookMarked, Check, Copy, ExternalLink, FileCheck, FileText, Filter, Pill, Search } from 'lucide-react';
 import type { PcdtDetalhe, PcdtResumo, SecaoPcdt } from '../types';
 import { listarPcdtConitec, normalizarTexto, obterPcdtConitec } from '../api';
 import { LISTA_PCDT_OFICIAL_MS } from '../data/pcdt_oficial_ms';
@@ -57,6 +57,8 @@ export const PcdtConitecView: React.FC<PcdtConitecViewProps> = ({ selecao, onAbr
   const [detalhe, setDetalhe] = useState<PcdtDetalhe | null>(null);
   const [aba, setAba] = useState<string | null>(null);
   const [copiado, setCopiado] = useState(false);
+  const [exibirLme, setExibirLme] = useState(false);
+  const [copiadoLme, setCopiadoLme] = useState(false);
 
   useEffect(() => {
     listarPcdtConitec()
@@ -249,8 +251,90 @@ export const PcdtConitecView: React.FC<PcdtConitecViewProps> = ({ selecao, onAbr
                   {detalhe.url_resumido && <LinkExterno href={detalhe.url_resumido}>PCDT resumido</LinkExterno>}
                   {detalhe.url_portaria && <LinkExterno href={detalhe.url_portaria}>Portaria</LinkExterno>}
                   {detalhe.url_publicacao_ms && <LinkExterno href={detalhe.url_publicacao_ms}>Publicação MS</LinkExterno>}
+                  <button
+                    onClick={() => setExibirLme(!exibirLme)}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-teal-950/80 hover:bg-teal-900 border border-teal-600/60 text-teal-200 transition-all shadow"
+                  >
+                    <FileText className="w-3.5 h-3.5 text-teal-400" />
+                    {exibirLme ? 'Ocultar Modelo LME' : 'Gerar Modelo LME (Alto Custo SUS)'}
+                  </button>
                 </div>
               </div>
+
+              {exibirLme && (
+                <div className="bg-slate-950 border-2 border-teal-600/70 rounded-2xl p-5 space-y-3 shadow-xl shadow-teal-950/30">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="p-2 bg-teal-500/20 text-teal-400 rounded-lg">
+                        <FileText className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-bold text-slate-100 uppercase tracking-wider">
+                          Laudo de Medicamento Especializado (LME / Alto Custo SUS)
+                        </h4>
+                        <span className="text-[11px] text-teal-300">
+                          Modelo oficial pré-preenchido conforme {detalhe.portaria || 'Protocolo CONITEC'}
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      onClick={async () => {
+                        const lmeTexto = `LAUDO DE SOLICITAÇÃO, AVALIAÇÃO E AUTORIZAÇÃO DE MEDICAMENTO (LME)
+COMPONENTE ESPECIALIZADO DA ASSISTÊNCIA FARMACÊUTICA (CEAF / SUS)
+
+1. PROTOCOLO CLÍNICO (PCDT): ${detalhe.titulo}
+2. PORTARIA MS: ${detalhe.portaria || 'Vigente'} (publicada em ${dataBr(detalhe.data_portaria || '')})
+3. CID-10 PRINCIPAL AUTORIZADO: ${detalhe.cids.join(', ') || 'Conforme PCDT'}
+4. MEDICAMENTO(S) SOLICITADO(S):
+${detalhe.farmacos.map((f, i) => `   [${i + 1}] ${f.nome} (Nome Genérico / DCB)`).join('\n') || '   Conforme critérios de inclusão do protocolo'}
+
+5. CRONOGRAMA DE DISPENSAÇÃO SOLICITADA (6 MESES):
+   - 1º Mês: [ ___ ] unidades
+   - 2º Mês: [ ___ ] unidades
+   - 3º Mês: [ ___ ] unidades
+   - 4º Mês: [ ___ ] unidades
+   - 5º Mês: [ ___ ] unidades
+   - 6º Mês: [ ___ ] unidades
+
+6. ANAMNESE E JUSTIFICATIVA CLÍNICA DO MÉDICO ASSISTENTE:
+   Paciente com diagnóstico confirmado para o CID-10 supracitado, preenchendo todos os critérios de inclusão preconizados pelo Protocolo Clínico e Diretrizes Terapêuticas (PCDT) do Ministério da Saúde. Apresenta refratariedade ou contraindicação aos tratamentos prévios do Componente Básico, justificando a indicação formal do medicamento do Componente Especializado.
+
+7. CHECKLIST DE DOCUMENTOS OBRIGATÓRIOS PARA PROTOCOLIZAÇÃO NA FARMÁCIA DE ALTO CUSTO:
+   [ x ] Cartão Nacional de Saúde (CNS / SUS) e CPF do paciente
+   [ x ] Cópia do Comprovante de Residência recente
+   [ x ] Receita médica em 2 vias preenchida exclusivamente pela Denominação Comum Brasileira (DCB)
+   [ x ] Formulário LME preenchido e assinado pelo médico solicitante
+   [ x ] Termo de Esclarecimento e Responsabilidade (TER) assinado pelo paciente/responsável
+   [ x ] Laudo dos exames laboratoriais/imagem exigidos nos critérios de inclusão do PCDT`;
+
+                        try {
+                          await navigator.clipboard.writeText(lmeTexto);
+                          setCopiadoLme(true);
+                          setTimeout(() => setCopiadoLme(false), 2500);
+                        } catch {}
+                      }}
+                      className="flex items-center gap-1.5 px-3.5 py-2 bg-teal-600 hover:bg-teal-500 text-white rounded-xl text-xs font-bold transition shadow"
+                    >
+                      {copiadoLme ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                      {copiadoLme ? 'LME Copiado!' : 'Copiar Laudo LME'}
+                    </button>
+                  </div>
+
+                  <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-3 text-xs space-y-2 text-slate-300">
+                    <p>
+                      <strong>CID-10 Elegíveis:</strong>{' '}
+                      <span className="font-mono text-teal-300 font-bold">{detalhe.cids.join(', ') || 'Verificar no PDF'}</span>
+                    </p>
+                    <p>
+                      <strong>Fármacos Especializados:</strong>{' '}
+                      {detalhe.farmacos.map((f) => f.nome).join(', ') || 'Verificar seções do protocolo'}
+                    </p>
+                    <p className="text-[11px] text-slate-400">
+                      O laudo gerado contém a estrutura completa de 7 tópicos padronizada pelo Ministério da Saúde para o Componente Especializado da Assistência Farmacêutica (CEAF).
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {detalhe.conteudo_desatualizado && (
                 <div className="flex gap-2 p-3 bg-amber-950/40 border border-amber-700/50 rounded-xl text-[11px] text-amber-200">

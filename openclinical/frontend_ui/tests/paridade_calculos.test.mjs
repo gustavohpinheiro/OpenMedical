@@ -201,3 +201,116 @@ test('Disponibilidade no SUS vem da RENAME 2024 lida por tabela', async () => {
   assert.ok(L.itensRenameDoPrincipio('CLORIDRATO DE METFORMINA', ITENS_RENAME_2024).length >= 2);
   assert.equal(L.itensRenameDoPrincipio('LOSARTANA POTÁSSICA;HIDROCLOROTIAZIDA', ITENS_RENAME_2024).length, 0);
 });
+
+
+test('Dose reversa de infusão e escores CHA2DS2-VA / qSOFA', () => {
+  // Dose reversa: 15 mL/h, 70 kg, 0.064 mg/mL -> 0.229 mcg/kg/min
+  const rev = executarCalculoLocal('dose_reversa_infusao', { vazao_ml_h: 15, peso_kg: 70, concentracao_mg_ml: 0.064 });
+  assert.equal(rev.dose_mcg_kg_min, 0.229);
+
+  // CHA2DS2-VA: 5 pontos (Muito Alto)
+  const cha = executarCalculoLocal('cha2ds2_va', {
+    insuficiencia_cardiaca: true,
+    hipertensao: true,
+    idade: 76,
+    diabetes: true,
+    avc_ou_ait_previo: false,
+    doenca_vascular: false,
+  });
+  assert.equal(cha.pontuacao, 5);
+  assert.match(cha.categoria_risco, /Muito Alto/);
+
+  // qSOFA: 2 pontos -> alto risco
+  const qs = executarCalculoLocal('qsofa', { fr_maior_22: true, pas_menor_100: true, alteracao_mental: false });
+  assert.equal(qs.pontuacao, 2);
+  assert.equal(qs.alto_risco_sepse, true);
+});
+
+test('Intubação SRI e Parâmetros ARDSNet', () => {
+  const sri = executarCalculoLocal('intubacao_sri', {
+    peso_kg: 70,
+    altura_cm: 175,
+    sexo_feminino: false,
+    perfil: 'choque_instavel',
+  });
+  assert.equal(sri.peso_real_kg, 70);
+  assert.ok(Math.abs(sri.ventilacao.peso_predito_kg - 70.6) < 0.2);
+  assert.equal(sri.ventilacao.volume_corrente_ml, 424);
+  assert.equal(sri.checklist_7ps.length, 7);
+
+  const etomidato = sri.farmacos.find((f) => f.nome_farmaco.includes('Etomidato'));
+  assert.equal(etomidato.dose_total_mg, 21);
+  assert.equal(etomidato.volume_administrar_ml, 10.5);
+  assert.equal(etomidato.recomendado_perfil, true);
+});
+
+test('Emergência Pediátrica PALS', () => {
+  const peds = executarCalculoLocal('emergencia_pediatrica', { peso_kg: 20, idade_anos: 6 });
+  assert.equal(peds.tubo_com_cuff_mm, 5.0);
+  assert.equal(peds.tubo_sem_cuff_mm, 5.5);
+  assert.equal(peds.fixacao_rima_labial_cm, 15.0);
+  assert.equal(peds.carga_desfibrilacao_1_j, 40);
+  assert.equal(peds.carga_desfibrilacao_2_j, 80);
+  assert.equal(peds.adrenalina_pcr_mg, 0.2);
+  assert.equal(peds.adrenalina_diluida_1_10000_ml, 2.0);
+  assert.equal(peds.expansao_cristaloide_20ml_kg, 400);
+});
+
+test('Gasometria Arterial, Figge, Delta-Delta e Adrogué-Madias', () => {
+  const gaso = executarCalculoLocal('gasometria', {
+    ph: 7.22,
+    paco2: 25,
+    hco3: 10,
+    sodio: 140,
+    cloro: 100,
+    albumina: 2.0,
+    pao2: 80,
+    fio2_fracao: 0.21,
+  });
+  assert.match(gaso.disturbio_primario, /Acidose Metabólica/);
+  assert.equal(gaso.anion_gap_bruto, 30);
+  assert.equal(gaso.anion_gap_corrigido, 35);
+  assert.ok(Math.abs(gaso.delta_delta - 1.64) < 0.02);
+  assert.match(gaso.compensacao_respiratoria, /adequada/);
+
+  const sodio = executarCalculoLocal('correcao_sodio', {
+    sodio_atual: 115,
+    peso_kg: 70,
+    sexo_feminino: false,
+    idoso: false,
+    solucao_meq_l: 513,
+  });
+  assert.equal(sodio.agua_corporal_total_litros, 42);
+  assert.ok(Math.abs(sodio.variacao_sodio_1l - 9.26) < 0.02);
+});
+
+test('Segurança Farmacológica 5G (Cascatas, ACB, Triple Whammy, Tisdale, CPIC)', async () => {
+  const {
+    detectarCascatasPrescricao,
+    calcularCargaAnticolinergicaAcb,
+    detectarTripleWhammyRenal,
+    calcularEscoreTisdaleQtc,
+    consultarAlertasFarmacogenomicosCpic,
+  } = await import('../src/medication_safety_5g.ts');
+
+  // Cascata
+  const cascatas = detectarCascatasPrescricao(['Anlodipino 5mg', 'Furosemida 40mg']);
+  assert.equal(cascatas.length, 1);
+  assert.match(cascatas[0].efeito_adverso_confundido, /Edema maleolar/);
+
+  // Triple Whammy
+  const tw = detectarTripleWhammyRenal(['Losartana 50mg', 'Furosemida 40mg', 'Ibuprofeno 600mg']);
+  assert.equal(tw.detectado, true);
+
+  // ACB
+  const acb = calcularCargaAnticolinergicaAcb(['Amitriptilina 25mg', 'Oxibutinina 5mg', 'Furosemida 40mg']);
+  assert.equal(acb.pontuacao_total, 7);
+
+  // Tisdale
+  const tisdale = calcularEscoreTisdaleQtc(['Ondansetrona 8mg', 'Azitromicina 500mg'], 70, false, false, false, false, false);
+  assert.equal(tisdale.pontuacao_total, 7);
+
+  // CPIC
+  const cpic = consultarAlertasFarmacogenomicosCpic(['Clopidogrel 75mg', 'Sinvastatina 40mg']);
+  assert.equal(cpic.length, 2);
+});

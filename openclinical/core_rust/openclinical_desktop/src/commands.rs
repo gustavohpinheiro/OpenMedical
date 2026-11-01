@@ -1,6 +1,12 @@
 use clinical_engine::calculators::{
     avaliar_curb65_detalhado, avaliar_estagio_drc, calcular_clearance_cockcroft_gault,
+    calcular_dose_reversa_infusao, calcular_escore_cha2ds2_va, calcular_escore_qsofa,
     calcular_escore_wells_tep, calcular_tfg_ckd_epi_2021, calcular_vazao_infusao,
+};
+use clinical_engine::acid_base::{calcular_correcao_sodio, interpretar_gasometria};
+use clinical_engine::emergency::{calcular_emergencia_pediatrica, calcular_intubacao_sri};
+use clinical_engine::medication_safety_5g::{
+    avaliar_seguranca_medicamentosa_5g as avaliar_seg_5g, RelatorioSeguranca5g,
 };
 use clinical_engine::database::BancoDadosClinico;
 use clinical_engine::models::{
@@ -402,6 +408,127 @@ pub fn executar_calculo_clinico(
             serde_json::to_value(&resultado).map_err(|e| e.to_string())
         }
 
+                "dose_reversa_infusao" => {
+            let vazao_ml_h = parametros["vazao_ml_h"]
+                .as_f64()
+                .ok_or("Parâmetro 'vazao_ml_h' ausente ou inválido")?;
+            let peso_kg = parametros["peso_kg"]
+                .as_f64()
+                .ok_or("Parâmetro 'peso_kg' ausente ou inválido")?;
+            let concentracao_mg_ml = parametros["concentracao_mg_ml"]
+                .as_f64()
+                .ok_or("Parâmetro 'concentracao_mg_ml' ausente ou inválido")?;
+
+            let dose = calcular_dose_reversa_infusao(vazao_ml_h, peso_kg, concentracao_mg_ml)
+                .map_err(|e| e.to_string())?;
+
+            Ok(json!({
+                "dose_mcg_kg_min": dose,
+                "unidade": "mcg/kg/min",
+                "vazao_ml_h": vazao_ml_h,
+                "peso_kg": peso_kg,
+                "concentracao_mg_ml": concentracao_mg_ml
+            }))
+        }
+
+        "cha2ds2_va" => {
+            let ic = parametros["insuficiencia_cardiaca"].as_bool().unwrap_or(false);
+            let has = parametros["hipertensao"].as_bool().unwrap_or(false);
+            let idade = parametros["idade"].as_u64().unwrap_or(0) as u32;
+            let dm = parametros["diabetes"].as_bool().unwrap_or(false);
+            let avc = parametros["avc_ou_ait_previo"].as_bool().unwrap_or(false);
+            let vasc = parametros["doenca_vascular"].as_bool().unwrap_or(false);
+
+            let resultado = calcular_escore_cha2ds2_va(ic, has, idade, dm, avc, vasc);
+            serde_json::to_value(&resultado).map_err(|e| e.to_string())
+        }
+
+        "qsofa" => {
+            let fr = parametros["fr_maior_22"].as_bool().unwrap_or(false);
+            let pas = parametros["pas_menor_100"].as_bool().unwrap_or(false);
+            let mental = parametros["alteracao_mental"].as_bool().unwrap_or(false);
+
+            let resultado = calcular_escore_qsofa(fr, pas, mental);
+            serde_json::to_value(&resultado).map_err(|e| e.to_string())
+        }
+
+        "intubacao_sri" => {
+            let peso_kg = parametros["peso_kg"]
+                .as_f64()
+                .ok_or("Parâmetro 'peso_kg' ausente ou inválido")?;
+            let altura_cm = parametros["altura_cm"]
+                .as_f64()
+                .ok_or("Parâmetro 'altura_cm' ausente ou inválido")?;
+            let sexo_feminino = parametros["sexo_feminino"].as_bool().unwrap_or(false);
+            let perfil = parametros["perfil"].as_str().unwrap_or("padrao");
+
+            let resultado = calcular_intubacao_sri(peso_kg, altura_cm, sexo_feminino, perfil)
+                .map_err(|e| e.to_string())?;
+            serde_json::to_value(&resultado).map_err(|e| e.to_string())
+        }
+
+        "emergencia_pediatrica" => {
+            let peso_kg = parametros["peso_kg"]
+                .as_f64()
+                .ok_or("Parâmetro 'peso_kg' ausente ou inválido")?;
+            let idade_anos = parametros["idade_anos"]
+                .as_f64()
+                .ok_or("Parâmetro 'idade_anos' ausente ou inválido")?;
+
+            let resultado = calcular_emergencia_pediatrica(peso_kg, idade_anos)
+                .map_err(|e| e.to_string())?;
+            serde_json::to_value(&resultado).map_err(|e| e.to_string())
+        }
+
+        "gasometria" => {
+            let ph = parametros["ph"]
+                .as_f64()
+                .ok_or("Parâmetro 'ph' ausente ou inválido")?;
+            let paco2 = parametros["paco2"]
+                .as_f64()
+                .ok_or("Parâmetro 'paco2' ausente ou inválido")?;
+            let hco3 = parametros["hco3"]
+                .as_f64()
+                .ok_or("Parâmetro 'hco3' ausente ou inválido")?;
+            let sodio = parametros["sodio"]
+                .as_f64()
+                .ok_or("Parâmetro 'sodio' ausente ou inválido")?;
+            let cloro = parametros["cloro"]
+                .as_f64()
+                .ok_or("Parâmetro 'cloro' ausente ou inválido")?;
+            let albumina = parametros["albumina"]
+                .as_f64()
+                .ok_or("Parâmetro 'albumina' ausente ou inválido")?;
+            let pao2 = parametros["pao2"]
+                .as_f64()
+                .ok_or("Parâmetro 'pao2' ausente ou inválido")?;
+            let fio2_fracao = parametros["fio2_fracao"]
+                .as_f64()
+                .ok_or("Parâmetro 'fio2_fracao' ausente ou inválido")?;
+
+            let resultado = interpretar_gasometria(ph, paco2, hco3, sodio, cloro, albumina, pao2, fio2_fracao)
+                .map_err(|e| e.to_string())?;
+            serde_json::to_value(&resultado).map_err(|e| e.to_string())
+        }
+
+        "correcao_sodio" => {
+            let sodio_atual = parametros["sodio_atual"]
+                .as_f64()
+                .ok_or("Parâmetro 'sodio_atual' ausente ou inválido")?;
+            let peso_kg = parametros["peso_kg"]
+                .as_f64()
+                .ok_or("Parâmetro 'peso_kg' ausente ou inválido")?;
+            let sexo_feminino = parametros["sexo_feminino"].as_bool().unwrap_or(false);
+            let idoso = parametros["idoso"].as_bool().unwrap_or(false);
+            let solucao_meq_l = parametros["solucao_meq_l"]
+                .as_f64()
+                .ok_or("Parâmetro 'solucao_meq_l' ausente ou inválido")?;
+
+            let resultado = calcular_correcao_sodio(sodio_atual, peso_kg, sexo_feminino, idoso, solucao_meq_l)
+                .map_err(|e| e.to_string())?;
+            serde_json::to_value(&resultado).map_err(|e| e.to_string())
+        }
+
         _ => Err(format!("Tipo de cálculo clínico desconhecido: '{tipo}'")),
     }
 }
@@ -545,4 +672,30 @@ pub fn apresentacoes_cmed_por_substancias(
     obter_conexao_banco(&estado)?
         .apresentacoes_cmed_por_substancias(&substancias)
         .map_err(|e| e.to_string())
+}
+
+
+// -----------------------------------------------------------------------------
+// Segurança Farmacológica de 5ª Geração (Cascatas, ACB, Triple Whammy, Tisdale, CPIC)
+// -----------------------------------------------------------------------------
+
+#[tauri::command]
+pub fn avaliar_seguranca_medicamentosa_5g(
+    medicamentos: Vec<String>,
+    idade: u32,
+    sexo_feminino: bool,
+    potassio_menor_igual_3_5: bool,
+    qtc_basal_maior_igual_450: bool,
+    iam_agudo: bool,
+    insuficiencia_cardiaca_ou_sepse: bool,
+) -> Result<RelatorioSeguranca5g, String> {
+    Ok(avaliar_seg_5g(
+        &medicamentos,
+        idade,
+        sexo_feminino,
+        potassio_menor_igual_3_5,
+        qtc_basal_maior_igual_450,
+        iam_agudo,
+        insuficiencia_cardiaca_ou_sepse,
+    ))
 }

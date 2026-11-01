@@ -702,3 +702,175 @@ fn test_pcdt_conitec_lista_oficial_e_atualizacao() {
         .expect("fts");
     assert_eq!(buscas, 1);
 }
+
+
+// -----------------------------------------------------------------------------
+// Testes dos Novos Módulos de Emergência, Gasometria e Segurança 5G
+// -----------------------------------------------------------------------------
+
+#[test]
+fn test_intubacao_sri_e_ventilacao_ardsnet() {
+    use clinical_engine::emergency::calcular_intubacao_sri;
+
+    // Homem, 70 kg, 175 cm, Perfil Choque Instável
+    let res = calcular_intubacao_sri(70.0, 175.0, false, "choque_instavel").expect("Cálculo ISR");
+    assert_eq!(res.peso_real_kg, 70.0);
+    assert_eq!(res.perfil_hemodinamico, "choque_instavel");
+
+    // Peso predito homem 175cm: 50.0 + 0.91 * (175 - 152.4) = 50 + 20.566 = 70.6 kg
+    assert!((res.ventilacao.peso_predito_kg - 70.6).abs() < 0.2);
+    // Volume corrente 6 mL/kg predito: 6 * 70.6 = 423.6 -> ~424 mL
+    assert_eq!(res.ventilacao.volume_corrente_ml, 424.0);
+
+    // Verificar fármacos presentes
+    let etomidato = res.farmacos.iter().find(|f| f.nome_farmaco.contains("Etomidato")).unwrap();
+    assert!(etomidato.recomendado_perfil, "Etomidato deve ser recomendado no choque");
+    assert_eq!(etomidato.dose_total_mg, 21.0); // 70 * 0.3
+    assert_eq!(etomidato.volume_administrar_ml, 10.5); // 21 / 2.0
+
+    let cetamina = res.farmacos.iter().find(|f| f.nome_farmaco.contains("Cetamina")).unwrap();
+    assert!(cetamina.recomendado_perfil, "Cetamina deve ser recomendada no choque");
+    assert_eq!(cetamina.dose_total_mg, 105.0); // 70 * 1.5
+    assert_eq!(cetamina.volume_administrar_ml, 2.1); // 105 / 50.0
+
+    let succinil = res.farmacos.iter().find(|f| f.nome_farmaco.contains("Succinilcolina")).unwrap();
+    assert_eq!(succinil.dose_total_mg, 84.0); // 70 * 1.2
+    assert_eq!(succinil.volume_administrar_ml, 8.4); // 84 / 10.0
+
+    assert_eq!(res.checklist_7ps.len(), 7);
+}
+
+#[test]
+fn test_emergencia_pediatrica_pals() {
+    use clinical_engine::emergency::calcular_emergencia_pediatrica;
+
+    // Criança 6 anos, 20 kg
+    let res = calcular_emergencia_pediatrica(20.0, 6.0).expect("Pediátrico");
+    // Tubo com cuff: (6/4) + 3.5 = 1.5 + 3.5 = 5.0 mm
+    assert_eq!(res.tubo_com_cuff_mm, 5.0);
+    // Tubo sem cuff: (6/4) + 4.0 = 5.5 mm
+    assert_eq!(res.tubo_sem_cuff_mm, 5.5);
+    // Rima labial: 3 * 5.0 = 15.0 cm
+    assert_eq!(res.fixacao_rima_labial_cm, 15.0);
+    // Desfibrilação: 1º choque 2 J/kg = 40 J; 2º choque 4 J/kg = 80 J
+    assert_eq!(res.carga_desfibrilacao_1_j, 40.0);
+    assert_eq!(res.carga_desfibrilacao_2_j, 80.0);
+    // Adrenalina PCR 0.01 mg/kg = 0.2 mg (2.0 mL da solução 1:10.000)
+    assert_eq!(res.adrenalina_pcr_mg, 0.2);
+    assert_eq!(res.adrenalina_diluida_1_10000_ml, 2.0);
+    // Expansão 20 mL/kg = 400 mL
+    assert_eq!(res.expansao_cristaloide_20ml_kg, 400.0);
+}
+
+#[test]
+fn test_gasometria_figge_delta_delta_winters() {
+    use clinical_engine::acid_base::interpretar_gasometria;
+
+    // Acidose metabólica grave: pH 7.22, PaCO2 25, HCO3 10, Na 140, Cl 100, Alb 2.0, PaO2 80, FiO2 0.21
+    let res = interpretar_gasometria(7.22, 25.0, 10.0, 140.0, 100.0, 2.0, 80.0, 0.21).expect("Gasometria");
+    assert!(res.disturbio_primario.contains("Acidose Metabólica"));
+
+    // AG bruto = 140 - (100 + 10) = 30.0
+    assert_eq!(res.anion_gap_bruto, 30.0);
+    // Figge AG corr = 30 + 2.5 * (4.0 - 2.0) = 30 + 5.0 = 35.0
+    assert_eq!(res.anion_gap_corrigido, 35.0);
+
+    // Delta-Delta: (35.0 - 12.0) / (24.0 - 10.0) = 23.0 / 14.0 = 1.64 (Acidose AG elevado pura)
+    assert!(res.delta_delta.is_some());
+    let dd = res.delta_delta.unwrap();
+    assert!((dd - 1.64).abs() < 0.02);
+    assert!(res.interpretacao_delta_delta.as_ref().unwrap().contains("pura"));
+
+    // Winters: 1.5 * 10 + 8 = 23 (+- 2 -> 21 a 25). PaCO2 real = 25 -> compensação adequada!
+    assert!(res.compensacao_respiratoria.contains("adequada"));
+
+    // Relação PaO2/FiO2: 80 / 0.21 = 380.95 -> normal
+    assert!(res.relacao_pafo2 >= 380.0);
+}
+
+#[test]
+fn test_correcao_sodio_adrogue_madias() {
+    use clinical_engine::acid_base::calcular_correcao_sodio;
+
+    // Homem adulto 70 kg, sódio 115 mEq/L, solução NaCl 3% (513 mEq/L)
+    let res = calcular_correcao_sodio(115.0, 70.0, false, false, 513.0).expect("Adrogué");
+    // ACT homem adulto = 0.6 * 70 = 42.0 L
+    assert_eq!(res.agua_corporal_total_litros, 42.0);
+    // Delta Na 1L = (513 - 115) / (42 + 1) = 398 / 43 = 9.255 -> 9.26 mEq/L por Litro
+    assert!((res.variacao_sodio_1l - 9.26).abs() < 0.02);
+    // Limite seguro de 8 mEq/L -> Volume 24h = (8.0 / 9.255) * 1000 = ~864 mL
+    assert!(res.volume_recomendado_24h_ml > 850.0 && res.volume_recomendado_24h_ml < 880.0);
+    assert!(res.vazao_bic_ml_h > 35.0 && res.vazao_bic_ml_h < 37.0);
+}
+
+#[test]
+fn test_calculadoras_cha2ds2_va_qsofa_dose_reversa() {
+    use clinical_engine::calculators::{
+        calcular_dose_reversa_infusao, calcular_escore_cha2ds2_va, calcular_escore_qsofa,
+    };
+
+    // Dose reversa noradrenalina: 15 mL/h para paciente de 70 kg em solução 16mg/250mL (0.064 mg/mL)
+    // Dose = (15 * 0.064 * 1000) / (70 * 60) = 960 / 4200 = 0.22857 -> 0.229 mcg/kg/min
+    let dose = calcular_dose_reversa_infusao(15.0, 70.0, 0.064).expect("Dose reversa");
+    assert_eq!(dose, 0.229);
+
+    // CHA2DS2-VA: IC (+1), HAS (+1), Idade 76 (+2), DM (+1) = 5 pontos
+    let cha = calcular_escore_cha2ds2_va(true, true, 76, true, false, false);
+    assert_eq!(cha.pontuacao, 5);
+    assert!(cha.categoria_risco.contains("Muito Alto"));
+    assert!(cha.recomendacao_anticoagulacao.contains("imperativa"));
+
+    // qSOFA: FR > 22 (+1), PAS < 100 (+1), Mental normal = 2 pontos -> alto risco sepse
+    let qs = calcular_escore_qsofa(true, true, false);
+    assert_eq!(qs.pontuacao, 2);
+    assert!(qs.alto_risco_sepse);
+}
+
+#[test]
+fn test_seguranca_5g_cascatas_acb_triple_whammy_tisdale_cpic() {
+    use clinical_engine::medication_safety_5g::{
+        calcular_carga_anticolinergica_acb, calcular_escore_tisdale_qtc,
+        consultar_alertas_farmacogenomicos_cpic, detectar_cascatas_prescricao,
+        detectar_triple_whammy_renal,
+    };
+
+    // 1. Cascata: Anlodipino + Furosemida (Edema MMII)
+    let prescricao_cascata = vec!["Anlodipino 5mg".to_string(), "Furosemida 40mg".to_string()];
+    let cascatas = detectar_cascatas_prescricao(&prescricao_cascata);
+    assert_eq!(cascatas.len(), 1);
+    assert!(cascatas[0].efeito_adverso_confundido.contains("Edema maleolar"));
+
+    // 2. Triple Whammy: Losartana + Furosemida + Ibuprofeno
+    let prescricao_tw = vec![
+        "Losartana Potássica 50mg".to_string(),
+        "Furosemida 40mg".to_string(),
+        "Ibuprofeno 600mg".to_string(),
+    ];
+    let tw = detectar_triple_whammy_renal(&prescricao_tw);
+    assert!(tw.detectado);
+    assert!(tw.gravidade.contains("Crítica"));
+
+    // 3. ACB Score: Amitriptilina (3) + Oxibutinina (3) + Furosemida (1) = 7 pontos (Alto risco)
+    let prescricao_acb = vec![
+        "Amitriptilina 25mg".to_string(),
+        "Oxibutinina 5mg".to_string(),
+        "Furosemida 40mg".to_string(),
+    ];
+    let acb = calcular_carga_anticolinergica_acb(&prescricao_acb);
+    assert_eq!(acb.pontuacao_total, 7);
+    assert!(acb.classificacao_risco.contains("Alto Risco"));
+    assert!(!acb.sugestoes_desprescricao.is_empty());
+
+    // 4. Tisdale QTc: Ondansetrona + Azitromicina (>= 2 drogas QTc = +6) + idade 70 (+1) = 7 (Moderado)
+    let prescricao_qtc = vec!["Ondansetrona 8mg".to_string(), "Azitromicina 500mg".to_string()];
+    let tisdale = calcular_escore_tisdale_qtc(&prescricao_qtc, 70, false, false, false, false, false);
+    assert_eq!(tisdale.pontuacao_total, 7);
+    assert!(tisdale.categoria_risco.contains("Moderado"));
+
+    // 5. CPIC Nível A: Clopidogrel + Sinvastatina
+    let prescricao_cpic = vec!["Clopidogrel 75mg".to_string(), "Sinvastatina 40mg".to_string()];
+    let cpic = consultar_alertas_farmacogenomicos_cpic(&prescricao_cpic);
+    assert_eq!(cpic.len(), 2);
+    assert!(cpic.iter().any(|c| c.gene == "CYP2C19"));
+    assert!(cpic.iter().any(|c| c.gene == "SLCO1B1"));
+}

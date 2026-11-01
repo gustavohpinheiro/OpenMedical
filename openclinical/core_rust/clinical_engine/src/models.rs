@@ -149,3 +149,19 @@ pub struct MedicamentoComercialCmed {
     pub preco_maximo_consumidor: f64,
     pub receita_padrao_copiavel: String,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ResultadoCha2ds2Va {
+    pub pontuacao: u8,
+    pub categoria_risco: String,
+    pub taxa_avc_anual_estimada: String,
+    pub recomendacao_anticoagulacao: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ResultadoQsofa {
+    pub pontuacao: u8,
+    pub alto_risco_sepse: bool,
+    pub recomendacao: String,
+}
+

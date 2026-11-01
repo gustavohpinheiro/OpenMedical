@@ -1,197 +1,457 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldAlert, AlertOctagon, AlertTriangle, Info, Plus, X } from 'lucide-react';
-import { MatrizInteracao } from '../types';
-import { verificarInteracoes } from '../api';
+import {
+  ShieldAlert,
+  AlertOctagon,
+  AlertTriangle,
+  Info,
+  Plus,
+  X,
+  Dna,
+  Zap,
+  Flame,
+  Brain,
+  Layers,
+} from 'lucide-react';
+import { MatrizInteracao, RelatorioSeguranca5g } from '../types';
+import { verificarInteracoes, avaliarSegurancaMedicamentosa5g } from '../api';
 import { FtnInteractionChecker } from './FtnInteractionChecker';
 import { LinkMedicamento } from './LinkMedicamento';
 
-const LISTA_FARMACOS = [
+const LISTA_FARMACOS_SUGERIDOS = [
   { id: 1, nome: 'Amoxicilina' },
   { id: 2, nome: 'Dipirona Monoidratada' },
   { id: 3, nome: 'Losartana Potássica' },
   { id: 4, nome: 'Maleato de Enalapril' },
-  { id: 5, nome: 'Omeprazol' },
-  { id: 6, nome: 'Azitromicina' },
-  { id: 7, nome: 'Noradrenalina' },
-  { id: 8, nome: 'Ceftriaxona Sódica' },
-  { id: 9, nome: 'Cloridrato de Metformina' },
-  { id: 10, nome: 'Sinvastatina' },
+  { id: 5, nome: 'Anlodipino' },
+  { id: 6, nome: 'Furosemida' },
+  { id: 7, nome: 'Ibuprofeno' },
+  { id: 8, nome: 'Amitriptilina' },
+  { id: 9, nome: 'Oxibutinina' },
+  { id: 10, nome: 'Ondansetrona' },
+  { id: 11, nome: 'Azitromicina' },
+  { id: 12, nome: 'Clopidogrel' },
+  { id: 13, nome: 'Sinvastatina' },
+  { id: 14, nome: 'Alopurinol' },
+  { id: 15, nome: 'Donepezila' },
+  { id: 16, nome: 'Metoclopramida' },
 ];
 
 export const InteractionChecker: React.FC = () => {
-  const [selecionados, setSelecionados] = useState<number[]>([3, 4]); // Padrão: Losartana + Enalapril (duplo bloqueio SRAA)
+  // Nomes dos fármacos selecionados na lista para auditoria 5G
+  const [nomesFarmacos, setNomesFarmacos] = useState<string[]>([
+    'Losartana Potássica',
+    'Furosemida',
+    'Ibuprofeno',
+  ]);
+  const [novoTermo, setNovoTermo] = useState('');
+
+  // Estados: Interações clássicas por par
   const [interacoes, setInteracoes] = useState<MatrizInteracao[]>([]);
+  const [relatorio5g, setRelatorio5g] = useState<RelatorioSeguranca5g | null>(null);
   const [carregando, setCarregando] = useState(false);
   const [erroConsulta, setErroConsulta] = useState<string | null>(null);
 
+  // Parâmetros do paciente para Escore de Tisdale
+  const [idadePaciente, setIdadePaciente] = useState<number>(70);
+  const [sexoFeminino, setSexoFeminino] = useState<boolean>(false);
+  const [hipocalemia, setHipocalemia] = useState<boolean>(false);
+  const [qtcBasalAlto, setQtcBasalAlto] = useState<boolean>(false);
+  const [iamAgudo, setIamAgudo] = useState<boolean>(false);
+  const [icOuSepse, setIcOuSepse] = useState<boolean>(false);
+
   useEffect(() => {
-    if (selecionados.length >= 2) {
+    if (nomesFarmacos.length >= 1) {
       setCarregando(true);
       setErroConsulta(null);
-      verificarInteracoes(selecionados)
-        .then(setInteracoes)
+
+      // Avaliação de Segurança 5G
+      avaliarSegurancaMedicamentosa5g(
+        nomesFarmacos,
+        idadePaciente,
+        sexoFeminino,
+        hipocalemia,
+        qtcBasalAlto,
+        iamAgudo,
+        icOuSepse
+      )
+        .then(setRelatorio5g)
         .catch((e) => {
-          setInteracoes([]);
-          setErroConsulta(e instanceof Error ? e.message : String(e));
+          console.error('Erro ao avaliar segurança 5G:', e);
+        });
+
+      // Mapeamento para IDs caso coincida com a base demo
+      const idsDemo = nomesFarmacos
+        .map((nome) => {
+          const achado = LISTA_FARMACOS_SUGERIDOS.find(
+            (f) => f.nome.toLowerCase() === nome.toLowerCase()
+          );
+          return achado ? achado.id : null;
         })
-        .finally(() => setCarregando(false));
+        .filter((id): id is number => id !== null);
+
+      if (idsDemo.length >= 2) {
+        verificarInteracoes(idsDemo)
+          .then(setInteracoes)
+          .catch((e) => {
+            setInteracoes([]);
+            setErroConsulta(e instanceof Error ? e.message : String(e));
+          })
+          .finally(() => setCarregando(false));
+      } else {
+        setInteracoes([]);
+        setCarregando(false);
+      }
     } else {
       setInteracoes([]);
+      setRelatorio5g(null);
     }
-  }, [selecionados]);
+  }, [nomesFarmacos, idadePaciente, sexoFeminino, hipocalemia, qtcBasalAlto, iamAgudo, icOuSepse]);
 
-  const alternarFarmaco = (id: number) => {
-    setSelecionados((atuais) =>
-      atuais.includes(id) ? atuais.filter((item) => item !== id) : [...atuais, id]
+  const alternarFarmacoNome = (nome: string) => {
+    setNomesFarmacos((atuais) =>
+      atuais.includes(nome) ? atuais.filter((item) => item !== nome) : [...atuais, nome]
     );
+  };
+
+  const adicionarManual = (e: React.FormEvent) => {
+    e.preventDefault();
+    const termo = novoTermo.trim();
+    if (termo && !nomesFarmacos.includes(termo)) {
+      setNomesFarmacos((prev) => [...prev, termo]);
+      setNovoTermo('');
+    }
   };
 
   return (
     <div className="space-y-6">
-    <FtnInteractionChecker />
-    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-4">
-        <div className="flex items-center space-x-3">
-          <div className="p-2.5 bg-rose-500/10 text-rose-400 rounded-xl">
-            <ShieldAlert className="w-6 h-6" />
-          </div>
-          <div>
-            <h3 className="text-base font-bold text-slate-100">Interações com gravidade classificada (base local)</h3>
-            <p className="text-xs text-slate-400">
-              Todos os pares dos fármacos selecionados, ordenados por gravidade. Base de demonstração: 10 princípios ativos e
-              5 interações cadastradas.
-            </p>
-          </div>
-        </div>
-        <div className="text-xs text-slate-400 font-mono">
-          {selecionados.length} selecionados
-        </div>
-      </div>
+      <FtnInteractionChecker />
 
-      {/* Seletor Dinâmico de Fármacos em Chips */}
-      <div>
-        <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
-          Adicionar / Remover Fármacos da Prescrição:
-        </label>
-        <div className="flex flex-wrap gap-2">
-          {LISTA_FARMACOS.map((f) => {
-            const ativo = selecionados.includes(f.id);
-            return (
+      {/* PAINEL PRINCIPAL DE SEGURANÇA FARMACOLÓGICA 5G */}
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-4">
+          <div className="flex items-center space-x-3">
+            <div className="p-2.5 bg-rose-500/10 text-rose-400 rounded-xl">
+              <ShieldAlert className="w-6 h-6" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-slate-100 flex items-center gap-2">
+                Auditoria de Segurança Farmacológica de 5ª Geração
+                <span className="px-2 py-0.5 text-[10px] bg-rose-500/20 text-rose-300 font-mono rounded-md uppercase">
+                  JAMA / Lancet / CPIC
+                </span>
+              </h3>
+              <p className="text-xs text-slate-400">
+                Detecção simultânea de Cascatas Iatrogênicas, Carga Anticolinérgica (ACB), Nefrotoxicidade Triple Whammy, Tisdale QTc e Farmacogenômica CPIC Nível A.
+              </p>
+            </div>
+          </div>
+          <div className="text-xs text-slate-400 font-mono">
+            {nomesFarmacos.length} fármacos na lista
+          </div>
+        </div>
+
+        {/* Adição Dinâmica de Fármacos */}
+        <div className="space-y-3">
+          <div className="flex flex-wrap gap-2 items-center">
+            <form onSubmit={adicionarManual} className="flex gap-2">
+              <input
+                type="text"
+                placeholder="Digitar fármaco (ex: Ciprofloxacino, Varfarina...)"
+                value={novoTermo}
+                onChange={(e) => setNovoTermo(e.target.value)}
+                className="bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-slate-100 placeholder-slate-500 w-64 focus:border-teal-500 focus:outline-none"
+              />
               <button
-                key={f.id}
-                type="button"
-                onClick={() => alternarFarmaco(f.id)}
-                className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border transition-all ${
-                  ativo
-                    ? 'bg-teal-600/90 border-teal-500 text-white shadow-md shadow-teal-950/40'
-                    : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-750 hover:text-white'
-                }`}
+                type="submit"
+                className="px-3 py-1.5 bg-teal-600 hover:bg-teal-500 text-white rounded-xl text-xs font-semibold flex items-center gap-1 transition"
               >
-                <span>{f.nome}</span>
-                {ativo ? <X className="w-3.5 h-3.5 ml-1 opacity-70" /> : <Plus className="w-3.5 h-3.5 ml-1 opacity-70" />}
+                <Plus className="w-3.5 h-3.5" /> Adicionar
               </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Status e Resultados */}
-      {selecionados.length < 2 && (
-        <div className="bg-slate-950/60 border border-dashed border-slate-800 rounded-xl p-8 text-center text-slate-400 text-sm">
-          Selecione 2 ou mais medicamentos para avaliar potenciais interações farmacológicas.
-        </div>
-      )}
-
-      {erroConsulta && (
-        <div className="bg-red-950/50 border border-red-600/60 rounded-xl p-4 text-xs text-red-200">
-          <p className="font-bold text-red-300">Não foi possível verificar as interações.</p>
-          <p className="mt-0.5">{erroConsulta}</p>
-        </div>
-      )}
-
-      {selecionados.length >= 2 && !carregando && !erroConsulta && interacoes.length === 0 && (
-        <div className="bg-slate-950/60 border border-slate-700 rounded-xl p-5 flex items-center space-x-3 text-slate-200">
-          <Info className="w-6 h-6 text-sky-400 flex-shrink-0" />
-          <div className="text-xs">
-            <p className="font-bold text-slate-100 text-sm">Nenhuma interação cadastrada para esta combinação</p>
-            <p className="text-slate-300 mt-0.5">A base atual cataloga apenas um conjunto reduzido de interações (curadoria inicial, sem revisão clínica formal). A ausência de alerta NÃO descarta interação: confirme em fonte de referência.</p>
-          </div>
-        </div>
-      )}
-
-      {interacoes.length > 0 && (
-        <div className="space-y-4">
-          <div className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
-            {interacoes.length} {interacoes.length === 1 ? 'Interação Identificada' : 'Interações Identificadas'}:
+            </form>
           </div>
 
-          <div className="space-y-3">
-            {interacoes.map((item) => {
-              const eContraindicada = item.gravidade_interacao === 'Contraindicada';
-              const eGrave = item.gravidade_interacao === 'Grave';
-              const eModerada = item.gravidade_interacao === 'Moderada';
-
+          <div className="flex flex-wrap gap-2">
+            {LISTA_FARMACOS_SUGERIDOS.map((f) => {
+              const ativo = nomesFarmacos.includes(f.nome);
               return (
-                <div
-                  key={item.id_interacao}
-                  className={`rounded-2xl p-5 border transition-all ${
-                    eContraindicada
-                      ? 'bg-rose-950/40 border-rose-600/70 shadow-lg shadow-rose-950/30'
-                      : eGrave
-                      ? 'bg-amber-950/40 border-amber-600/70 shadow-lg shadow-amber-950/30'
-                      : eModerada
-                      ? 'bg-yellow-950/30 border-yellow-600/60'
-                      : 'bg-slate-800/60 border-slate-700'
+                <button
+                  key={f.id}
+                  type="button"
+                  onClick={() => alternarFarmacoNome(f.nome)}
+                  className={`flex items-center space-x-1.5 px-3 py-1 rounded-xl text-xs font-medium border transition-all ${
+                    ativo
+                      ? 'bg-teal-600/90 border-teal-500 text-white shadow-md shadow-teal-950/40'
+                      : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-750 hover:text-white'
                   }`}
                 >
-                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800/80 pb-3 mb-3">
-                    <div className="flex items-center space-x-2">
-                      {eContraindicada ? (
-                        <AlertOctagon className="w-5 h-5 text-rose-400 flex-shrink-0" />
-                      ) : eGrave ? (
-                        <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0" />
-                      ) : (
-                        <Info className="w-5 h-5 text-yellow-400 flex-shrink-0" />
-                      )}
-                      <span className="font-bold text-slate-100 text-sm">
-                        {item.nome_principio_a ? <LinkMedicamento nome={item.nome_principio_a} /> : 'Princípio A'} &times;{' '}
-                        {item.nome_principio_b ? <LinkMedicamento nome={item.nome_principio_b} /> : 'Princípio B'}
-                      </span>
-                    </div>
-
-                    <span
-                      className={`text-xs font-bold px-2.5 py-1 rounded-full uppercase tracking-wider ${
-                        eContraindicada
-                          ? 'bg-rose-500 text-white'
-                          : eGrave
-                          ? 'bg-amber-500 text-slate-950'
-                          : eModerada
-                          ? 'bg-yellow-500 text-slate-950'
-                          : 'bg-slate-700 text-slate-200'
-                      }`}
-                    >
-                      {item.gravidade_interacao}
-                    </span>
-                  </div>
-
-                  <div className="space-y-2 text-xs">
-                    <div>
-                      <span className="font-semibold text-slate-300">Efeito Clínico / Mecanismo:</span>
-                      <p className="text-slate-300 mt-0.5 leading-relaxed">{item.efeito_clinico}</p>
-                    </div>
-
-                    <div className="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
-                      <span className="font-semibold text-teal-400">Conduta Médica Recomendada:</span>
-                      <p className="text-slate-200 mt-0.5 leading-relaxed">{item.conduta_recomendada}</p>
-                    </div>
-                  </div>
-                </div>
+                  <span>{f.nome}</span>
+                  {ativo ? <X className="w-3.5 h-3.5 ml-1 opacity-70" /> : <Plus className="w-3.5 h-3.5 ml-1 opacity-70" />}
+                </button>
               );
             })}
           </div>
+
+          {/* Chips dos fármacos ativos selecionados */}
+          {nomesFarmacos.length > 0 && (
+            <div className="pt-2 flex flex-wrap gap-1.5 items-center">
+              <span className="text-[11px] text-slate-400 font-semibold uppercase tracking-wider mr-1">
+                Prescrição Atual:
+              </span>
+              {nomesFarmacos.map((nome) => (
+                <span
+                  key={nome}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-800 border border-slate-700 text-slate-200 rounded-lg text-xs font-mono"
+                >
+                  {nome}
+                  <button
+                    onClick={() => alternarFarmacoNome(nome)}
+                    className="hover:text-rose-400 text-slate-400 ml-1"
+                  >
+                    &times;
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
         </div>
-      )}
-    </div>
+
+        {/* SEÇÃO 1: ALERTA CRÍTICO TRIPLE WHAMMY RENAL */}
+        {relatorio5g?.triple_whammy.detectado && (
+          <div className="bg-rose-950/60 border-2 border-rose-500 rounded-2xl p-5 space-y-3 shadow-xl shadow-rose-950/50 animate-pulse-once">
+            <div className="flex items-center gap-2.5 text-rose-300">
+              <Flame className="w-6 h-6 text-rose-400 flex-shrink-0" />
+              <h4 className="text-sm font-bold uppercase tracking-wider text-rose-100">
+                Alerta Crítico: Combinação "Triple Whammy" Renal Detectada
+              </h4>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+              <div className="bg-slate-900/80 p-2.5 rounded-xl border border-rose-900/60">
+                <span className="text-slate-400 font-semibold">1. Vasodilatador Eferente:</span>
+                <p className="font-bold text-rose-200 mt-0.5">{relatorio5g.triple_whammy.vasodilatador_eferente_ieca_bra}</p>
+              </div>
+              <div className="bg-slate-900/80 p-2.5 rounded-xl border border-rose-900/60">
+                <span className="text-slate-400 font-semibold">2. Depletor Volêmico:</span>
+                <p className="font-bold text-rose-200 mt-0.5">{relatorio5g.triple_whammy.depletor_volume_diuretico}</p>
+              </div>
+              <div className="bg-slate-900/80 p-2.5 rounded-xl border border-rose-900/60">
+                <span className="text-slate-400 font-semibold">3. Vasoconstritor Aferente:</span>
+                <p className="font-bold text-rose-200 mt-0.5">{relatorio5g.triple_whammy.vasoconstritor_aferente_aine}</p>
+              </div>
+            </div>
+            <p className="text-xs text-rose-200 leading-relaxed">
+              {relatorio5g.triple_whammy.mecanismo_fisiopatologico}
+            </p>
+            <div className="bg-slate-950/80 p-3 rounded-xl border border-rose-800/80 text-xs text-amber-200">
+              <strong>Conduta Recomendada:</strong> {relatorio5g.triple_whammy.recomendacao_clinica}
+            </div>
+          </div>
+        )}
+
+        {/* SEÇÃO 2: DETECTOR DE CASCATAS DE PRESCRIÇÃO IATROGÊNICAS (JAMA) */}
+        {relatorio5g && relatorio5g.cascatas.length > 0 && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-amber-400 text-xs font-bold uppercase tracking-wider">
+              <Layers className="w-4 h-4" />
+              {relatorio5g.cascatas.length} Cascata(s) Iatrogênica(s) de Prescrição Detectada(s) (JAMA)
+            </div>
+            <div className="space-y-2.5">
+              {relatorio5g.cascatas.map((c, idx) => (
+                <div
+                  key={idx}
+                  className="bg-amber-950/30 border border-amber-600/60 rounded-xl p-4 text-xs space-y-2"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-amber-900/60 pb-2">
+                    <span className="font-bold text-amber-200 text-sm">
+                      {c.farmaco_causador} &rarr; {c.farmaco_prescrito}
+                    </span>
+                    <span className="px-2 py-0.5 bg-amber-500/20 text-amber-300 font-semibold rounded text-[11px]">
+                      Cascata Prescritiva
+                    </span>
+                  </div>
+                  <div>
+                    <span className="font-semibold text-slate-300">Efeito Adverso Confundido:</span>
+                    <p className="text-slate-300 mt-0.5">{c.efeito_adverso_confundido}</p>
+                  </div>
+                  <div className="bg-slate-900/80 p-2.5 rounded-lg border border-slate-800 text-teal-300">
+                    <strong className="text-teal-400">Conduta de Desprescrição:</strong> {c.conduta_desprescricao}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* SEÇÃO 3: CARGA ANTICOLINÉRGICA (ACB SCORE) */}
+        {relatorio5g && relatorio5g.carga_anticolinergica.pontuacao_total > 0 && (
+          <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-indigo-400">
+                <Brain className="w-4 h-4" />
+                Carga Anticolinérgica Cumulativa (ACB Score)
+              </div>
+              <span
+                className={`px-2.5 py-0.5 rounded-full text-xs font-bold font-mono ${
+                  relatorio5g.carga_anticolinergica.pontuacao_total >= 3
+                    ? 'bg-rose-500 text-white'
+                    : relatorio5g.carga_anticolinergica.pontuacao_total === 2
+                    ? 'bg-amber-500 text-slate-950'
+                    : 'bg-emerald-500/20 text-emerald-300'
+                }`}
+              >
+                Score ACB: {relatorio5g.carga_anticolinergica.pontuacao_total} pontos
+              </span>
+            </div>
+
+            <p className="text-xs text-slate-300">
+              {relatorio5g.carga_anticolinergica.classificacao_risco}
+            </p>
+
+            <div className="flex flex-wrap gap-2">
+              {relatorio5g.carga_anticolinergica.itens.map((it, idx) => (
+                <span
+                  key={idx}
+                  className="px-2 py-1 bg-slate-900 border border-slate-700 rounded-lg text-xs font-mono text-slate-300"
+                >
+                  {it.medicamento}: <strong>+{it.pontuacao_acb} pts</strong>
+                </span>
+              ))}
+            </div>
+
+            {relatorio5g.carga_anticolinergica.sugestoes_desprescricao.length > 0 && (
+              <div className="bg-slate-900/90 border border-slate-800 rounded-lg p-3 text-xs space-y-1 text-slate-300">
+                <strong className="text-indigo-300 block mb-1">Sugestões de Desprescrição em Idosos:</strong>
+                {relatorio5g.carga_anticolinergica.sugestoes_desprescricao.map((sug, i) => (
+                  <p key={i}>&bull; {sug}</p>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* SEÇÃO 4: ESCORE DE TISDALE (RISCO DE PROLONGAMENTO QTC) */}
+        {relatorio5g && relatorio5g.escore_tisdale.farmacos_qtc_presentes.length > 0 && (
+          <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-sky-400">
+                <Zap className="w-4 h-4" />
+                Escore de Tisdale para Prolongamento de QTc
+              </div>
+              <span
+                className={`px-2.5 py-0.5 rounded-full text-xs font-bold font-mono ${
+                  relatorio5g.escore_tisdale.pontuacao_total >= 11
+                    ? 'bg-rose-500 text-white'
+                    : relatorio5g.escore_tisdale.pontuacao_total >= 7
+                    ? 'bg-amber-500 text-slate-950'
+                    : 'bg-emerald-500/20 text-emerald-300'
+                }`}
+              >
+                Tisdale: {relatorio5g.escore_tisdale.pontuacao_total} pts ({relatorio5g.escore_tisdale.categoria_risco})
+              </span>
+            </div>
+
+            <div className="text-xs text-slate-400 space-y-1">
+              <p>
+                <strong>Fármacos QTc presentes:</strong>{' '}
+                {relatorio5g.escore_tisdale.farmacos_qtc_presentes.join(', ')}
+              </p>
+              <p>
+                <strong>Risco predito de QTc &gt; 500 ms / TdP:</strong>{' '}
+                {relatorio5g.escore_tisdale.risco_estimado_percentual}
+              </p>
+            </div>
+
+            <div className="bg-slate-900/90 border border-slate-800 p-2.5 rounded-lg text-xs text-slate-300">
+              <strong className="text-sky-300">Recomendação de Monitorização:</strong>{' '}
+              {relatorio5g.escore_tisdale.recomendacao_monitorizacao}
+            </div>
+          </div>
+        )}
+
+        {/* SEÇÃO 5: FARMACOGENÔMICA CPIC NÍVEL A */}
+        {relatorio5g && relatorio5g.farmacogenomica.length > 0 && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-teal-400 text-xs font-bold uppercase tracking-wider">
+              <Dna className="w-4 h-4" />
+              Alertas de Farmacogenômica (CPIC Nível A / Medicina de Precisão)
+            </div>
+            <div className="space-y-2">
+              {relatorio5g.farmacogenomica.map((cp, idx) => (
+                <div
+                  key={idx}
+                  className="bg-teal-950/30 border border-teal-700/60 rounded-xl p-3.5 text-xs space-y-1.5"
+                >
+                  <div className="flex items-center justify-between border-b border-teal-900/50 pb-1.5">
+                    <span className="font-bold text-teal-200">
+                      {cp.medicamento} &mdash; Gene <span className="font-mono text-white">{cp.gene}</span>
+                    </span>
+                    <span className="text-[10px] bg-teal-500/20 text-teal-300 px-2 py-0.5 rounded">
+                      {cp.nivel_evidencia_cpic}
+                    </span>
+                  </div>
+                  <p className="text-slate-300">{cp.alerta_clinico}</p>
+                  <div className="bg-slate-900/80 p-2 rounded text-slate-200">
+                    <strong className="text-teal-400">Recomendação Clínica:</strong> {cp.recomendacao}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* SEÇÃO 6: INTERAÇÕES POR PAR (BASE LOCAL) */}
+        {interacoes.length > 0 && (
+          <div className="space-y-3 pt-2 border-t border-slate-800">
+            <div className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
+              {interacoes.length} Interação(ões) por Par Cataloga(s):
+            </div>
+            <div className="space-y-2.5">
+              {interacoes.map((item) => {
+                const eContraindicada = item.gravidade_interacao === 'Contraindicada';
+                const eGrave = item.gravidade_interacao === 'Grave';
+                const eModerada = item.gravidade_interacao === 'Moderada';
+
+                return (
+                  <div
+                    key={item.id_interacao}
+                    className={`rounded-2xl p-4 border text-xs space-y-2 ${
+                      eContraindicada
+                        ? 'bg-rose-950/40 border-rose-600/70'
+                        : eGrave
+                        ? 'bg-amber-950/40 border-amber-600/70'
+                        : eModerada
+                        ? 'bg-yellow-950/30 border-yellow-600/60'
+                        : 'bg-slate-800/60 border-slate-700'
+                    }`}
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800/80 pb-2">
+                      <div className="flex items-center space-x-2">
+                        {eContraindicada ? (
+                          <AlertOctagon className="w-4 h-4 text-rose-400" />
+                        ) : eGrave ? (
+                          <AlertTriangle className="w-4 h-4 text-amber-400" />
+                        ) : (
+                          <Info className="w-4 h-4 text-yellow-400" />
+                        )}
+                        <span className="font-bold text-slate-100">
+                          {item.nome_principio_a ? <LinkMedicamento nome={item.nome_principio_a} /> : 'Princípio A'} &times;{' '}
+                          {item.nome_principio_b ? <LinkMedicamento nome={item.nome_principio_b} /> : 'Princípio B'}
+                        </span>
+                      </div>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider bg-rose-500 text-white">
+                        {item.gravidade_interacao}
+                      </span>
+                    </div>
+                    <p className="text-slate-300">{item.efeito_clinico}</p>
+                    <div className="bg-slate-900/80 p-2.5 rounded-lg border border-slate-800 text-teal-200">
+                      <strong>Conduta:</strong> {item.conduta_recomendada}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

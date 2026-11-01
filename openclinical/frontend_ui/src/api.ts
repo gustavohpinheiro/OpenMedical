@@ -19,6 +19,7 @@ import {
   BulaImportadaResumo,
   PcdtResumo,
   PcdtDetalhe,
+  RelatorioSeguranca5g,
 } from './types';
 
 import { executarCalculoLocal } from './clinical_fallback';
@@ -1071,4 +1072,41 @@ export async function obterPcdtConitec(idPcdt: number): Promise<PcdtDetalhe | nu
     { chave: 'medicamentos', titulo: 'Fármacos / medicamentos', ...pcdt.medicamentos },
   ].filter((s) => s.texto);
   return { ...pcdt, secoes };
+}
+
+
+// -----------------------------------------------------------------------------
+// Segurança Farmacológica de 5ª Geração (Cascatas, ACB, Triple Whammy, Tisdale, CPIC)
+// -----------------------------------------------------------------------------
+
+export async function avaliarSegurancaMedicamentosa5g(
+  medicamentos: string[],
+  idade = 50,
+  sexo_feminino = false,
+  potassio_menor_igual_3_5 = false,
+  qtc_basal_maior_igual_450 = false,
+  iam_agudo = false,
+  insuficiencia_cardiaca_ou_sepse = false
+): Promise<RelatorioSeguranca5g> {
+  if (isTauri()) {
+    return invokeTauri<RelatorioSeguranca5g>('avaliar_seguranca_medicamentosa_5g', {
+      medicamentos,
+      idade,
+      sexo_feminino,
+      potassio_menor_igual_3_5,
+      qtc_basal_maior_igual_450,
+      iam_agudo,
+      insuficiencia_cardiaca_ou_sepse,
+    });
+  }
+  const { avaliarSegurancaMedicamentosa5g: avaliar5gLocal } = await import('./medication_safety_5g');
+  return avaliar5gLocal(
+    medicamentos,
+    idade,
+    sexo_feminino,
+    potassio_menor_igual_3_5,
+    qtc_basal_maior_igual_450,
+    iam_agudo,
+    insuficiencia_cardiaca_ou_sepse
+  );
 }

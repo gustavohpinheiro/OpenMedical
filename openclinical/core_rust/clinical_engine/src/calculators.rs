@@ -1,5 +1,5 @@
 use crate::errors::ClinicalError;
-use crate::models::{ResultadoCurb65, ResultadoTfg, ResultadoWells};
+use crate::models::{ResultadoCha2ds2Va, ResultadoCurb65, ResultadoQsofa, ResultadoTfg, ResultadoWells};
 
 /// Equação CKD-EPI 2021 para estimativa da taxa de filtração glomerular (TFG)
 /// sem ajuste racial, recomendada pelas diretrizes internacionais (KDIGO 2023)
@@ -291,3 +291,140 @@ pub fn calcular_vazao_infusao(
 
     Ok((vazao_ml_h * 100.0).round() / 100.0)
 }
+
+/// Cálculo reverso da dose de infusão intravenosa contínua a partir da vazão programada na bomba (mL/h).
+///
+/// Retorna a dose administrada em microgramas por quilograma por minuto (mcg/kg/min).
+pub fn calcular_dose_reversa_infusao(
+    vazao_ml_h: f64,
+    peso_kg: f64,
+    concentracao_mg_ml: f64,
+) -> Result<f64, ClinicalError> {
+    if vazao_ml_h < 0.0 {
+        return Err(ClinicalError::ParametroInvalido {
+            campo: "vazao_ml_h".to_string(),
+            valor: vazao_ml_h,
+            motivo: "A vazão da bomba não pode ser negativa.".to_string(),
+        });
+    }
+
+    if peso_kg <= 0.0 || peso_kg > 400.0 {
+        return Err(ClinicalError::ParametroInvalido {
+            campo: "peso_kg".to_string(),
+            valor: peso_kg,
+            motivo: "O peso do paciente deve ser válido e positivo.".to_string(),
+        });
+    }
+
+    if concentracao_mg_ml <= 0.0 {
+        return Err(ClinicalError::ConcentracaoInvalida {
+            valor: concentracao_mg_ml,
+        });
+    }
+
+    // Fórmula reversa: Dose (mcg/kg/min) = [Vazão (mL/h) * Concentração (mg/mL) * 1000 mcg/mg] / [Peso (kg) * 60 min/h]
+    let dose_mcg_kg_min = (vazao_ml_h * concentracao_mg_ml * 1000.0) / (peso_kg * 60.0);
+    Ok((dose_mcg_kg_min * 1000.0).round() / 1000.0)
+}
+
+/// Escore CHA2DS2-VA conforme diretriz ESC 2024 (sem componente de gênero feminino isolado).
+/// Estratifica o risco tromboembólico em pacientes com Fibrilação Atrial não valvar.
+pub fn calcular_escore_cha2ds2_va(
+    insuficiencia_cardiaca: bool,
+    hipertensao: bool,
+    idade: u32,
+    diabetes: bool,
+    avc_ou_ait_previo: bool,
+    doenca_vascular: bool,
+) -> ResultadoCha2ds2Va {
+    let mut pontos: u8 = 0;
+
+    if insuficiencia_cardiaca {
+        pontos += 1;
+    }
+    if hipertensao {
+        pontos += 1;
+    }
+    if idade >= 75 {
+        pontos += 2;
+    } else if idade >= 65 {
+        pontos += 1;
+    }
+    if diabetes {
+        pontos += 1;
+    }
+    if avc_ou_ait_previo {
+        pontos += 2;
+    }
+    if doenca_vascular {
+        pontos += 1;
+    }
+
+    let (categoria, taxa, recomendacao) = match pontos {
+        0 => (
+            "Muito Baixo Risco Tromboembólico".to_string(),
+            "0.2% ao ano".to_string(),
+            "Anticoagulação oral não indicada (risco de sangramento supera benefício embólico).".to_string(),
+        ),
+        1 => (
+            "Baixo a Moderado Risco Tromboembólico".to_string(),
+            "0.9% ao ano".to_string(),
+            "Anticoagulação oral (DOAC de escolha sobre AVK) deve ser considerada (Classe IIa).".to_string(),
+        ),
+        2 => (
+            "Moderado a Alto Risco Tromboembólico".to_string(),
+            "2.2% ao ano".to_string(),
+            "Indicação formal de anticoagulação oral (DOACs de 1ª escolha: Apixabana, Rivaroxabana, Dabigatrana ou Edoxabana - Classe I).".to_string(),
+        ),
+        3 => (
+            "Alto Risco Tromboembólico".to_string(),
+            "3.2% ao ano".to_string(),
+            "Indicação formal de anticoagulação oral (DOACs recomendados - Classe I). Monitorar adesão e função renal anualmente.".to_string(),
+        ),
+        _ => (
+            "Muito Alto Risco Tromboembólico".to_string(),
+            "> 4.8% ao ano".to_string(),
+            "Indicação imperativa de anticoagulação oral plena imediata (Classe I). Avaliar escores de sangramento (HAS-BLED) apenas para corrigir fatores de risco modificáveis, não para contraindicar anticoagulante.".to_string(),
+        ),
+    };
+
+    ResultadoCha2ds2Va {
+        pontuacao: pontos,
+        categoria_risco: categoria,
+        taxa_avc_anual_estimada: taxa,
+        recomendacao_anticoagulacao: recomendacao,
+    }
+}
+
+/// Escore qSOFA (quick Sepsis-related Organ Failure Assessment) para triagem rápida à beira-leito
+/// de pacientes fora da UTI com suspeita de sepse e risco de óbito.
+pub fn calcular_escore_qsofa(
+    fr_maior_22: bool,
+    pas_menor_100: bool,
+    alteracao_mental: bool,
+) -> ResultadoQsofa {
+    let mut pontos: u8 = 0;
+    if fr_maior_22 {
+        pontos += 1;
+    }
+    if pas_menor_100 {
+        pontos += 1;
+    }
+    if alteracao_mental {
+        pontos += 1;
+    }
+
+    let alto_risco = pontos >= 2;
+    let recomendacao = if alto_risco {
+        "Alto risco de desfecho desfavorável e óbito por sepse (qSOFA >= 2). Ações imediatas (Golden Hour): Coletar 2 pares de hemoculturas, dosar lactato sérico, iniciar ressuscitação volêmica (30 mL/kg de cristaloide) se hipotensão ou lactato >= 4 mmol/L, e prescrever antimicrobiano de amplo espectro na 1ª hora.".to_string()
+    } else {
+        "Baixo risco de deterioração rápida pelo qSOFA isolado (< 2 pontos). Manter monitorização clínica seriada e calcular SOFA laboratorial completo se houver persistência de sinais de infecção com disfunção de órgãos.".to_string()
+    };
+
+    ResultadoQsofa {
+        pontuacao: pontos,
+        alto_risco_sepse: alto_risco,
+        recomendacao,
+    }
+}
+

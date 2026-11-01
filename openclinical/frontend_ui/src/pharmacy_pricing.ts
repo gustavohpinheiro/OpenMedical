@@ -64,3 +64,28 @@ export async function analisarPrecoLocal(idCmed: number): Promise<AnalisePrecoMe
     registro.preco_maximo_consumidor
   );
 }
+
+export interface CotacaoFarmaciaItem {
+  preco_teto_anvisa: number;
+  preco_varejo_estimado: number;
+  situacao_farmacia_popular: { gratuito: boolean; indicacao: string | null };
+}
+
+export function cotarPrecosFarmacias(
+  _nome: string,
+  substancia: string,
+  precoPmc?: number
+): CotacaoFarmaciaItem {
+  const pmc = precoPmc && precoPmc > 0 ? precoPmc : 25.0;
+  const sit = verificarFarmaciaPopular(substancia, '');
+  const precoVarejo = Math.round(pmc * 0.75 * 100) / 100;
+  return {
+    preco_teto_anvisa: pmc,
+    preco_varejo_estimado: precoVarejo,
+    situacao_farmacia_popular: {
+      gratuito: sit.gratuito,
+      indicacao: sit.indicacao,
+    },
+  };
+}
+

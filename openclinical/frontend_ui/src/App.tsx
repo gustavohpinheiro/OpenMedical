@@ -13,6 +13,8 @@ import {
   AlertTriangle,
   Store,
   BookMarked,
+  FileText,
+  Stethoscope,
 } from 'lucide-react';
 import { SearchModal } from './components/SearchModal';
 import { DrugDetail } from './components/DrugDetail';
@@ -20,6 +22,8 @@ import { PediatricCalculator } from './components/PediatricCalculator';
 import { InteractionChecker } from './components/InteractionChecker';
 import { ClinicalCalculators } from './components/ClinicalCalculators';
 import { ProtocolsView } from './components/ProtocolsView';
+import { PrescriptionBuilderView } from './components/PrescriptionBuilderView';
+import { AntimicrobialGuideView } from './components/AntimicrobialGuideView';
 import { PharmacyPriceFinder } from './components/PharmacyPriceFinder';
 import type { SelecaoBasePublica } from './components/PublicDatabasesView';
 
@@ -35,13 +39,15 @@ import { AbrirMedicamentoContext } from './components/LinkMedicamento';
 import { carregarFormulario } from './formulario_utils';
 import { chaveSubstanciaCmed, monografiasDoPrincipio } from './ligacao_ftn';
 
-type SecaoApp = 'medicamentos' | 'formulario' | 'precos' | 'protocolos' | 'pcdt' | 'pediatria' | 'interacoes' | 'calculadoras';
+type SecaoApp = 'medicamentos' | 'formulario' | 'precos' | 'protocolos' | 'prescricao' | 'guia_antimicrobiano' | 'pcdt' | 'pediatria' | 'interacoes' | 'calculadoras';
 
 const SECOES: { id: SecaoApp; label: string; icon: React.ComponentType<{ className?: string }>; badge: string }[] = [
   { id: 'formulario', label: 'Medicamentos & Receitas', icon: BookMarked, badge: 'FTN · 346' },
   { id: 'medicamentos', label: 'Bulas Estruturadas', icon: Pill, badge: '10 DCB' },
   { id: 'precos', label: 'Preço & Farmácia Popular', icon: Store, badge: 'PMC · SUS' },
   { id: 'protocolos', label: 'Receitas & Prescrições', icon: BookOpen, badge: '45 Protocolos' },
+  { id: 'prescricao', label: 'Cesta de Receita & Orçamento', icon: FileText, badge: 'SUS · RDC 471' },
+  { id: 'guia_antimicrobiano', label: 'Guia Antimicrobiano & CCIH', icon: Stethoscope, badge: '15 ATBs · IV→VO' },
   { id: 'pcdt', label: 'Bases Públicas', icon: FileCheck, badge: 'CMED · PCDT · Bulas' },
   { id: 'pediatria', label: 'Calculadora Pediátrica', icon: Baby, badge: 'Teto de dose' },
   { id: 'interacoes', label: 'Verificador de Interações', icon: ShieldAlert, badge: 'FTN · 1.436' },
@@ -424,6 +430,10 @@ export const App: React.FC = () => {
         {secaoAtiva === 'protocolos' && (
           <ProtocolsView protocoloSelecionadoId={protocoloSelecionadoId} />
         )}
+
+        {secaoAtiva === 'prescricao' && <PrescriptionBuilderView />}
+
+        {secaoAtiva === 'guia_antimicrobiano' && <AntimicrobialGuideView />}
 
         {secaoAtiva === 'pcdt' && (
           <Suspense fallback={<div className="py-16 text-center text-sm text-slate-400">Carregando bases públicas...</div>}>

@@ -295,3 +295,169 @@ export interface PcdtResumo {
 export interface PcdtDetalhe extends PcdtResumo {
   secoes: SecaoPcdt[];
 }
+
+
+// -----------------------------------------------------------------------------
+// Tipos de Emergência, UTI, Gasometria e Escores Cardiológicos
+// -----------------------------------------------------------------------------
+
+export interface ItemFarmacoEmergencia {
+  classe: string;
+  nome_farmaco: string;
+  apresentacao_ampola: string;
+  dose_mg_kg: number;
+  dose_total_mg: number;
+  volume_administrar_ml: number;
+  recomendado_perfil: boolean;
+  observacao_clinica: string;
+}
+
+export interface ParametrosVentilacaoInicial {
+  peso_predito_kg: number;
+  volume_corrente_ml: number;
+  peep_sugerida_cmh2o: number;
+  fr_sugerida_irpm: number;
+  fio2_inicial_percentual: number;
+}
+
+export interface ResultadoIntubacaoSri {
+  peso_real_kg: number;
+  perfil_hemodinamico: string;
+  farmacos: ItemFarmacoEmergencia[];
+  ventilacao: ParametrosVentilacaoInicial;
+  checklist_7ps: string[];
+}
+
+export interface ResultadoEmergenciaPediatrica {
+  peso_kg: number;
+  idade_anos: number;
+  tubo_com_cuff_mm: number;
+  tubo_sem_cuff_mm: number;
+  fixacao_rima_labial_cm: number;
+  lamina_laringoscopio: string;
+  carga_desfibrilacao_1_j: number;
+  carga_desfibrilacao_2_j: number;
+  adrenalina_pcr_mg: number;
+  adrenalina_diluida_1_10000_ml: number;
+  expansao_cristaloide_20ml_kg: number;
+}
+
+export interface ResultadoGasometria {
+  ph: number;
+  paco2: number;
+  hco3: number;
+  sodio: number;
+  cloro: number;
+  albumina: number;
+  pao2: number;
+  fio2_fracao: number;
+  disturbio_primario: string;
+  anion_gap_bruto: number;
+  anion_gap_corrigido: number;
+  delta_delta?: number | null;
+  interpretacao_delta_delta?: string | null;
+  paco2_esperada_min?: number | null;
+  paco2_esperada_max?: number | null;
+  compensacao_respiratoria: string;
+  relacao_pafo2: number;
+  classificacao_oxigenacao_sdra: string;
+  condutas_sugeridas: string[];
+}
+
+export interface ResultadoCorrecaoSodio {
+  sodio_atual: number;
+  solucao_meq_l: number;
+  agua_corporal_total_litros: number;
+  variacao_sodio_1l: number;
+  volume_recomendado_24h_ml: number;
+  vazao_bic_ml_h: number;
+  alerta_seguranca: string;
+}
+
+export interface ResultadoCha2ds2Va {
+  pontuacao: number;
+  categoria_risco: string;
+  taxa_avc_anual_estimada: string;
+  recomendacao_anticoagulacao: string;
+}
+
+export interface ResultadoQsofa {
+  pontuacao: number;
+  alto_risco_sepse: boolean;
+  recomendacao: string;
+}
+
+// -----------------------------------------------------------------------------
+// Segurança Farmacológica de 5ª Geração (Cascatas, ACB, Triple Whammy, Tisdale, CPIC)
+// -----------------------------------------------------------------------------
+
+export interface AlertaCascataPrescricao {
+  farmaco_causador: string;
+  farmaco_prescrito: string;
+  efeito_adverso_confundido: string;
+  conduta_desprescricao: string;
+}
+
+export interface ItemCargaAnticolinergica {
+  medicamento: string;
+  pontuacao_acb: number;
+  classificacao: string;
+}
+
+export interface ResultadoCargaAnticolinergica {
+  pontuacao_total: number;
+  classificacao_risco: string;
+  itens: ItemCargaAnticolinergica[];
+  sugestoes_desprescricao: string[];
+}
+
+export interface ResultadoTripleWhammy {
+  detectado: boolean;
+  vasodilatador_eferente_ieca_bra?: string | null;
+  depletor_volume_diuretico?: string | null;
+  vasoconstritor_aferente_aine?: string | null;
+  gravidade: string;
+  mecanismo_fisiopatologico: string;
+  recomendacao_clinica: string;
+}
+
+export interface ResultadoEscoreTisdale {
+  pontuacao_total: number;
+  categoria_risco: string;
+  risco_estimado_percentual: string;
+  farmacos_qtc_presentes: string[];
+  fatores_risco_detectados: string[];
+  recomendacao_monitorizacao: string;
+}
+
+export interface AlertaFarmacogenomicoCpic {
+  medicamento: string;
+  gene: string;
+  nivel_evidencia_cpic: string;
+  alerta_clinico: string;
+  recomendacao: string;
+}
+
+export interface RelatorioSeguranca5g {
+  cascatas: AlertaCascataPrescricao[];
+  carga_anticolinergica: ResultadoCargaAnticolinergica;
+  triple_whammy: ResultadoTripleWhammy;
+  escore_tisdale: ResultadoEscoreTisdale;
+  farmacogenomica: AlertaFarmacogenomicoCpic[];
+}
+
+// -----------------------------------------------------------------------------
+// Cesta de Prescrição Médica Multidisciplinar
+// -----------------------------------------------------------------------------
+
+export interface ItemPrescricaoCesta {
+  id: string;
+  nome_medicamento: string;
+  principio_ativo: string;
+  apresentacao: string;
+  posologia: string;
+  duracao_tratamento?: string;
+  quantidade_embalagens: number;
+  tipo_receituario: 'simples' | 'controle_especial_c1' | 'antimicrobiano' | 'notificacao_b_azul' | 'notificacao_a_amarela';
+  preco_pmc: number;
+}
