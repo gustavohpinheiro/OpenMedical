@@ -9,6 +9,7 @@ import {
   Filter,
   Sparkles,
   Search,
+  Plus,
 } from 'lucide-react';
 import {
   MATRIZ_ANTIMICROBIANOS,
@@ -16,6 +17,7 @@ import {
   CARIMBOS_PRONTUARIO,
   ItemMatrizAntimicrobiano,
 } from '../data/guia_antimicrobiano_ccih';
+import { adicionarItemPrescricaoModular } from '../storage_clinico';
 
 export const AntimicrobialGuideView: React.FC = () => {
   const [abaAtiva, setAbaAtiva] = useState<'matriz' | 'switch' | 'carimbos'>('matriz');
@@ -69,6 +71,36 @@ export const AntimicrobialGuideView: React.FC = () => {
   );
 
   const elegivelSwitch = criteriosMarcados.length === CRITERIOS_SWITCH_IV_VO.length;
+
+  const handlePrescreverAntimicrobiano = (item: ItemMatrizAntimicrobiano) => {
+    adicionarItemPrescricaoModular(
+      'medicamento',
+      item.antibiotico,
+      `Uso conforme orientação médica: ${item.posologia_padrao}\nClasse: ${item.classe}`,
+      {
+        id: `atb_${Date.now()}`,
+        nome_medicamento: item.antibiotico,
+        principio_ativo: item.antibiotico.toUpperCase(),
+        apresentacao: 'Comprimido / Cápsula / Suspensão',
+        posologia: item.posologia_padrao,
+        quantidade_embalagens: 1,
+        via_administracao: 'oral',
+        tipo_receituario: 'antimicrobiano',
+        preco_pmc: 0,
+      },
+      `Guia Antimicrobiano CCIH (${item.classe})`
+    );
+  };
+
+  const handleAdicionarOrientacaoSwitch = () => {
+    adicionarItemPrescricaoModular(
+      'orientacao',
+      'Desprescrição / Switch Terapia IV → VO',
+      'Critérios clínicos preenchidos para transição de antimicrobiano intravenoso para via oral (apirexia > 48h, leucócitos em queda, trato gastrointestinal funcionante e estabilidade hemodinâmica). Retirada de acesso venoso recomendada pela CCIH.',
+      undefined,
+      'Stewardship de Antimicrobianos / CCIH'
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -213,6 +245,15 @@ export const AntimicrobialGuideView: React.FC = () => {
                         <div className="font-bold text-slate-100">{item.antibiotico}</div>
                         <div className="text-[11px] text-slate-400">{item.classe}</div>
                         <div className="text-[10px] text-slate-500 mt-0.5 font-mono">{item.posologia_padrao}</div>
+                        <button
+                          type="button"
+                          onClick={() => handlePrescreverAntimicrobiano(item)}
+                          className="mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded bg-teal-500/20 hover:bg-teal-500/30 text-teal-300 border border-teal-500/40 text-[10px] font-semibold transition"
+                          title="Adicionar à Receita Digital (2 vias RDC 471/2021)"
+                        >
+                          <Plus className="w-3 h-3" />
+                          <span>+ Receita Digital</span>
+                        </button>
                       </td>
                       <td className="py-2.5 px-2 text-center">{renderBadge(item.mssa)}</td>
                       <td className="py-2.5 px-2 text-center">{renderBadge(item.mrsa)}</td>
@@ -281,13 +322,21 @@ export const AntimicrobialGuideView: React.FC = () => {
           </div>
 
           {elegivelSwitch && (
-            <div className="bg-emerald-950/40 border border-emerald-600/60 rounded-xl p-4 text-xs text-emerald-200 space-y-1">
+            <div className="bg-emerald-950/40 border border-emerald-600/60 rounded-xl p-4 text-xs text-emerald-200 space-y-2">
               <strong className="text-emerald-300 flex items-center gap-1.5 text-sm">
                 <Sparkles className="w-4 h-4" /> Recomendação CCIH / Stewardship:
               </strong>
               <p>
                 Paciente preenche todos os critérios de segurança para conversão para terapia oral. Considerar desprescrição da via parenteral e retirada precoce do cateter venoso periférico/central.
               </p>
+              <button
+                type="button"
+                onClick={handleAdicionarOrientacaoSwitch}
+                className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition shadow-md"
+              >
+                <Plus className="w-4 h-4" />
+                <span>+ Adicionar Conduta de Switch à Receita / Prontuário</span>
+              </button>
             </div>
           )}
         </div>

@@ -29,7 +29,6 @@ import {
   RotateCcw,
   ShieldCheck,
 } from 'lucide-react';
-import { OPENCLINICAL_LOGO_BASE64, OPENCLINICAL_ICON_SVG } from './OpenClinicalLogo';
 import {
   BlocoPrescricao,
   ItemPrescricaoCesta,
@@ -47,11 +46,15 @@ import {
   definirTemplateAtivoId,
   salvarNovoTemplateReceituario,
   limparPrescricao,
+  abrirConfiguracaoAssinatura,
+  abrirConfiguracaoReceita,
 } from '../storage_clinico';
 import { cotarPrecosFarmacias } from '../pharmacy_pricing';
 import { avaliarSegurancaMedicamentosa5g } from '../medication_safety_5g';
 import { exportarElementosParaPdf } from '../pdf_generator';
 import { importarReceitasDePdfs } from '../prescription_importer';
+import { PrescriptionSheetRenderer } from './PrescriptionSheetRenderer';
+import { MedicationAutocomplete } from './MedicationAutocomplete';
 
 export const PrescriptionModularCanvas: React.FC = () => {
   const [perfilMedico, setPerfilMedico] = useState<PerfilMedico>(obterPerfilMedicoAtivo());
@@ -398,28 +401,13 @@ export const PrescriptionModularCanvas: React.FC = () => {
     );
   }, [itensAtivos, pacienteAtivo]);
 
-  // Decisão de Logotipo e Papel Timbrado (Customizado vs Padrão OpenClinical)
-  const logoExibicao = useMemo(() => {
-    if (perfilMedico.logo_base64) return perfilMedico.logo_base64;
-    if (perfilMedico.ocultar_logo_padrao) return null;
-    return OPENCLINICAL_LOGO_BASE64;
-  }, [perfilMedico.logo_base64, perfilMedico.ocultar_logo_padrao]);
-
-  const temPapelTimbradoProprio = Boolean(
-    perfilMedico.papel_timbrado_base64 || templateAtual.imagem_fundo_base64
-  );
-  const exibirPapelTimbradoOpenClinical =
-    !temPapelTimbradoProprio &&
-    !perfilMedico.usar_papel_timbrado_proprio &&
-    !perfilMedico.ocultar_papel_timbrado_padrao;
-
   // Exportação em PDF
   const dispararDownloadPdf = async () => {
     if (!printPagesRef.current) return;
     setGerandoPdf(true);
     try {
       const paginasEl = Array.from(
-        printPagesRef.current.querySelectorAll('.pagina-a4-render')
+        printPagesRef.current.querySelectorAll('.folha-receita-exportavel, .pagina-a4-render')
       ) as HTMLElement[];
 
       if (paginasEl.length === 0) {
@@ -431,10 +419,11 @@ export const PrescriptionModularCanvas: React.FC = () => {
         ? pacienteAtivo.nome_completo.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 20)
         : 'Paciente';
       const dataHoje = new Date().toISOString().substring(0, 10);
+      const formato = (perfilMedico.tamanho_papel_receita?.toLowerCase() as 'a4' | 'a5') || 'a4';
       await exportarElementosParaPdf(
         paginasEl,
         `Receituario_${nomePac}_${dataHoje}.pdf`,
-        'a4',
+        formato,
         {
           blocos: itensAtivos,
           paciente: pacienteAtivo,
@@ -473,6 +462,24 @@ export const PrescriptionModularCanvas: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2.5 flex-wrap">
+          <button
+            onClick={abrirConfiguracaoAssinatura}
+            className="flex items-center gap-1.5 px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 text-teal-300 border border-teal-500/30 rounded-xl text-xs font-bold transition shadow-sm"
+            title="Upload ou desenho da assinatura eletrônica do médico prescritor"
+          >
+            <ShieldCheck className="w-4 h-4 text-teal-400" />
+            <span>{perfilMedico.assinatura_base64 ? 'Assinatura Ativa ✓' : 'Configurar Assinatura'}</span>
+          </button>
+
+          <button
+            onClick={abrirConfiguracaoReceita}
+            className="flex items-center gap-1.5 px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-bold transition shadow-sm"
+            title="Configurar tamanho de papel (A4/A5), logotipo e papel timbrado"
+          >
+            <Sliders className="w-4 h-4 text-slate-400" />
+            <span>Papel & PDF</span>
+          </button>
+
           <input
             ref={fileInputCanvasRef}
             type="file"
@@ -716,23 +723,47 @@ export const PrescriptionModularCanvas: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <label className="text-slate-400 block mb-1">Medicamento / Marca Comercial *</label>
-                <input
-                  type="text"
+                <MedicationAutocomplete
                   required
                   placeholder="Ex: Losartana Potássica 50mg"
                   value={formMedNome}
-                  onChange={(e) => setFormMedNome(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-teal-500"
+                  onChange={(val) => setFormMedNome(val)}
+                  onSelect={(sugestao) => {
+                    setFormMedNome(sugestao.nome);
+                    if (sugestao.detalhes?.principio_ativo) {
+                      setFormMedPrincipio(sugestao.detalhes.principio_ativo);
+                    }
+                    if (sugestao.detalhes?.apresentacao) {
+                      setFormMedApres(sugestao.detalhes.apresentacao);
+                    }
+                    if (sugestao.detalhes?.posologia) {
+                      setFormMedPosologia(sugestao.detalhes.posologia);
+                    }
+                    if (sugestao.detalhes?.tipo_receituario) {
+                      setFormMedTipo(sugestao.detalhes.tipo_receituario);
+                    }
+                  }}
+                  className="w-full"
+                  inputClassName="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-teal-500"
                 />
               </div>
               <div>
                 <label className="text-slate-400 block mb-1">Princípio Ativo (DCB)</label>
-                <input
-                  type="text"
+                <MedicationAutocomplete
                   placeholder="Ex: LOSARTANA POTÁSSICA"
                   value={formMedPrincipio}
-                  onChange={(e) => setFormMedPrincipio(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-teal-500"
+                  onChange={(val) => setFormMedPrincipio(val)}
+                  onSelect={(sugestao) => {
+                    setFormMedPrincipio(sugestao.detalhes?.principio_ativo || sugestao.nome.toUpperCase());
+                    if (!formMedNome) {
+                      setFormMedNome(sugestao.nome);
+                    }
+                    if (!formMedApres && sugestao.detalhes?.apresentacao) {
+                      setFormMedApres(sugestao.detalhes.apresentacao);
+                    }
+                  }}
+                  className="w-full"
+                  inputClassName="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-teal-500"
                 />
               </div>
               <div>
@@ -977,391 +1008,11 @@ export const PrescriptionModularCanvas: React.FC = () => {
           (Em tela fica como preview elegante; na impressão/PDF vira A4 perfeito)
          ========================================================================= */}
       <div ref={printPagesRef} className="space-y-8">
-        {/* =====================================================================
-            1. PÁGINAS DE RECEITUÁRIO SIMPLES (Divididas de até 4 itens por folha)
-           ===================================================================== */}
-        {paginasReceitaSimples.map((itensFolha, folhaIdx) => (
-          <div
-            key={`folha_simples_${folhaIdx}`}
-            className="pagina-a4-render relative bg-white text-slate-900 border border-slate-300 shadow-2xl p-10 mx-auto rounded-xl print:rounded-none print:shadow-none print:border-none print:p-8 overflow-hidden"
-            style={{
-              maxWidth: '800px',
-              minHeight: '1050px',
-              fontFamily: templateAtual.fonte_familia === 'serif' ? 'Georgia, serif' : 'sans-serif',
-              backgroundImage: templateAtual.imagem_fundo_base64
-                ? `url(${templateAtual.imagem_fundo_base64})`
-                : undefined,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-            }}
-          >
-            {/* Papel Timbrado / Marca d'água Padrão OpenClinical */}
-            {exibirPapelTimbradoOpenClinical && (
-              <>
-                <div className="h-1.5 bg-gradient-to-r from-teal-600 via-emerald-500 to-cyan-500 -mx-10 -mt-10 mb-6 print:m-0" />
-                <div className="absolute inset-0 pointer-events-none select-none flex items-center justify-center opacity-[0.035] overflow-hidden">
-                  <div className="w-[380px] h-[380px]" dangerouslySetInnerHTML={{ __html: OPENCLINICAL_ICON_SVG }} />
-                </div>
-              </>
-            )}
-
-            {/* Cabeçalho do Médico e Clínica (Oculto se usar papel timbrado físico pré-impresso) */}
-            {!perfilMedico.usar_papel_timbrado_proprio && (
-              <div
-                className="border-b-2 pb-5 mb-6 text-center space-y-1 relative z-10"
-                style={{ borderColor: templateAtual.cor_primaria }}
-              >
-                {logoExibicao && (
-                  <div className="flex items-center justify-center gap-2 mb-2">
-                    <img
-                      src={logoExibicao}
-                      alt="Logo"
-                      className="h-12 max-w-[180px] object-contain mx-auto"
-                    />
-                  </div>
-                )}
-                <h1
-                  className="text-xl font-bold uppercase tracking-wider"
-                  style={{ color: templateAtual.cor_primaria }}
-                >
-                  {perfilMedico.nome_clinica || 'RECEITUÁRIO MÉDICO'}
-                </h1>
-                <p className="text-sm font-bold text-slate-800">
-                  {perfilMedico.nome_completo} &mdash; CRM/{perfilMedico.uf_crm} {perfilMedico.crm}
-                  {perfilMedico.rqe ? ` • RQE ${perfilMedico.rqe}` : ''}
-                </p>
-                {perfilMedico.especialidade && (
-                  <p className="text-xs text-slate-600 font-medium">{perfilMedico.especialidade}</p>
-                )}
-                <p className="text-[11px] text-slate-500">
-                  {perfilMedico.endereco_consultorio} &bull; Contato: {perfilMedico.telefone_consultorio}
-                </p>
-              </div>
-            )}
-
-            {/* Identificação do Paciente */}
-            <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 text-xs mb-6 space-y-1 relative z-10">
-              <div className="flex justify-between font-bold text-slate-800">
-                <span>PACIENTE: {pacienteAtivo ? pacienteAtivo.nome_completo : 'Paciente Geral'}</span>
-                <span>DATA: {new Date().toLocaleDateString('pt-BR')}</span>
-              </div>
-              <div className="flex justify-between text-slate-600 text-[11px]">
-                <span>
-                  {pacienteAtivo?.cpf ? `CPF: ${pacienteAtivo.cpf}` : 'Documento: Não informado'}{' '}
-                  {pacienteAtivo?.cns ? `• CNS: ${pacienteAtivo.cns}` : ''}
-                </span>
-                <span>
-                  {pacienteAtivo?.idade_anos ? `${pacienteAtivo.idade_anos} anos` : ''} &bull; Folha{' '}
-                  {folhaIdx + 1} de {paginasReceitaSimples.length}
-                </span>
-              </div>
-            </div>
-
-            {/* Título da Seção */}
-            <div className="mb-4 relative z-10">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-700 border-b pb-1 inline-block">
-                Prescrição Médica &bull; Uso Oral / Tópico:
-              </span>
-            </div>
-
-            {/* Lista de Medicamentos da Folha Atual */}
-            <div className="space-y-5 text-xs text-slate-800 min-h-[480px] relative z-10">
-              {itensFolha.map((bloco, idxItem) => {
-                const numeroGlobal = folhaIdx * 4 + idxItem + 1;
-                const med = bloco.medicamento_detalhe;
-                return (
-                  <div key={bloco.id} className="pb-3 border-b border-slate-100 last:border-none">
-                    <div className="flex justify-between items-baseline font-bold text-sm text-slate-900">
-                      <span>
-                        {numeroGlobal}. {bloco.titulo}
-                      </span>
-                      {med && (
-                        <span className="text-xs font-normal text-slate-600">
-                          Quantidade: {med.quantidade_embalagens} caixa(s)/frasco(s)
-                        </span>
-                      )}
-                    </div>
-                    {med && <div className="text-[11px] text-slate-500 italic">{med.apresentacao}</div>}
-                    <div className="mt-1.5 pl-4 text-xs font-medium text-slate-800 leading-relaxed bg-slate-50/50 p-2 rounded">
-                      {bloco.conteudo}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Rodapé e Linha de Assinatura */}
-            <div className="pt-12 mt-auto text-center space-y-2 relative z-10">
-              {perfilMedico.assinatura_base64 && perfilMedico.usar_assinatura_eletronica !== false ? (
-                <div className="w-80 mx-auto space-y-1">
-                  <div className="h-14 flex items-end justify-center">
-                    <img
-                      src={perfilMedico.assinatura_base64}
-                      alt="Assinatura Eletrônica"
-                      className="max-h-14 max-w-[220px] object-contain drop-shadow-sm"
-                    />
-                  </div>
-                  <div className="border-t border-slate-400 pt-1">
-                    <p className="font-bold text-xs text-slate-800">{perfilMedico.nome_completo}</p>
-                    <p className="text-[11px] text-slate-600">
-                      Médico Prescritor &bull; CRM/{perfilMedico.uf_crm} {perfilMedico.crm}
-                      {perfilMedico.rqe ? ` • RQE ${perfilMedico.rqe}` : ''}
-                    </p>
-                  </div>
-                  <div className="inline-flex items-center justify-center gap-1.5 px-2.5 py-0.5 bg-teal-50 border border-teal-200/90 rounded text-[9px] text-teal-900 font-mono">
-                    <ShieldCheck className="w-3 h-3 text-teal-600 flex-shrink-0" />
-                    <span>Assinado eletronicamente &bull; MP 2.200-2/01 &bull; {perfilMedico.hash_assinatura_eletronica || 'OC-SIG-7A8B9C'}</span>
-                  </div>
-                </div>
-              ) : (
-                <div className="w-72 mx-auto border-t border-slate-400 pt-2">
-                  <p className="font-bold text-xs text-slate-800">{perfilMedico.nome_completo}</p>
-                  <p className="text-[11px] text-slate-600">
-                    Médico Prescritor &bull; CRM/{perfilMedico.uf_crm} {perfilMedico.crm}
-                  </p>
-                  <p className="text-[10px] text-slate-400">Assinatura e Carimbo do Prescritor</p>
-                </div>
-              )}
-              <p className="text-[10px] text-slate-400">
-                Receituário emitido em conformidade com o Código de Ética Médica e Lei Federal 5.991/73.
-              </p>
-            </div>
-          </div>
-        ))}
-
-        {/* =====================================================================
-            2. RECEITUÁRIO DE CONTROLE ESPECIAL EM 2 VIAS (PORTARIA 344/98 E RDC 471)
-           ===================================================================== */}
-        {receitasControleEspecial.map((itensControle, rIdx) => (
-          <div key={`controle_esp_${rIdx}`} className="space-y-8">
-            {/* Renderiza as 2 VIAS OBRIGATÓRIAS */}
-            {[1, 2].map((numVia) => (
-              <div
-                key={`via_${numVia}`}
-                className="pagina-a4-render bg-white text-slate-900 border-2 border-black p-8 mx-auto shadow-2xl rounded-xl print:rounded-none print:shadow-none print:p-6"
-                style={{ maxWidth: '800px', minHeight: '1050px', fontFamily: 'sans-serif' }}
-              >
-                {/* Cabeçalho Oficial Anvisa */}
-                <div className="border-b-2 border-black pb-3 text-center space-y-1">
-                  {logoExibicao && (
-                    <img
-                      src={logoExibicao}
-                      alt="Logo"
-                      className="h-10 max-w-[140px] object-contain mx-auto mb-1"
-                    />
-                  )}
-                  <h1 className="text-lg font-black uppercase tracking-wider">
-                    RECEITUÁRIO DE CONTROLE ESPECIAL
-                  </h1>
-                  <div className="inline-block px-3 py-1 bg-black text-white text-xs font-bold uppercase rounded">
-                    {numVia === 1 ? '1ª VIA &bull; RETENÇÃO DA FARMÁCIA OU DROGARIA' : '2ª VIA &bull; ORIENTAÇÃO DO PACIENTE'}
-                  </div>
-                </div>
-
-                {/* IDENTIFICAÇÃO DO EMITENTE (Art. 55 Portaria 344) */}
-                <div className="grid grid-cols-2 gap-4 border-b border-black py-3 text-xs">
-                  <div>
-                    <p className="font-bold uppercase text-[10px] text-gray-600">Identificação do Emitente:</p>
-                    <p className="font-bold text-sm">{perfilMedico.nome_completo}</p>
-                    <p>CRM/{perfilMedico.uf_crm}: {perfilMedico.crm} {perfilMedico.rqe ? `• RQE: ${perfilMedico.rqe}` : ''}</p>
-                    <p className="text-[11px] text-gray-700">{perfilMedico.nome_clinica}</p>
-                  </div>
-                  <div className="text-right text-[11px]">
-                    <p>{perfilMedico.endereco_consultorio}</p>
-                    <p>Telefone: {perfilMedico.telefone_consultorio}</p>
-                    <p>Cidade / UF: {perfilMedico.uf_crm}</p>
-                  </div>
-                </div>
-
-                {/* IDENTIFICAÇÃO DO PACIENTE */}
-                <div className="border-b border-black py-3 text-xs space-y-1">
-                  <div className="flex justify-between">
-                    <p><strong>Paciente:</strong> {pacienteAtivo ? pacienteAtivo.nome_completo : 'Paciente Modelo'}</p>
-                    <p><strong>Data de Emissão:</strong> {new Date().toLocaleDateString('pt-BR')}</p>
-                  </div>
-                  <p><strong>Endereço do Paciente:</strong> {pacienteAtivo?.endereco || 'Residência informada em prontuário'}</p>
-                  {pacienteAtivo?.cpf && <p><strong>CPF:</strong> {pacienteAtivo.cpf}</p>}
-                </div>
-
-                {/* CORPO DA PRESCRIÇÃO (MÁXIMO DE 3 SUBSTÂNCIAS) */}
-                <div className="py-4 space-y-4 text-xs min-h-[340px]">
-                  <span className="font-bold uppercase text-[11px] block tracking-wider">
-                    Prescrição (Máx. 3 Substâncias Sujeitas a Controle Especial &bull; RDC Anvisa):
-                  </span>
-                  {itensControle.map((it, idxC) => (
-                    <div key={it.id} className="p-2 border border-gray-300 rounded">
-                      <div className="flex justify-between font-bold text-sm">
-                        <span>
-                          {idxC + 1}. {it.titulo}
-                        </span>
-                        <span className="text-xs">Qtd: {it.medicamento_detalhe?.quantidade_embalagens} cx</span>
-                      </div>
-                      <div className="text-[11px] text-gray-600 italic">
-                        {it.medicamento_detalhe?.apresentacao} &bull; Princípio: {it.medicamento_detalhe?.principio_ativo}
-                      </div>
-                      <div className="mt-1 pl-2 font-medium">{it.conteudo}</div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* ASSINATURA DO PRESCRITOR */}
-                <div className="border-t border-black pt-2 pb-2 text-center">
-                  {perfilMedico.assinatura_base64 && perfilMedico.usar_assinatura_eletronica !== false ? (
-                    <div className="w-72 mx-auto space-y-1">
-                      <div className="h-12 flex items-end justify-center">
-                        <img
-                          src={perfilMedico.assinatura_base64}
-                          alt="Assinatura Eletrônica"
-                          className="max-h-12 max-w-[200px] object-contain"
-                        />
-                      </div>
-                      <div className="border-t border-black pt-1">
-                        <p className="font-bold text-xs">{perfilMedico.nome_completo}</p>
-                        <p className="text-[10px]">CRM/{perfilMedico.uf_crm}: {perfilMedico.crm}</p>
-                      </div>
-                      <div className="inline-flex items-center gap-1 text-[8px] font-mono text-gray-700 bg-gray-100 px-2 py-0.5 rounded border border-gray-300">
-                        <ShieldCheck className="w-2.5 h-2.5 text-black" />
-                        <span>Assinado eletronicamente &bull; MP 2.200-2/01 &bull; {perfilMedico.hash_assinatura_eletronica || 'OC-SIG-CTRL'}</span>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="w-64 mx-auto border-t border-black pt-1">
-                      <p className="font-bold text-xs">{perfilMedico.nome_completo}</p>
-                      <p className="text-[10px]">Assinatura e Carimbo do Médico Prescritor</p>
-                    </div>
-                  )}
-                </div>
-
-                {/* CAMPOS OBRIGATÓRIOS DA ANVISA: IDENTIFICAÇÃO DO COMPRADOR E FORNECEDOR */}
-                <div className="border-2 border-black p-3 text-[10px] space-y-2 bg-gray-50 mt-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    {/* Identificação do Comprador */}
-                    <div className="space-y-1 border-r border-black pr-2">
-                      <p className="font-bold uppercase">Identificação do Comprador (Preenchimento pela Farmácia):</p>
-                      <p>Nome: __________________________________________________</p>
-                      <p>Identidade (RG / Órgão): ____________________ CPF: ____________________</p>
-                      <p>Endereço: ________________________________________________</p>
-                      <p>Telefone: _____________________ Cidade: ___________________</p>
-                    </div>
-
-                    {/* Identificação do Fornecedor */}
-                    <div className="space-y-1 pl-2">
-                      <p className="font-bold uppercase">Identificação do Fornecedor / Dispensação:</p>
-                      <p>Farmácia / Drogaria: ______________________________________</p>
-                      <p>Farmacêutico Responsável: _________________ CRF: ___________</p>
-                      <p>Assinatura Farmacêutico: _________________________________</p>
-                      <p>Data de Dispensação: _____ / _____ / 202___</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        ))}
-
-        {/* =====================================================================
-            3. FOLHA COMPLEMENTAR DE ORIENTAÇÕES NÃO-FARMACOLÓGICAS & EXAMES
-           ===================================================================== */}
-        {blocosConselhosEExames.length > 0 && (
-          <div
-            className="pagina-a4-render relative bg-white text-slate-900 border border-slate-300 shadow-2xl p-10 mx-auto rounded-xl print:rounded-none print:shadow-none print:border-none print:p-8 overflow-hidden"
-            style={{ maxWidth: '800px', minHeight: '1050px', fontFamily: 'sans-serif' }}
-          >
-            {/* Papel Timbrado / Marca d'água Padrão OpenClinical */}
-            {exibirPapelTimbradoOpenClinical && (
-              <>
-                <div className="h-1.5 bg-gradient-to-r from-teal-600 via-emerald-500 to-cyan-500 -mx-10 -mt-10 mb-6 print:m-0" />
-                <div className="absolute inset-0 pointer-events-none select-none flex items-center justify-center opacity-[0.035] overflow-hidden">
-                  <div className="w-[380px] h-[380px]" dangerouslySetInnerHTML={{ __html: OPENCLINICAL_ICON_SVG }} />
-                </div>
-              </>
-            )}
-
-            {/* Cabeçalho */}
-            <div className="border-b-2 border-teal-700 pb-4 mb-6 text-center space-y-1 relative z-10">
-              {logoExibicao && (
-                <img
-                  src={logoExibicao}
-                  alt="Logo"
-                  className="h-12 max-w-[180px] object-contain mx-auto mb-2"
-                />
-              )}
-              <h1 className="text-xl font-bold uppercase tracking-wider text-teal-800">
-                ORIENTAÇÕES CLÍNICAS & SOLICITAÇÃO DE EXAMES
-              </h1>
-              <p className="text-xs text-slate-600">
-                {perfilMedico.nome_completo} &bull; CRM/{perfilMedico.uf_crm} {perfilMedico.crm}
-              </p>
-            </div>
-
-            {/* Identificação do Paciente */}
-            <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 text-xs mb-6 flex justify-between relative z-10">
-              <div>
-                <strong>Paciente:</strong> {pacienteAtivo ? pacienteAtivo.nome_completo : 'Paciente'}
-              </div>
-              <div>
-                <strong>Data:</strong> {new Date().toLocaleDateString('pt-BR')}
-              </div>
-            </div>
-
-            {/* Conteúdo das Orientações e Exames */}
-            <div className="space-y-6 text-xs text-slate-800 min-h-[500px] relative z-10">
-              {blocosConselhosEExames.map((bloco) => (
-                <div key={bloco.id} className="p-4 bg-slate-50/70 border border-slate-200 rounded-xl space-y-2">
-                  <div className="flex items-center justify-between border-b border-slate-200 pb-1.5">
-                    <span className="font-bold text-sm text-teal-900 uppercase">
-                      {bloco.titulo}
-                    </span>
-                    <span className="text-[10px] px-2 py-0.5 rounded bg-teal-100 text-teal-800 font-bold uppercase">
-                      {bloco.tipo}
-                    </span>
-                  </div>
-                  <div className="text-xs leading-relaxed whitespace-pre-line text-slate-700 pt-1">
-                    {bloco.conteudo}
-                  </div>
-                  {bloco.origem_fonte && (
-                    <div className="text-[10px] text-slate-400 italic pt-1">
-                      Fonte de Referência: {bloco.origem_fonte}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-
-            {/* Rodapé com Assinatura */}
-            <div className="pt-12 mt-auto text-center space-y-2 relative z-10">
-              {perfilMedico.assinatura_base64 && perfilMedico.usar_assinatura_eletronica !== false ? (
-                <div className="w-80 mx-auto space-y-1">
-                  <div className="h-14 flex items-end justify-center">
-                    <img
-                      src={perfilMedico.assinatura_base64}
-                      alt="Assinatura Eletrônica"
-                      className="max-h-14 max-w-[220px] object-contain drop-shadow-sm"
-                    />
-                  </div>
-                  <div className="border-t border-slate-400 pt-1">
-                    <p className="font-bold text-xs text-slate-800">{perfilMedico.nome_completo}</p>
-                    <p className="text-[11px] text-slate-600">
-                      CRM/{perfilMedico.uf_crm} {perfilMedico.crm}
-                    </p>
-                  </div>
-                  <div className="inline-flex items-center justify-center gap-1.5 px-2.5 py-0.5 bg-teal-50 border border-teal-200/90 rounded text-[9px] text-teal-900 font-mono">
-                    <ShieldCheck className="w-3 h-3 text-teal-600 flex-shrink-0" />
-                    <span>Assinado eletronicamente &bull; MP 2.200-2/01 &bull; {perfilMedico.hash_assinatura_eletronica || 'OC-SIG-7A8B9C'}</span>
-                  </div>
-                </div>
-              ) : (
-                <div className="w-72 mx-auto border-t border-slate-400 pt-2">
-                  <p className="font-bold text-xs text-slate-800">{perfilMedico.nome_completo}</p>
-                  <p className="text-[11px] text-slate-600">
-                    CRM/{perfilMedico.uf_crm} {perfilMedico.crm}
-                  </p>
-                  <p className="text-[10px] text-slate-400">Assinatura e Carimbo do Prescritor</p>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+        <PrescriptionSheetRenderer
+          blocos={itensAtivos}
+          perfilMedico={perfilMedico}
+          pacienteAtivo={pacienteAtivo}
+        />
       </div>
     </div>
   );

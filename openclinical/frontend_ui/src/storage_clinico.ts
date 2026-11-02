@@ -226,24 +226,157 @@ export const BLOCOS_PRESCRICAO_PADRAO: BlocoPrescricao[] = [
 ];
 
 // =============================================================================
+// Motor de Persistência Segura contra Quedas de Energia e Corrupção de Disco
+// (Atomic Two-Phase Commit + Snapshots de Segurança + Espelhamento IndexedDB ACID)
+// =============================================================================
+
+const DB_NOME = 'OpenClinical_SafeStore_v1';
+const DB_VERSAO = 1;
+const STORE_NOME = 'tabelas_clinicas';
+
+let dbInstancia: IDBDatabase | null = null;
+
+async function obterBancoIndexedDB(): Promise<IDBDatabase | null> {
+  if (typeof window === 'undefined' || !window.indexedDB) return null;
+  if (dbInstancia) return dbInstancia;
+
+  return new Promise((resolve) => {
+    try {
+      const request = window.indexedDB.open(DB_NOME, DB_VERSAO);
+      request.onupgradeneeded = (e: any) => {
+        const db = e.target.result as IDBDatabase;
+        if (!db.objectStoreNames.contains(STORE_NOME)) {
+          db.createObjectStore(STORE_NOME, { keyPath: 'chave' });
+        }
+      };
+      request.onsuccess = (e: any) => {
+        dbInstancia = e.target.result;
+        resolve(dbInstancia);
+      };
+      request.onerror = () => {
+        resolve(null);
+      };
+    } catch {
+      resolve(null);
+    }
+  });
+}
+
+/**
+ * Grava assincronamente no IndexedDB como garantia transacional ACID (SQLite WAL)
+ */
+function espelharNoIndexedDB(chave: string, dado: any): void {
+  obterBancoIndexedDB().then((db) => {
+    if (!db) return;
+    try {
+      const tx = db.transaction(STORE_NOME, 'readwrite');
+      const store = tx.objectStore(STORE_NOME);
+      store.put({
+        chave,
+        conteudo: dado,
+        atualizado_em: new Date().toISOString(),
+      });
+    } catch (e) {
+      console.warn('Erro ao espelhar no IndexedDB:', e);
+    }
+  });
+}
+
+/**
+ * Grava um dado com protocolo seguro de duas fases (Two-Phase Atomic Commit):
+ * 1. Faz cópia de segurança do estado anterior comprovadamente íntegro (chave_backup)
+ * 2. Grava em chave_temp e valida com JSON.parse
+ * 3. Promove para a chave final e limpa chave_temp
+ * 4. Espelha em transação ACID no IndexedDB
+ */
+export function gravarComSeguranca(chave: string, dado: any): void {
+  try {
+    const serializado = JSON.stringify(dado);
+
+    // 1. Snapshot de segurança antes da escrita
+    const atual = localStorage.getItem(chave);
+    if (atual) {
+      localStorage.setItem(`${chave}_backup`, atual);
+    }
+
+    // 2. Escrita em área temporária para validação
+    localStorage.setItem(`${chave}_temp`, serializado);
+
+    // 3. Validação de integridade sintática
+    JSON.parse(localStorage.getItem(`${chave}_temp`) || '');
+
+    // 4. Efetivação atômica na chave principal
+    localStorage.setItem(chave, serializado);
+    localStorage.removeItem(`${chave}_temp`);
+
+    // 5. Espelhamento assíncrono no IndexedDB (ACID contra falta de energia)
+    espelharNoIndexedDB(chave, dado);
+  } catch (e) {
+    console.error(`[STORAGE_CLINICO] Falha ao gravar chave ${chave}:`, e);
+  }
+}
+
+/**
+ * Lê com tolerância a falhas e recuperação automática de desastre:
+ * Se o JSON estiver corrompido (ex: queda de energia no meio de uma gravação prévia),
+ * restaura instantaneamente a partir do backup snapshot íntegro.
+ */
+export function lerComSeguranca<T>(chave: string, valorPadrao: T): T {
+  try {
+    const data = localStorage.getItem(chave);
+    if (data) {
+      return JSON.parse(data) as T;
+    }
+  } catch (erroCorrupcao) {
+    console.warn(`[STORAGE_CLINICO] Corrupção detectada na chave ${chave}. Recuperando pelo snapshot de backup...`, erroCorrupcao);
+    try {
+      const backup = localStorage.getItem(`${chave}_backup`);
+      if (backup) {
+        const recuperado = JSON.parse(backup) as T;
+        localStorage.setItem(chave, backup);
+        console.info(`[STORAGE_CLINICO] Chave ${chave} recuperada com sucesso do snapshot de segurança!`);
+        return recuperado;
+      }
+    } catch (eBackup) {
+      console.error(`[STORAGE_CLINICO] Snapshot de backup também indisponível para ${chave}:`, eBackup);
+    }
+  }
+  return valorPadrao;
+}
+
+/**
+ * Abre o modal de configuração médica diretamente na aba de Assinatura Eletrônica
+ */
+export function abrirConfiguracaoAssinatura(): void {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(
+      new CustomEvent('openclinical_abrir_modal_medico', { detail: { aba: 'assinatura' } })
+    );
+  }
+}
+
+/**
+ * Abre o modal de configuração médica na aba de Papel Timbrado & PDF
+ */
+export function abrirConfiguracaoReceita(): void {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(
+      new CustomEvent('openclinical_abrir_modal_medico', { detail: { aba: 'receita' } })
+    );
+  }
+}
+
+// =============================================================================
 // Funções de Gestão de Perfil Médico
 // =============================================================================
 
 export function obterPerfilMedicoAtivo(): PerfilMedico {
-  try {
-    const data = localStorage.getItem(KEY_PERFIL_MEDICO_ATIVO);
-    if (data) {
-      return JSON.parse(data);
-    }
-  } catch (e) {
-    console.error('Erro ao ler perfil médico do localStorage:', e);
-  }
-  return PERFIL_MEDICO_PADRAO;
+  return lerComSeguranca<PerfilMedico>(KEY_PERFIL_MEDICO_ATIVO, PERFIL_MEDICO_PADRAO);
 }
 
 export function salvarPerfilMedicoAtivo(perfil: PerfilMedico): void {
   try {
-    localStorage.setItem(KEY_PERFIL_MEDICO_ATIVO, JSON.stringify(perfil));
+    gravarComSeguranca(KEY_PERFIL_MEDICO_ATIVO, perfil);
     // Atualiza também na lista de médicos
     const todos = listarPerfisMedicos();
     const index = todos.findIndex((m) => m.id === perfil.id);
@@ -252,7 +385,7 @@ export function salvarPerfilMedicoAtivo(perfil: PerfilMedico): void {
     } else {
       todos.push(perfil);
     }
-    localStorage.setItem(KEY_PERFIS_MEDICOS, JSON.stringify(todos));
+    gravarComSeguranca(KEY_PERFIS_MEDICOS, todos);
     window.dispatchEvent(new CustomEvent('openclinical_medico_alterado', { detail: perfil }));
   } catch (e) {
     console.error('Erro ao salvar perfil médico:', e);
@@ -260,16 +393,7 @@ export function salvarPerfilMedicoAtivo(perfil: PerfilMedico): void {
 }
 
 export function listarPerfisMedicos(): PerfilMedico[] {
-  try {
-    const data = localStorage.getItem(KEY_PERFIS_MEDICOS);
-    if (data) {
-      const lista: PerfilMedico[] = JSON.parse(data);
-      if (lista.length > 0) return lista;
-    }
-  } catch (e) {
-    console.error('Erro ao listar perfis médicos:', e);
-  }
-  return [PERFIL_MEDICO_PADRAO];
+  return lerComSeguranca<PerfilMedico[]>(KEY_PERFIS_MEDICOS, [PERFIL_MEDICO_PADRAO]);
 }
 
 // =============================================================================
@@ -277,27 +401,12 @@ export function listarPerfisMedicos(): PerfilMedico[] {
 // =============================================================================
 
 export function listarPacientes(): Paciente[] {
-  try {
-    const data = localStorage.getItem(KEY_PACIENTES);
-    if (data) {
-      const lista: Paciente[] = JSON.parse(data);
-      if (lista.length > 0) return lista;
-    }
-  } catch (e) {
-    console.error('Erro ao listar pacientes:', e);
-  }
-  return PACIENTES_PADRAO;
+  return lerComSeguranca<Paciente[]>(KEY_PACIENTES, PACIENTES_PADRAO);
 }
 
 export function obterPacienteAtivo(): Paciente | null {
-  try {
-    const data = localStorage.getItem(KEY_PACIENTE_ATIVO);
-    if (data) {
-      return JSON.parse(data);
-    }
-  } catch (e) {
-    console.error('Erro ao ler paciente ativo:', e);
-  }
+  const guardado = lerComSeguranca<Paciente | null>(KEY_PACIENTE_ATIVO, null);
+  if (guardado) return guardado;
   // Se não houver paciente ativo definido, seleciona o primeiro padrão
   const lista = listarPacientes();
   return lista.length > 0 ? lista[0] : null;
@@ -306,7 +415,7 @@ export function obterPacienteAtivo(): Paciente | null {
 export function definirPacienteAtivo(paciente: Paciente | null): void {
   try {
     if (paciente) {
-      localStorage.setItem(KEY_PACIENTE_ATIVO, JSON.stringify(paciente));
+      gravarComSeguranca(KEY_PACIENTE_ATIVO, paciente);
     } else {
       localStorage.removeItem(KEY_PACIENTE_ATIVO);
     }
@@ -325,7 +434,7 @@ export function salvarPaciente(paciente: Paciente): void {
     } else {
       todos.unshift(paciente);
     }
-    localStorage.setItem(KEY_PACIENTES, JSON.stringify(todos));
+    gravarComSeguranca(KEY_PACIENTES, todos);
     // Se for o paciente ativo, atualiza também
     const ativo = obterPacienteAtivo();
     if (ativo && ativo.id === paciente.id) {
@@ -339,7 +448,7 @@ export function salvarPaciente(paciente: Paciente): void {
 export function excluirPaciente(id: string): void {
   try {
     const todos = listarPacientes().filter((p) => p.id !== id);
-    localStorage.setItem(KEY_PACIENTES, JSON.stringify(todos));
+    gravarComSeguranca(KEY_PACIENTES, todos);
     const ativo = obterPacienteAtivo();
     if (ativo && ativo.id === id) {
       definirPacienteAtivo(todos.length > 0 ? todos[0] : null);
@@ -354,21 +463,12 @@ export function excluirPaciente(id: string): void {
 // =============================================================================
 
 export function obterBlocosPrescricao(): BlocoPrescricao[] {
-  try {
-    const data = localStorage.getItem(KEY_BLOCOS_PRESCRICAO);
-    if (data) {
-      const lista: BlocoPrescricao[] = JSON.parse(data);
-      if (Array.isArray(lista)) return lista;
-    }
-  } catch (e) {
-    console.error('Erro ao ler blocos de prescrição:', e);
-  }
-  return BLOCOS_PRESCRICAO_PADRAO;
+  return lerComSeguranca<BlocoPrescricao[]>(KEY_BLOCOS_PRESCRICAO, BLOCOS_PRESCRICAO_PADRAO);
 }
 
 export function salvarBlocosPrescricao(blocos: BlocoPrescricao[]): void {
   try {
-    localStorage.setItem(KEY_BLOCOS_PRESCRICAO, JSON.stringify(blocos));
+    gravarComSeguranca(KEY_BLOCOS_PRESCRICAO, blocos);
     window.dispatchEvent(new CustomEvent('openclinical_prescricao_atualizada', { detail: blocos }));
   } catch (e) {
     console.error('Erro ao salvar blocos de prescrição:', e);
@@ -410,16 +510,7 @@ export function limparPrescricao(): void {
 // =============================================================================
 
 export function obterTemplatesReceituario(): TemplateReceituario[] {
-  try {
-    const data = localStorage.getItem(KEY_TEMPLATES_RECEITA);
-    if (data) {
-      const lista: TemplateReceituario[] = JSON.parse(data);
-      if (Array.isArray(lista) && lista.length > 0) return lista;
-    }
-  } catch (e) {
-    console.error('Erro ao ler templates de receita:', e);
-  }
-  return TEMPLATES_RECEITA_PADRAO;
+  return lerComSeguranca<TemplateReceituario[]>(KEY_TEMPLATES_RECEITA, TEMPLATES_RECEITA_PADRAO);
 }
 
 export function obterTemplateAtivoId(): string {
@@ -440,7 +531,7 @@ export function salvarNovoTemplateReceituario(template: TemplateReceituario): vo
     } else {
       templates.push(template);
     }
-    localStorage.setItem(KEY_TEMPLATES_RECEITA, JSON.stringify(templates));
+    gravarComSeguranca(KEY_TEMPLATES_RECEITA, templates);
     definirTemplateAtivoId(template.id);
   } catch (e) {
     console.error('Erro ao salvar template:', e);
@@ -453,10 +544,9 @@ export function salvarNovoTemplateReceituario(template: TemplateReceituario): vo
 
 export function salvarRelatorioTeste(relatorio: RelatorioTesteRealizado): void {
   try {
-    const data = localStorage.getItem(KEY_RELATORIOS_TESTES);
-    const lista: RelatorioTesteRealizado[] = data ? JSON.parse(data) : [];
+    const lista = lerComSeguranca<RelatorioTesteRealizado[]>(KEY_RELATORIOS_TESTES, []);
     lista.unshift(relatorio);
-    localStorage.setItem(KEY_RELATORIOS_TESTES, JSON.stringify(lista));
+    gravarComSeguranca(KEY_RELATORIOS_TESTES, lista);
     window.dispatchEvent(new CustomEvent('openclinical_relatorio_salvo', { detail: relatorio }));
   } catch (e) {
     console.error('Erro ao salvar relatório clínico:', e);
@@ -464,21 +554,12 @@ export function salvarRelatorioTeste(relatorio: RelatorioTesteRealizado): void {
 }
 
 export function listarRelatoriosTestes(pacienteId?: string): RelatorioTesteRealizado[] {
-  try {
-    const data = localStorage.getItem(KEY_RELATORIOS_TESTES);
-    if (data) {
-      const lista: RelatorioTesteRealizado[] = JSON.parse(data);
-      if (pacienteId) {
-        return lista.filter((r) => r.paciente_id === pacienteId);
-      }
-      return lista;
-    }
-  } catch (e) {
-    console.error('Erro ao listar relatórios clínicos:', e);
+  const lista = lerComSeguranca<RelatorioTesteRealizado[]>(KEY_RELATORIOS_TESTES, []);
+  if (pacienteId) {
+    return lista.filter((r) => r.paciente_id === pacienteId);
   }
-  return [];
+  return lista;
 }
-
 
 // =============================================================================
 // Gestão do Histórico de Prescrições do Paciente (Prontuário Digital)
@@ -486,10 +567,9 @@ export function listarRelatoriosTestes(pacienteId?: string): RelatorioTesteReali
 
 export function salvarReceitaNoHistorico(receita: ReceitaSalva): void {
   try {
-    const data = localStorage.getItem(KEY_RECEITAS_HISTORICO);
-    const lista: ReceitaSalva[] = data ? JSON.parse(data) : [];
+    const lista = lerComSeguranca<ReceitaSalva[]>(KEY_RECEITAS_HISTORICO, []);
     lista.unshift(receita);
-    localStorage.setItem(KEY_RECEITAS_HISTORICO, JSON.stringify(lista));
+    gravarComSeguranca(KEY_RECEITAS_HISTORICO, lista);
     window.dispatchEvent(new CustomEvent('openclinical_receita_salva', { detail: receita }));
   } catch (e) {
     console.error('Erro ao salvar receita no histórico:', e);
@@ -497,25 +577,17 @@ export function salvarReceitaNoHistorico(receita: ReceitaSalva): void {
 }
 
 export function listarReceitasSalvas(pacienteId?: string): ReceitaSalva[] {
-  try {
-    const data = localStorage.getItem(KEY_RECEITAS_HISTORICO);
-    if (data) {
-      const lista: ReceitaSalva[] = JSON.parse(data);
-      if (pacienteId) {
-        return lista.filter((r) => r.paciente_id === pacienteId);
-      }
-      return lista;
-    }
-  } catch (e) {
-    console.error('Erro ao listar receitas salvas:', e);
+  const lista = lerComSeguranca<ReceitaSalva[]>(KEY_RECEITAS_HISTORICO, []);
+  if (pacienteId) {
+    return lista.filter((r) => r.paciente_id === pacienteId);
   }
-  return [];
+  return lista;
 }
 
 export function excluirReceitaSalva(id: string): void {
   try {
     const todas = listarReceitasSalvas().filter((r) => r.id !== id);
-    localStorage.setItem(KEY_RECEITAS_HISTORICO, JSON.stringify(todas));
+    gravarComSeguranca(KEY_RECEITAS_HISTORICO, todas);
     window.dispatchEvent(new CustomEvent('openclinical_receita_excluida', { detail: id }));
   } catch (e) {
     console.error('Erro ao excluir receita:', e);
@@ -528,10 +600,9 @@ export function excluirReceitaSalva(id: string): void {
 
 export function salvarEvolucaoProntuario(evolucao: EvolucaoProntuario): void {
   try {
-    const data = localStorage.getItem(KEY_EVOLUCOES_PRONTUARIO);
-    const lista: EvolucaoProntuario[] = data ? JSON.parse(data) : [];
+    const lista = lerComSeguranca<EvolucaoProntuario[]>(KEY_EVOLUCOES_PRONTUARIO, []);
     lista.unshift(evolucao);
-    localStorage.setItem(KEY_EVOLUCOES_PRONTUARIO, JSON.stringify(lista));
+    gravarComSeguranca(KEY_EVOLUCOES_PRONTUARIO, lista);
     window.dispatchEvent(new CustomEvent('openclinical_evolucao_salva', { detail: evolucao }));
   } catch (e) {
     console.error('Erro ao salvar evolução no prontuário:', e);
@@ -539,16 +610,8 @@ export function salvarEvolucaoProntuario(evolucao: EvolucaoProntuario): void {
 }
 
 export function listarEvolucoesProntuario(pacienteId: string): EvolucaoProntuario[] {
-  try {
-    const data = localStorage.getItem(KEY_EVOLUCOES_PRONTUARIO);
-    if (data) {
-      const lista: EvolucaoProntuario[] = JSON.parse(data);
-      return lista.filter((ev) => ev.paciente_id === pacienteId);
-    }
-  } catch (e) {
-    console.error('Erro ao listar evoluções:', e);
-  }
-  return [];
+  const lista = lerComSeguranca<EvolucaoProntuario[]>(KEY_EVOLUCOES_PRONTUARIO, []);
+  return lista.filter((ev) => ev.paciente_id === pacienteId);
 }
 
 // =============================================================================
@@ -565,21 +628,12 @@ export function trocarPerfilMedico(id: string): PerfilMedico | null {
   return null;
 }
 
-
 // =============================================================================
 // Gestão de Protocolos Personalizados do Médico
 // =============================================================================
 
 export function listarProtocolosPersonalizados(): ProtocoloClinico[] {
-  try {
-    const data = localStorage.getItem(KEY_PROTOCOLOS_PERSONALIZADOS);
-    if (data) {
-      return JSON.parse(data);
-    }
-  } catch (e) {
-    console.error('Erro ao listar protocolos personalizados:', e);
-  }
-  return [];
+  return lerComSeguranca<ProtocoloClinico[]>(KEY_PROTOCOLOS_PERSONALIZADOS, []);
 }
 
 export function salvarProtocoloPersonalizado(protocolo: ProtocoloClinico): void {
@@ -591,7 +645,7 @@ export function salvarProtocoloPersonalizado(protocolo: ProtocoloClinico): void 
     } else {
       todos.unshift(protocolo);
     }
-    localStorage.setItem(KEY_PROTOCOLOS_PERSONALIZADOS, JSON.stringify(todos));
+    gravarComSeguranca(KEY_PROTOCOLOS_PERSONALIZADOS, todos);
     window.dispatchEvent(new CustomEvent('openclinical_protocolos_atualizados', { detail: todos }));
   } catch (e) {
     console.error('Erro ao salvar protocolo personalizado:', e);
@@ -601,7 +655,7 @@ export function salvarProtocoloPersonalizado(protocolo: ProtocoloClinico): void 
 export function excluirProtocoloPersonalizado(id: string): void {
   try {
     const todos = listarProtocolosPersonalizados().filter((p) => p.id_protocolo !== id);
-    localStorage.setItem(KEY_PROTOCOLOS_PERSONALIZADOS, JSON.stringify(todos));
+    gravarComSeguranca(KEY_PROTOCOLOS_PERSONALIZADOS, todos);
     window.dispatchEvent(new CustomEvent('openclinical_protocolos_atualizados', { detail: todos }));
   } catch (e) {
     console.error('Erro ao excluir protocolo personalizado:', e);

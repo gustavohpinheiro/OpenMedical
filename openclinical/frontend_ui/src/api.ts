@@ -21,9 +21,9 @@ import {
   PcdtResumo,
   PcdtDetalhe,
   RelatorioSeguranca5g,
-} from './types';
+} from './types.ts';
 
-import { executarCalculoLocal } from './clinical_fallback';
+import { executarCalculoLocal } from './clinical_fallback.ts';
 
 // Detecta se a aplicação está rodando dentro do WebView nativo do Tauri 2.0
 export const isTauri = () => typeof window !== 'undefined' && ('__TAURI_INTERNALS__' in window || '__TAURI__' in window);

@@ -3,9 +3,9 @@
 // OpenClinical - Suporte a múltiplos PDFs, extração de payload nativo ou heurística
 // =============================================================================
 
-import { BlocoPrescricao, Paciente } from './types';
-import { avaliarSegurancaMedicamentosa5g } from './medication_safety_5g';
-import { normalizarTexto } from './api';
+import { BlocoPrescricao, Paciente } from './types.ts';
+import { normalizarTexto } from './formulario_utils.ts';
+import { classificarTipoReceituario, auditarReceitaCompleta } from './clinical_auditor.ts';
 
 export interface ResultadoImportacaoPdf {
   arquivo_nome: string;
@@ -56,14 +56,27 @@ export async function importarReceitasDePdfs(
         // Prossegue para busca no texto
       }
 
-      // 2. Extrai o texto de todas as páginas
+      // 2. Extrai o texto preservando estrutura de quebras de linha reais
       let textoCompleto = '';
       for (let p = 1; p <= pdf.numPages; p++) {
         const page = await pdf.getPage(p);
         const textContent = await page.getTextContent();
-        const pageStr = textContent.items
-          .map((item: any) => item.str || '')
-          .join(' ');
+        let lastY: number | null = null;
+        let pageStr = '';
+        for (const item of textContent.items as any[]) {
+          const str = item.str || '';
+          const y = item.transform ? item.transform[5] : null;
+          if (lastY !== null && y !== null && Math.abs(y - lastY) > 5) {
+            pageStr += '\n';
+          } else if (pageStr.length > 0 && !pageStr.endsWith(' ') && !pageStr.endsWith('\n')) {
+            pageStr += ' ';
+          }
+          pageStr += str;
+          if (item.hasEOL) {
+            pageStr += '\n';
+          }
+          if (y !== null) lastY = y;
+        }
         textoCompleto += pageStr + '\n';
       }
 
@@ -98,56 +111,12 @@ export async function importarReceitasDePdfs(
         medicoNome = parsedHeuristica.medico;
       }
 
-      // 4. Auditoria Obrigatória de Segurança: Alergias e Interações Farmacológicas
-      const alertasAlergia: string[] = [];
-      const alertasInteracoes: string[] = [];
-
-      if (pacienteAtivo && pacienteAtivo.alergias && pacienteAtivo.alergias.length > 0) {
-        const alergiasNormalizadas = pacienteAtivo.alergias.map(normalizarTexto);
-        for (const bloco of blocosReconstruidos) {
-          if (bloco.tipo !== 'medicamento') continue;
-          const textoBloco = normalizarTexto(
-            `${bloco.titulo} ${bloco.medicamento_detalhe?.principio_ativo || ''} ${bloco.conteudo}`
-          );
-          for (let i = 0; i < pacienteAtivo.alergias.length; i++) {
-            const alergia = pacienteAtivo.alergias[i];
-            const alergiaNorm = alergiasNormalizadas[i];
-            if (textoBloco.includes(alergiaNorm)) {
-              alertasAlergia.push(
-                `ALERTA DE ALERGIA: O medicamento "${bloco.titulo}" coincide com a alergia cadastrada "${alergia}" do paciente!`
-              );
-            }
-          }
-        }
-      }
-
-      // Auditoria 5G de Interações Farmacológicas
-      const nomesRemedios = blocosReconstruidos
-        .filter((b) => b.tipo === 'medicamento')
-        .map((b) => b.medicamento_detalhe?.principio_ativo || b.titulo);
-
-      if (nomesRemedios.length >= 2) {
-        const seg = avaliarSegurancaMedicamentosa5g(
-          nomesRemedios,
-          pacienteAtivo?.idade_anos || 65,
-          pacienteAtivo?.sexo === 'F'
-        );
-        if (seg.triple_whammy.detectado) {
-          alertasInteracoes.push(
-            `TRIPLE WHAMMY RENAL: Associação perigosa de IECA/BRA + Diurético + AINE detectada na receita importada!`
-          );
-        }
-        if (seg.escore_tisdale.pontuacao_total >= 7) {
-          alertasInteracoes.push(
-            `RISCO ALTO DE QTc (Tisdale ${seg.escore_tisdale.pontuacao_total}): Combinação com risco de arritmias ventriculares!`
-          );
-        }
-        if (seg.cascatas.length > 0) {
-          seg.cascatas.forEach((c) => {
-            alertasInteracoes.push(`CASCATA IATROGÊNICA: ${c.farmaco_causador} + ${c.farmaco_prescrito}`);
-          });
-        }
-      }
+      // 4. Auditoria Consolidada de Segurança (Alergias + FTN + Matriz + 5G)
+      const audit = await auditarReceitaCompleta(blocosReconstruidos, pacienteAtivo || null);
+      const alertasAlergia = audit.alergias_encontradas.map(
+        (a) => `ALERTA DE ALERGIA GRAVE: Paciente alérgico a "${a.alergia_declarada}". Medicamento "${a.medicamento}": ${a.mecanismo_reatividade}`
+      );
+      const alertasInteracoes = [...audit.alertas_criticos.filter((c) => !c.startsWith('ALERGIA')), ...audit.alertas_moderados];
 
       resultados.push({
         arquivo_nome: arquivo.name,
@@ -253,13 +222,8 @@ function parsearTextoReceitaExterna(texto: string): {
 function finalizarBloco(parcial: Partial<BlocoPrescricao>, ordem: number): BlocoPrescricao {
   const titulo = parcial.titulo || 'Medicamento Prescrito';
   const posologia = parcial.conteudo || 'Tomar conforme orientação médica.';
-  const isControlado =
-    titulo.toLowerCase().includes('clonazepam') ||
-    titulo.toLowerCase().includes('diazepam') ||
-    titulo.toLowerCase().includes('amoxicilina') ||
-    titulo.toLowerCase().includes('azitromicina') ||
-    titulo.toLowerCase().includes('ciprofloxacino') ||
-    titulo.toLowerCase().includes('controle especial');
+  const tipoReceita = classificarTipoReceituario(titulo);
+  const isEspecial = tipoReceita !== 'simples';
 
   return {
     id: parcial.id || `med_imp_${Date.now()}_${ordem}`,
@@ -273,10 +237,21 @@ function finalizarBloco(parcial: Partial<BlocoPrescricao>, ordem: number): Bloco
       apresentacao: 'Apresentação padrão',
       posologia: posologia,
       quantidade_embalagens: 1,
-      tipo_receituario: isControlado ? 'controle_especial_c1' : 'simples',
+      tipo_receituario: tipoReceita,
       preco_pmc: 0,
     },
-    tags: ['Importado via PDF', isControlado ? 'Portaria 344' : 'Receita Simples'],
+    tags: [
+      'Importado via PDF',
+      tipoReceita === 'antimicrobiano'
+        ? 'Antimicrobiano (RDC 471)'
+        : tipoReceita === 'notificacao_b_azul'
+        ? 'Notificação B (Port. 344)'
+        : tipoReceita === 'notificacao_a_amarela'
+        ? 'Notificação A (Port. 344)'
+        : isEspecial
+        ? 'Controle Especial C1 (Port. 344)'
+        : 'Receita Simples',
+    ],
     ordem,
     ativo: true,
     origem_fonte: 'Importação Reversa de PDF',

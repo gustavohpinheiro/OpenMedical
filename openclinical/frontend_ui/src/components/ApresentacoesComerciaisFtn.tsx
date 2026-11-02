@@ -1,10 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Store, ExternalLink } from 'lucide-react';
+import { Store, ExternalLink, Plus } from 'lucide-react';
 import type { MonografiaFtn } from '../data/formulario_terapeutico';
 import type { MedicamentoComercialCMED } from '../data/catalogo_cmed_nacional';
 import { apresentacoesComerciaisDoFarmaco, isTauri } from '../api';
 import { monografiasDoProduto, viaApresentacaoCmed, type ViaAdministracao } from '../ligacao_ftn';
 import { verificarFarmaciaPopular } from '../farmacia_popular';
+import { adicionarItemPrescricaoModular } from '../storage_clinico';
+import { classificarTipoReceituario } from '../clinical_auditor';
 
 const ROTULO_VIA: Record<ViaAdministracao, string> = {
   oral: 'oral',
@@ -79,6 +81,27 @@ export const ApresentacoesComerciaisFtn: React.FC<Props> = ({ monografia, onAbri
 
   const mesmaViaTotal = linhas.filter((l) => l.mesmaVia).length;
 
+  const handleAdicionarReceita = (linha: Linha) => {
+    const tipoRec = classificarTipoReceituario(linha.item.substancia);
+    adicionarItemPrescricaoModular(
+      'medicamento',
+      `${linha.item.nome_produto} (${linha.item.substancia})`,
+      `Uso ${ROTULO_VIA[linha.via] || 'oral'}: Tomar 1 unidade conforme prescrição médica.\nApresentação: ${linha.item.apresentacao}`,
+      {
+        id: `cmed_${linha.item.id_cmed}`,
+        nome_medicamento: linha.item.nome_produto,
+        principio_ativo: linha.item.substancia,
+        apresentacao: linha.item.apresentacao,
+        posologia: `Uso ${ROTULO_VIA[linha.via] || 'oral'}: Tomar conforme orientação médica.`,
+        quantidade_embalagens: 1,
+        via_administracao: ROTULO_VIA[linha.via] || 'oral',
+        tipo_receituario: tipoRec,
+        preco_pmc: linha.item.preco_maximo_consumidor > 0 ? linha.item.preco_maximo_consumidor : 0,
+      },
+      `CMED / FTN (${linha.item.laboratorio})`
+    );
+  };
+
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -101,11 +124,11 @@ export const ApresentacoesComerciaisFtn: React.FC<Props> = ({ monografia, onAbri
 
       <div className="space-y-2">
         {(mostrarTodos ? produtos : produtos.slice(0, LIMITE_PRODUTOS)).map(([produto, apresentacoes]) => (
-          <div key={produto} className="bg-slate-950 border border-slate-800 rounded-xl p-3">
+          <div key={produto} className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-3 shadow-sm">
             <div className="flex flex-wrap items-center gap-2 mb-1.5">
-              <span className="text-xs font-bold text-slate-100">{apresentacoes[0].item.nome_produto}</span>
+              <span className="text-xs font-bold text-slate-900 dark:text-slate-100">{apresentacoes[0].item.nome_produto}</span>
               {apresentacoes[0].item.tipo_produto && (
-                <span className="text-[10px] bg-slate-800 text-teal-300 px-1.5 py-px rounded font-mono">
+                <span className="text-[10px] bg-slate-100 dark:bg-slate-800 text-teal-800 dark:text-teal-300 px-1.5 py-px rounded font-mono">
                   {apresentacoes[0].item.tipo_produto}
                 </span>
               )}
@@ -114,7 +137,7 @@ export const ApresentacoesComerciaisFtn: React.FC<Props> = ({ monografia, onAbri
             <ul className="space-y-1">
               {apresentacoes.map(({ item, via, gratuito }) => (
                 <li key={item.id_cmed} className="flex flex-wrap items-center justify-between gap-2 text-[11px]">
-                  <span className="text-slate-300">
+                  <span className="text-slate-700 dark:text-slate-300">
                     {item.apresentacao}
                     <span className="ml-1.5 text-slate-500">· via {ROTULO_VIA[via]}</span>
                   </span>
@@ -137,6 +160,15 @@ export const ApresentacoesComerciaisFtn: React.FC<Props> = ({ monografia, onAbri
                         <ExternalLink className="w-3.5 h-3.5" />
                       </button>
                     )}
+                    <button
+                      type="button"
+                      onClick={() => handleAdicionarReceita({ item, via, mesmaVia: true, gratuito })}
+                      title="Adicionar esta apresentação à Receita Digital"
+                      className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-teal-500/20 hover:bg-teal-500/30 text-teal-300 border border-teal-500/40 rounded text-[10px] font-semibold transition"
+                    >
+                      <Plus className="w-3 h-3" />
+                      <span>Receita</span>
+                    </button>
                   </span>
                 </li>
               ))}

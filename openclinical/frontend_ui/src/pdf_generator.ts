@@ -23,10 +23,26 @@ export async function exportarElementosParaPdf(
   // Embeda payload estruturado para recuperação reversa 100% perfeita
   if (dadosPrescricaoEmbedados) {
     try {
+      // Sanitiza dados do médico removendo imagens Base64 pesadas para não inflar metadados do PDF (> 2MB -> < 2KB)
+      const medicoSanitizado = dadosPrescricaoEmbedados.medico
+        ? {
+            nome_completo: dadosPrescricaoEmbedados.medico.nome_completo,
+            crm: dadosPrescricaoEmbedados.medico.crm,
+            uf_crm: dadosPrescricaoEmbedados.medico.uf_crm,
+            rqe: dadosPrescricaoEmbedados.medico.rqe,
+            especialidade_principal: dadosPrescricaoEmbedados.medico.especialidade_principal,
+            nome_clinica: dadosPrescricaoEmbedados.medico.nome_clinica,
+            telefone_contato: dadosPrescricaoEmbedados.medico.telefone_contato,
+            endereco_consultorio: dadosPrescricaoEmbedados.medico.endereco_consultorio,
+            hash_assinatura_eletronica: dadosPrescricaoEmbedados.medico.hash_assinatura_eletronica,
+          }
+        : undefined;
+
       const payloadStr = JSON.stringify({
         versao: '1.0',
         gerado_em: new Date().toISOString(),
         ...dadosPrescricaoEmbedados,
+        medico: medicoSanitizado,
       });
       const b64 = btoa(unescape(encodeURIComponent(payloadStr)));
       pdf.setProperties({

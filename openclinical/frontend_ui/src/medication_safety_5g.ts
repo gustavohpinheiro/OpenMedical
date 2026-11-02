@@ -6,7 +6,7 @@ import type {
   ResultadoCargaAnticolinergica,
   ResultadoEscoreTisdale,
   ResultadoTripleWhammy,
-} from './types';
+} from './types.ts';
 
 /**
  * Normaliza o nome do fármaco para maiúsculas e remove acentos diacríticos.

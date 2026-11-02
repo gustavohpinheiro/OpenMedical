@@ -30,6 +30,7 @@ interface DoctorProfileModalProps {
   isOpen: boolean;
   onClose: () => void;
   onPerfilSalvo: (novoPerfil: PerfilMedico) => void;
+  abaInicial?: 'dados' | 'assinatura' | 'receita';
 }
 
 export const DoctorProfileModal: React.FC<DoctorProfileModalProps> = ({
@@ -37,12 +38,20 @@ export const DoctorProfileModal: React.FC<DoctorProfileModalProps> = ({
   isOpen,
   onClose,
   onPerfilSalvo,
+  abaInicial = 'dados',
 }) => {
   const [formData, setFormData] = useState<PerfilMedico>({ ...perfil });
   const [todosMedicos, setTodosMedicos] = useState<PerfilMedico[]>([]);
   const [sucessoMsg, setSucessoMsg] = useState(false);
   const [erroMsg, setErroMsg] = useState<string | null>(null);
-  const [abaAtiva, setAbaAtiva] = useState<'dados' | 'receita'>('dados');
+  const [abaAtiva, setAbaAtiva] = useState<'dados' | 'assinatura' | 'receita'>(abaInicial);
+
+  // Sincroniza aba inicial quando abre
+  useEffect(() => {
+    if (isOpen && abaInicial) {
+      setAbaAtiva(abaInicial);
+    }
+  }, [isOpen, abaInicial]);
 
   // Estado para desenho interativo de assinatura no Canvas
   const [modoAssinatura, setModoAssinatura] = useState<'upload' | 'desenho'>('upload');
@@ -269,31 +278,43 @@ export const DoctorProfileModal: React.FC<DoctorProfileModalProps> = ({
           </button>
         </div>
 
-        {/* Abas: Dados Profissionais vs Configurações da Receita & PDF */}
-        <div className="flex border-b border-slate-200 dark:border-slate-800 px-6 bg-slate-50 dark:bg-slate-950/40">
+        {/* Abas: Dados Profissionais vs Assinatura Eletrônica vs Papel & Layout */}
+        <div className="flex border-b border-slate-200 dark:border-slate-800 px-6 bg-slate-50 dark:bg-slate-950/40 overflow-x-auto scrollbar-none">
           <button
             type="button"
             onClick={() => setAbaAtiva('dados')}
-            className={`py-3 px-4 text-xs font-bold border-b-2 flex items-center gap-2 transition ${
+            className={`py-3 px-4 text-xs font-bold border-b-2 flex items-center gap-2 whitespace-nowrap transition ${
               abaAtiva === 'dados'
-                ? 'border-teal-500 text-teal-600 dark:text-teal-400'
+                ? 'border-teal-500 text-teal-600 dark:text-teal-400 bg-white/50 dark:bg-slate-900/50'
                 : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
             }`}
           >
             <UserCheck className="w-4 h-4" />
-            <span>Dados Profissionais & Login</span>
+            <span>1. Dados do Médico & CRM</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setAbaAtiva('assinatura')}
+            className={`py-3 px-4 text-xs font-bold border-b-2 flex items-center gap-2 whitespace-nowrap transition ${
+              abaAtiva === 'assinatura'
+                ? 'border-teal-500 text-teal-600 dark:text-teal-400 bg-white/50 dark:bg-slate-900/50'
+                : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+            }`}
+          >
+            <PenTool className="w-4 h-4 text-teal-600" />
+            <span className="font-extrabold text-teal-700 dark:text-teal-300">2. 🖋️ Assinatura Eletrônica & Rubrica</span>
           </button>
           <button
             type="button"
             onClick={() => setAbaAtiva('receita')}
-            className={`py-3 px-4 text-xs font-bold border-b-2 flex items-center gap-2 transition ${
+            className={`py-3 px-4 text-xs font-bold border-b-2 flex items-center gap-2 whitespace-nowrap transition ${
               abaAtiva === 'receita'
-                ? 'border-teal-500 text-teal-600 dark:text-teal-400'
+                ? 'border-teal-500 text-teal-600 dark:text-teal-400 bg-white/50 dark:bg-slate-900/50'
                 : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
             }`}
           >
             <FileText className="w-4 h-4" />
-            <span>Identidade Visual, Assinatura Eletrônica & PDF</span>
+            <span>3. Papel Timbrado, Logo & Layout</span>
           </button>
         </div>
 
@@ -311,11 +332,11 @@ export const DoctorProfileModal: React.FC<DoctorProfileModalProps> = ({
             </div>
           )}
 
-          {abaAtiva === 'dados' ? (
+          {abaAtiva === 'dados' && (
             /* ===================================================================
                 ABA 1: DADOS PROFISSIONAIS & LOGIN (Sem duplicidade de logos)
                =================================================================== */
-            <>
+            <div className="space-y-5">
               {/* Dados Pessoais & CRM */}
               <div className="space-y-3">
                 <span className="text-[11px] font-bold text-teal-600 dark:text-teal-400 uppercase tracking-wider block">
@@ -457,10 +478,185 @@ export const DoctorProfileModal: React.FC<DoctorProfileModalProps> = ({
                   />
                 </div>
               </div>
-            </>
-          ) : (
+            </div>
+          )}
+
+          {abaAtiva === 'assinatura' && (
             /* ===================================================================
-                ABA 2: IDENTIDADE VISUAL, PAPEL TIMBRADO, ASSINATURA ELETRÔNICA & PDF
+                ABA 2: ASSINATURA ELETRÔNICA, RUBRICA & CHANCELA MP 2.200-2/01
+               =================================================================== */
+            <div className="space-y-6">
+              <div className="p-4 bg-teal-500/10 border border-teal-500/30 rounded-2xl flex items-start gap-3">
+                <div className="p-2 bg-teal-600 text-white rounded-xl flex-shrink-0">
+                  <ShieldCheck className="w-6 h-6" />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="font-black text-sm text-teal-950 dark:text-teal-200">
+                    Assinatura Eletrônica & Rubrica do Prescritor
+                  </h3>
+                  <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                    Você pode fazer upload de uma imagem da sua rubrica escaneada ou desenhá-la diretamente aqui na tela com o mouse ou caneta touch. Ela será chancelada automaticamente nas receitas, pedidos de exames e laudos com rastreabilidade da <strong>Medida Provisória nº 2.200-2/2001</strong> e <strong>Lei Federal nº 14.063/2020</strong>.
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="p-4 bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-800 dark:text-slate-200">
+                      <input
+                        type="checkbox"
+                        checked={formData.usar_assinatura_eletronica !== false}
+                        onChange={(e) => handleChange('usar_assinatura_eletronica', e.target.checked)}
+                        className="rounded border-slate-300 text-teal-600 focus:ring-teal-500 w-4 h-4"
+                      />
+                      <span>Habilitar chancela eletrônica nas prescrições e laudos</span>
+                    </label>
+
+                    {/* Alternador de método: Upload vs Desenho */}
+                    <div className="flex items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-1 shadow-sm">
+                      <button
+                        type="button"
+                        onClick={() => setModoAssinatura('upload')}
+                        className={`px-3 py-1.5 text-xs font-bold rounded-lg transition ${
+                          modoAssinatura === 'upload'
+                            ? 'bg-teal-600 text-white shadow-sm'
+                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                        }`}
+                      >
+                        📁 Importar Imagem (PNG / JPG)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setModoAssinatura('desenho')}
+                        className={`px-3 py-1.5 text-xs font-bold rounded-lg transition flex items-center gap-1.5 ${
+                          modoAssinatura === 'desenho'
+                            ? 'bg-teal-600 text-white shadow-sm'
+                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                        }`}
+                      >
+                        <PenTool className="w-3.5 h-3.5" />
+                        <span>✏️ Desenhar Rubrica</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Método 1: Upload de Imagem */}
+                  {modoAssinatura === 'upload' ? (
+                    <div>
+                      {formData.assinatura_base64 ? (
+                        <div className="p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 flex items-center justify-between shadow-sm">
+                          <div className="flex items-center gap-4">
+                            <div className="h-16 w-44 bg-slate-50 dark:bg-slate-950 rounded border border-slate-200 dark:border-slate-800 flex items-center justify-center p-2">
+                              <img src={formData.assinatura_base64} alt="Assinatura" className="max-h-full max-w-full object-contain" />
+                            </div>
+                            <div className="space-y-0.5">
+                              <p className="font-bold text-slate-900 dark:text-slate-100 text-xs">Rubrica Digital Ativa ✓</p>
+                              <p className="text-slate-500 text-[11px]">Sua assinatura será impressa perfeitamente na folha da receita</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <label className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold cursor-pointer transition">
+                              Trocar Imagem
+                              <input type="file" accept="image/*" onChange={handleUploadAssinatura} className="hidden" />
+                            </label>
+                            <button
+                              type="button"
+                              onClick={() => handleChange('assinatura_base64', undefined)}
+                              className="px-3 py-1.5 text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl text-xs font-bold transition"
+                            >
+                              Remover
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <label className="flex flex-col items-center justify-center h-28 border-2 border-dashed border-teal-500/60 hover:border-teal-600 rounded-2xl cursor-pointer text-slate-600 dark:text-slate-300 hover:text-teal-700 dark:hover:text-teal-300 transition bg-white dark:bg-slate-900 p-4">
+                          <Upload className="w-6 h-6 mb-1 text-teal-600" />
+                          <span className="text-xs font-extrabold text-teal-800 dark:text-teal-300">Clique aqui para selecionar a imagem da sua assinatura</span>
+                          <span className="text-[11px] text-slate-500 mt-0.5">Formatos suportados: PNG transparente, JPEG ou WebP</span>
+                          <input type="file" accept="image/*" onChange={handleUploadAssinatura} className="hidden" />
+                        </label>
+                      )}
+                    </div>
+                  ) : (
+                    /* Método 2: Canvas de Desenho da Rubrica */
+                    <div className="space-y-2">
+                      <div className="relative border-2 border-slate-300 dark:border-slate-700 rounded-2xl overflow-hidden bg-white shadow-inner">
+                        <canvas
+                          ref={canvasRef}
+                          width={540}
+                          height={140}
+                          onMouseDown={iniciarDesenho}
+                          onMouseMove={desenhar}
+                          onMouseUp={pararDesenho}
+                          onMouseLeave={pararDesenho}
+                          onTouchStart={iniciarDesenho}
+                          onTouchMove={desenhar}
+                          onTouchEnd={pararDesenho}
+                          className="w-full h-[140px] cursor-crosshair touch-none bg-white"
+                        />
+                        <div className="absolute top-2 right-2 flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={limparCanvasAssinatura}
+                            className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold flex items-center gap-1 shadow-sm"
+                          >
+                            <Eraser className="w-3.5 h-3.5" /> Limpar
+                          </button>
+                          <button
+                            type="button"
+                            onClick={salvarCanvasAssinatura}
+                            className="px-3 py-1 bg-teal-600 hover:bg-teal-500 text-white rounded-lg text-xs font-bold flex items-center gap-1 shadow-sm"
+                          >
+                            <Check className="w-3.5 h-3.5" /> Gravar Rubrica
+                          </button>
+                        </div>
+                        <div className="absolute bottom-2 left-3 text-[11px] text-slate-400 pointer-events-none select-none">
+                          Desenhe aqui com o mouse ou caneta digital touch
+                        </div>
+                      </div>
+
+                      {formData.assinatura_base64 && (
+                        <div className="text-xs text-emerald-700 dark:text-emerald-400 font-bold flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-950/40 p-2.5 rounded-xl border border-emerald-200 dark:border-emerald-800">
+                          <Check className="w-4 h-4 text-emerald-600" /> Rubrica gravada com sucesso e pronta para compor suas receitas!
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Prévia Fidedigna da Chancela Digital na Receita */}
+                  {formData.assinatura_base64 && formData.usar_assinatura_eletronica !== false && (
+                    <div className="p-4 bg-teal-500/10 border border-teal-500/30 rounded-2xl space-y-2">
+                      <div className="flex items-center gap-2 text-teal-900 dark:text-teal-200 font-bold text-xs">
+                        <Shield className="w-4 h-4 text-teal-600" />
+                        <span>Prévia Exata de Como Aparecerá na Folha Impressa / PDF:</span>
+                      </div>
+                      <div className="bg-white p-4 rounded-xl border border-teal-300 text-slate-800 text-xs space-y-2 shadow-sm max-w-md mx-auto">
+                        <div className="flex items-center justify-between">
+                          <div className="h-10 max-w-[140px] flex items-center">
+                            <img src={formData.assinatura_base64} alt="Preview" className="max-h-full object-contain" />
+                          </div>
+                          <span className="font-mono text-[10px] text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                            Cód: {formData.hash_assinatura_eletronica || 'OC-SIG-7A8B9C'}
+                          </span>
+                        </div>
+                        <p className="font-bold border-t border-slate-200 pt-1.5 text-slate-900 text-xs">
+                          {formData.nome_completo} &bull; CRM/{formData.uf_crm} {formData.crm}
+                        </p>
+                        <p className="text-[10px] text-slate-600 leading-tight">
+                          Documento assinado eletronicamente pelo profissional conforme Medida Provisória nº 2.200-2/2001 e Lei Federal nº 14.063/2020.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {abaAtiva === 'receita' && (
+            /* ===================================================================
+                ABA 3: IDENTIDADE VISUAL, PAPEL TIMBRADO, LOGOTIPO & PDF
                =================================================================== */
             <div className="space-y-6">
               {/* 1. Formato e Dimensões do Papel */}
@@ -655,161 +851,7 @@ export const DoctorProfileModal: React.FC<DoctorProfileModalProps> = ({
                 </div>
               </div>
 
-              {/* 4. Assinatura Eletrônica & Certificação Digital do Médico */}
-              <div className="space-y-3 pt-2 border-t border-slate-200 dark:border-slate-800">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-teal-600 dark:text-teal-400 uppercase tracking-wider block flex items-center gap-1.5">
-                    <ShieldCheck className="w-4 h-4 text-teal-500" /> Assinatura Eletrônica & Chancela Digital do Médico
-                  </span>
-                  <span className="text-[10px] text-teal-600 dark:text-teal-300 font-mono font-semibold">
-                    MP 2.200-2/01 & Lei 14.063/20
-                  </span>
-                </div>
-
-                <div className="p-3.5 bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-3">
-                  <div className="flex items-center justify-between">
-                    <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-800 dark:text-slate-200">
-                      <input
-                        type="checkbox"
-                        checked={formData.usar_assinatura_eletronica !== false}
-                        onChange={(e) => handleChange('usar_assinatura_eletronica', e.target.checked)}
-                        className="rounded border-slate-300 text-teal-600 focus:ring-teal-500"
-                      />
-                      <span>Assinar digitalmente as receitas emitidas</span>
-                    </label>
-
-                    {/* Alternador de método: Upload vs Desenho */}
-                    <div className="flex items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-0.5">
-                      <button
-                        type="button"
-                        onClick={() => setModoAssinatura('upload')}
-                        className={`px-2.5 py-1 text-[10px] font-bold rounded-lg transition ${
-                          modoAssinatura === 'upload'
-                            ? 'bg-teal-500/15 text-teal-700 dark:text-teal-300'
-                            : 'text-slate-500 hover:text-slate-700'
-                        }`}
-                      >
-                        Upload Imagem
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setModoAssinatura('desenho')}
-                        className={`px-2.5 py-1 text-[10px] font-bold rounded-lg transition flex items-center gap-1 ${
-                          modoAssinatura === 'desenho'
-                            ? 'bg-teal-500/15 text-teal-700 dark:text-teal-300'
-                            : 'text-slate-500 hover:text-slate-700'
-                        }`}
-                      >
-                        <PenTool className="w-3 h-3" /> Desenhar Rubrica
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Área de Entrada da Assinatura */}
-                  {modoAssinatura === 'upload' ? (
-                    <div>
-                      {formData.assinatura_base64 ? (
-                        <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className="h-12 w-32 bg-slate-50 dark:bg-slate-950 rounded border border-slate-100 dark:border-slate-800 flex items-center justify-center p-1">
-                              <img src={formData.assinatura_base64} alt="Assinatura" className="max-h-full max-w-full object-contain" />
-                            </div>
-                            <div className="text-[11px]">
-                              <p className="font-bold text-slate-800 dark:text-slate-200">Rubrica Digital Carregada</p>
-                              <p className="text-slate-500 text-[10px]">Pronta para ser chancelada nas receitas</p>
-                            </div>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => handleChange('assinatura_base64', undefined)}
-                            className="px-2.5 py-1 text-rose-500 hover:text-rose-400 text-xs font-bold"
-                          >
-                            Remover
-                          </button>
-                        </div>
-                      ) : (
-                        <label className="flex flex-col items-center justify-center h-20 border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-teal-500 rounded-2xl cursor-pointer text-slate-500 dark:text-slate-400 hover:text-teal-600 dark:hover:text-teal-400 transition bg-white dark:bg-slate-900">
-                          <Upload className="w-5 h-5 mb-1" />
-                          <span className="text-xs font-bold">Importar imagem de assinatura (PNG transparente / JPG)</span>
-                          <span className="text-[10px] text-slate-400">Escaneamento de rubrica ou assinatura eletrônica</span>
-                          <input type="file" accept="image/*" onChange={handleUploadAssinatura} className="hidden" />
-                        </label>
-                      )}
-                    </div>
-                  ) : (
-                    /* Área do Canvas de Desenho */
-                    <div className="space-y-2">
-                      <div className="relative border border-slate-300 dark:border-slate-700 rounded-2xl overflow-hidden bg-white">
-                        <canvas
-                          ref={canvasRef}
-                          width={480}
-                          height={120}
-                          onMouseDown={iniciarDesenho}
-                          onMouseMove={desenhar}
-                          onMouseUp={pararDesenho}
-                          onMouseLeave={pararDesenho}
-                          onTouchStart={iniciarDesenho}
-                          onTouchMove={desenhar}
-                          onTouchEnd={pararDesenho}
-                          className="w-full h-[120px] cursor-crosshair touch-none"
-                        />
-                        <div className="absolute top-2 right-2 flex items-center gap-1.5">
-                          <button
-                            type="button"
-                            onClick={limparCanvasAssinatura}
-                            className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-[10px] font-bold flex items-center gap-1"
-                          >
-                            <Eraser className="w-3 h-3" /> Limpar
-                          </button>
-                          <button
-                            type="button"
-                            onClick={salvarCanvasAssinatura}
-                            className="px-2.5 py-1 bg-teal-600 hover:bg-teal-500 text-white rounded text-[10px] font-bold flex items-center gap-1"
-                          >
-                            <Check className="w-3 h-3" /> Salvar Rubrica
-                          </button>
-                        </div>
-                        <div className="absolute bottom-1 left-3 text-[10px] text-slate-400 pointer-events-none">
-                          Desenhe sua rubrica com mouse ou caneta digital
-                        </div>
-                      </div>
-
-                      {formData.assinatura_base64 && (
-                        <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
-                          <Check className="w-3.5 h-3.5" /> Rubrica gravada e pronta para compor a receita digital!
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Preview da Chancela Eletrônica na Receita */}
-                  {formData.assinatura_base64 && formData.usar_assinatura_eletronica !== false && (
-                    <div className="p-3 bg-teal-500/10 border border-teal-500/30 rounded-xl space-y-1.5">
-                      <div className="flex items-center gap-1.5 text-teal-800 dark:text-teal-300 font-bold text-[11px]">
-                        <Shield className="w-3.5 h-3.5" /> Prévia da Chancela que aparecerá na Receita:
-                      </div>
-                      <div className="bg-white p-2.5 rounded border border-teal-200 text-slate-800 text-[10px] space-y-1">
-                        <div className="flex items-center justify-between">
-                          <div className="h-8 max-w-[120px] flex items-center">
-                            <img src={formData.assinatura_base64} alt="Preview" className="max-h-full object-contain" />
-                          </div>
-                          <span className="font-mono text-[9px] text-slate-500">
-                            Cód. Validação: {formData.hash_assinatura_eletronica || 'OC-SIG-7A8B9C'}
-                          </span>
-                        </div>
-                        <p className="font-bold border-t border-slate-200 pt-1">
-                          {formData.nome_completo} &bull; CRM/{formData.uf_crm} {formData.crm}
-                        </p>
-                        <p className="text-[9px] text-slate-500">
-                          Documento assinado eletronicamente pelo profissional conforme Medida Provisória nº 2.200-2/2001 e Lei Federal nº 14.063/2020.
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* 5. Opções de Impressão e Rodapé */}
+              {/* 4. Opções de Impressão e Rodapé */}
               <div className="space-y-3 pt-2 border-t border-slate-200 dark:border-slate-800">
                 <span className="text-[11px] font-bold text-teal-600 dark:text-teal-400 uppercase tracking-wider block">
                   Elementos e Rodapé da Receita

@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { Plus, ShoppingBag } from 'lucide-react';
 import { adicionarItemPrescricaoModular } from '../storage_clinico';
+import { decomporProtocoloEmBlocos } from '../protocol_parser';
 import { ProtocoloClinico, ResultadoAtualizacaoDiretrizes } from '../types';
 import { listarProtocolos, normalizarTexto, atualizarDiretrizesPython } from '../api';
 import { FARMACOS_POR_PROTOCOLO, CATEGORIAS_POR_PROTOCOLO } from '../catalog_protocolos';
@@ -233,15 +234,17 @@ export const ProtocolsView: React.FC<ProtocolsViewProps> = ({ protocoloSeleciona
 
   const adicionarPrescricaoModular = () => {
     if (!selecionado || !selecionado.bloco_prescricao_copiavel) return;
-    const fonte = selecionado.agencia ? `${selecionado.agencia} (${selecionado.pais || 'Oficial'})` : 'PCDT SUS';
-    adicionarItemPrescricaoModular(
-      'medicamento',
-      selecionado.titulo,
-      selecionado.bloco_prescricao_copiavel,
-      undefined,
-      fonte,
-      ['Protocolo Clínico', selecionado.nivel_atencao]
-    );
+    const decomposto = decomporProtocoloEmBlocos(selecionado);
+    for (const b of decomposto.todosBlocos) {
+      adicionarItemPrescricaoModular(
+        b.tipo,
+        b.titulo,
+        b.conteudo,
+        b.medicamento_detalhe,
+        b.origem_fonte,
+        b.tags
+      );
+    }
     setAdicionadoPrescricao(true);
     setTimeout(() => setAdicionadoPrescricao(false), 2200);
   };

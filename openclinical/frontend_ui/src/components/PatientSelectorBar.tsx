@@ -24,6 +24,7 @@ import {
   salvarPaciente,
   excluirPaciente,
 } from '../storage_clinico';
+import { MedicationAutocomplete } from './MedicationAutocomplete';
 
 interface PatientSelectorBarProps {
   onPacienteSelecionado?: (paciente: Paciente | null) => void;
@@ -148,11 +149,12 @@ export const PatientSelectorBar: React.FC<PatientSelectorBarProps> = ({
     setModalEdicaoAberto(false);
   };
 
-  const adicionarAlergiaTag = () => {
-    if (!novaAlergia.trim()) return;
+  const adicionarAlergiaTag = (valor?: string) => {
+    const texto = (valor !== undefined ? valor : novaAlergia).trim();
+    if (!texto) return;
     const lista = formPaciente.alergias || [];
-    if (!lista.includes(novaAlergia.trim())) {
-      setFormPaciente({ ...formPaciente, alergias: [...lista, novaAlergia.trim()] });
+    if (!lista.includes(texto)) {
+      setFormPaciente({ ...formPaciente, alergias: [...lista, texto] });
     }
     setNovaAlergia('');
   };
@@ -590,22 +592,26 @@ export const PatientSelectorBar: React.FC<PatientSelectorBarProps> = ({
                   <AlertOctagon className="w-3.5 h-3.5" /> Alergias a Medicamentos / Alimentos
                 </label>
                 <div className="flex gap-2">
-                  <input
-                    type="text"
+                  <MedicationAutocomplete
                     value={novaAlergia}
-                    onChange={(e) => setNovaAlergia(e.target.value)}
+                    onChange={(val) => setNovaAlergia(val)}
+                    onSelect={(sugestao) => {
+                      adicionarAlergiaTag(sugestao.nome);
+                    }}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
                         e.preventDefault();
                         adicionarAlergiaTag();
                       }
                     }}
-                    placeholder="Ex: Dipirona, Penicilinas, AINEs... (Pressione Enter para adicionar)"
-                    className="flex-1 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-slate-900 dark:text-slate-100 text-xs"
+                    modoAlergia={true}
+                    placeholder="Ex: Dipirona, Penicilinas, AINEs... (Sugestões automáticas da base)"
+                    className="flex-1"
+                    inputClassName="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-slate-900 dark:text-slate-100 text-xs focus:outline-none focus:border-rose-500"
                   />
                   <button
                     type="button"
-                    onClick={adicionarAlergiaTag}
+                    onClick={() => adicionarAlergiaTag()}
                     className="px-3 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-500/30 rounded-xl font-bold text-xs"
                   >
                     Adicionar

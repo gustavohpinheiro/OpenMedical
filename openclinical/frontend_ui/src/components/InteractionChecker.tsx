@@ -11,11 +11,14 @@ import {
   Flame,
   Brain,
   Layers,
+  FileText,
 } from 'lucide-react';
 import { MatrizInteracao, RelatorioSeguranca5g } from '../types';
 import { verificarInteracoes, avaliarSegurancaMedicamentosa5g } from '../api';
 import { FtnInteractionChecker } from './FtnInteractionChecker';
 import { LinkMedicamento } from './LinkMedicamento';
+import { obterBlocosPrescricao, obterPacienteAtivo } from '../storage_clinico';
+import { MedicationAutocomplete } from './MedicationAutocomplete';
 
 const LISTA_FARMACOS_SUGERIDOS: { chave: string; nome: string; idPrincipioAtivo: number | null }[] = [
   { chave: 'amoxicilina', nome: 'Amoxicilina', idPrincipioAtivo: 1 },
@@ -117,12 +120,30 @@ export const InteractionChecker: React.FC = () => {
     );
   };
 
-  const adicionarManual = (e: React.FormEvent) => {
-    e.preventDefault();
-    const termo = novoTermo.trim();
+  const adicionarManual = (e?: React.FormEvent, nomeManual?: string) => {
+    if (e) e.preventDefault();
+    const termo = (nomeManual !== undefined ? nomeManual : novoTermo).trim();
     if (termo && !nomesFarmacos.includes(termo)) {
       setNomesFarmacos((prev) => [...prev, termo]);
       setNovoTermo('');
+    }
+  };
+
+  const importarDaReceitaDigital = () => {
+    const blocos = obterBlocosPrescricao();
+    const medicamentos = blocos
+      .filter((b) => b.tipo === 'medicamento' && b.ativo !== false)
+      .map((b) => b.medicamento_detalhe?.principio_ativo || b.medicamento_detalhe?.nome_medicamento || b.titulo);
+
+    if (medicamentos.length > 0) {
+      setNomesFarmacos([...new Set(medicamentos)]);
+    }
+
+    const paciente = obterPacienteAtivo();
+    if (paciente) {
+      if (paciente.idade_anos) setIdadePaciente(paciente.idade_anos);
+      if (paciente.sexo === 'F') setSexoFeminino(true);
+      else if (paciente.sexo === 'M') setSexoFeminino(false);
     }
   };
 
@@ -156,14 +177,17 @@ export const InteractionChecker: React.FC = () => {
 
         {/* Adição Dinâmica de Fármacos */}
         <div className="space-y-3">
-          <div className="flex flex-wrap gap-2 items-center">
+          <div className="flex flex-wrap gap-2 items-center justify-between">
             <form onSubmit={adicionarManual} className="flex gap-2">
-              <input
-                type="text"
+              <MedicationAutocomplete
                 placeholder="Digitar fármaco (ex: Ciprofloxacino, Varfarina...)"
                 value={novoTermo}
-                onChange={(e) => setNovoTermo(e.target.value)}
-                className="bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-slate-100 placeholder-slate-500 w-64 focus:border-teal-500 focus:outline-none"
+                onChange={(val) => setNovoTermo(val)}
+                onSelect={(sugestao) => {
+                  adicionarManual(undefined, sugestao.nome);
+                }}
+                className="w-64"
+                inputClassName="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-slate-100 placeholder-slate-500 focus:border-teal-500 focus:outline-none"
               />
               <button
                 type="submit"
@@ -172,6 +196,16 @@ export const InteractionChecker: React.FC = () => {
                 <Plus className="w-3.5 h-3.5" /> Adicionar
               </button>
             </form>
+
+            <button
+              type="button"
+              onClick={importarDaReceitaDigital}
+              className="px-3 py-1.5 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md shadow-teal-950/40 transition"
+              title="Carregar todos os medicamentos da Receita Digital Ativa e dados do paciente"
+            >
+              <FileText className="w-3.5 h-3.5" />
+              <span>Carregar da Receita Digital</span>
+            </button>
           </div>
 
           <div className="flex flex-wrap gap-2">

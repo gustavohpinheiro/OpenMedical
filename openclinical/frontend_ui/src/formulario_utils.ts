@@ -1,10 +1,12 @@
-import type { EsquemaAdministracaoFtn, MonografiaFtn } from './data/formulario_terapeutico';
-import { normalizarTexto } from './api';
+import type { EsquemaAdministracaoFtn, MonografiaFtn } from './data/formulario_terapeutico.ts';
+
+export const normalizarTexto = (texto: string) =>
+  (texto || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
 
 // O módulo do FTN tem ~3 MB: é carregado sob demanda (e pré-carregado pelo service worker no PWA)
-let cacheFormulario: Promise<typeof import('./data/formulario_terapeutico')> | null = null;
+let cacheFormulario: Promise<typeof import('./data/formulario_terapeutico.ts')> | null = null;
 export const carregarFormulario = () => {
-  cacheFormulario ??= import('./data/formulario_terapeutico');
+  cacheFormulario ??= import('./data/formulario_terapeutico.ts');
   return cacheFormulario;
 };
 

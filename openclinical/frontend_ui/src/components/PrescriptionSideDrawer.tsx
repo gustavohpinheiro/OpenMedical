@@ -31,6 +31,7 @@ import {
   Building,
   HeartPulse,
   FileUp,
+  ShieldCheck,
 } from 'lucide-react';
 import {
   BlocoPrescricao,
@@ -47,11 +48,20 @@ import {
   salvarReceitaNoHistorico,
   limparPrescricao,
   adicionarItemPrescricaoModular,
+  abrirConfiguracaoAssinatura,
+  abrirConfiguracaoReceita,
 } from '../storage_clinico';
-import { avaliarSegurancaMedicamentosa5g } from '../medication_safety_5g';
 import { importarReceitasDePdfs } from '../prescription_importer';
 import { exportarElementosParaPdf } from '../pdf_generator';
 import { buscarGeral } from '../api';
+import { PrescriptionSheetRenderer } from './PrescriptionSheetRenderer';
+import { MedicationAutocomplete } from './MedicationAutocomplete';
+import {
+  resolverMedicamentoDaBase,
+  auditarReceitaCompleta,
+  checarAlergiasDoPaciente,
+  RelatorioAuditoriaReceita,
+} from '../clinical_auditor';
 
 interface PrescriptionSideDrawerProps {
   onVisualizarReceitaCompleta?: () => void;
@@ -204,35 +214,44 @@ export const PrescriptionSideDrawer: React.FC<PrescriptionSideDrawerProps> = ({
     return () => clearTimeout(timer);
   }, [buscaTermo, filtroOrigemBusca]);
 
-  // Adicionar medicamento a partir do resultado da busca da base
-  const adicionarResultadoBusca = (item: ItemBuscaFts) => {
-    const isControlado =
-      item.subtitulo.toLowerCase().includes('controle') ||
-      item.subtitulo.toLowerCase().includes('portaria 344') ||
-      item.subtitulo.toLowerCase().includes('antimicrobiano');
-
+  // Adicionar medicamento a partir do resultado da busca da base com resolução farmacológica
+  const adicionarResultadoBusca = async (item: ItemBuscaFts) => {
+    const resolvido = await resolverMedicamentoDaBase(item);
     const detalhe: ItemPrescricaoCesta = {
       id: `med_${Date.now()}`,
-      nome_medicamento: item.titulo_primario,
-      principio_ativo: item.subtitulo.split('·')[0].trim() || item.titulo_primario,
-      apresentacao: item.subtitulo.split('·')[1]?.trim() || '',
-      posologia: 'Uso Oral: Tomar 1 comprimido de 12 em 12 horas por 7 dias.',
-      via_administracao: 'Uso Oral (VO)',
-      dose_unitaria: '1 comprimido',
-      frequencia_intervalo: 'de 12 em 12 horas',
-      duracao_tratamento: 'por 7 dias',
-      quantidade_embalagens: 1,
-      tipo_receituario: isControlado ? 'controle_especial_c1' : 'simples',
+      nome_medicamento: resolvido.nome_medicamento,
+      principio_ativo: resolvido.principio_ativo,
+      apresentacao: resolvido.apresentacao,
+      posologia: resolvido.posologia,
+      via_administracao: resolvido.via_administracao,
+      dose_unitaria: resolvido.dose_unitaria,
+      frequencia_intervalo: resolvido.frequencia_intervalo,
+      duracao_tratamento: resolvido.duracao_tratamento,
+      quantidade_embalagens: resolvido.quantidade_embalagens,
+      tipo_receituario: resolvido.tipo_receituario,
       preco_pmc: 0,
     };
 
+    const isControladoOuEspecial = detalhe.tipo_receituario !== 'simples';
+
     adicionarItemPrescricaoModular(
       'medicamento',
-      item.titulo_primario,
+      resolvido.nome_medicamento,
       detalhe.posologia,
       detalhe,
-      'Base Clínica Oficial (FTN/ANVISA)',
-      [item.tipo_registro, isControlado ? 'Controlado' : 'Simples']
+      resolvido.origem_base,
+      [
+        item.tipo_registro,
+        detalhe.tipo_receituario === 'antimicrobiano'
+          ? 'Antimicrobiano (RDC 471)'
+          : detalhe.tipo_receituario === 'notificacao_b_azul'
+          ? 'Notificação B (Azul)'
+          : detalhe.tipo_receituario === 'notificacao_a_amarela'
+          ? 'Notificação A (Amarela)'
+          : isControladoOuEspecial
+          ? 'Controle Especial C1 (Port. 344)'
+          : 'Receita Simples',
+      ]
     );
 
     setBuscaTermo('');
@@ -306,6 +325,12 @@ export const PrescriptionSideDrawer: React.FC<PrescriptionSideDrawerProps> = ({
   ) => {
     const novos = blocos.map((b) => {
       if (b.id !== id) return b;
+      if (b.tipo !== 'medicamento') {
+        return {
+          ...b,
+          conteudo: typeof valor === 'string' ? valor : String(valor),
+        };
+      }
       const detalhe: ItemPrescricaoCesta = b.medicamento_detalhe || {
         id: `med_${Date.now()}`,
         nome_medicamento: b.titulo,
@@ -354,42 +379,27 @@ export const PrescriptionSideDrawer: React.FC<PrescriptionSideDrawerProps> = ({
     atualizarParametroBloco(id, 'quantidade', atual + delta);
   };
 
-  // Checagem de Alergia do Paciente Ativo
+  // Auditoria Clínica Consolidada em Tempo Real (Alergias + FTN 346 + Matriz + 5G)
+  const [relatorioAuditoria, setRelatorioAuditoria] = useState<RelatorioAuditoriaReceita | null>(null);
+
+  useEffect(() => {
+    let cancelado = false;
+    auditarReceitaCompleta(blocos, pacienteAtivo).then((res) => {
+      if (!cancelado) setRelatorioAuditoria(res);
+    });
+    return () => {
+      cancelado = true;
+    };
+  }, [blocos, pacienteAtivo]);
+
   const checarAlergiaBloco = (bloco: BlocoPrescricao): string | null => {
-    if (!pacienteAtivo?.alergias || pacienteAtivo.alergias.length === 0) return null;
-    const textoMedicamento = `${bloco.titulo} ${bloco.medicamento_detalhe?.principio_ativo || ''}`.toLowerCase();
-    for (const alergia of pacienteAtivo.alergias) {
-      const a = alergia.toLowerCase().trim();
-      if (a && textoMedicamento.includes(a)) {
-        return alergia;
-      }
+    if (bloco.tipo !== 'medicamento' || !pacienteAtivo?.alergias?.length) return null;
+    const alertas = checarAlergiasDoPaciente([bloco], pacienteAtivo);
+    if (alertas.length > 0) {
+      return alertas[0].alergia_declarada;
     }
     return null;
   };
-
-  const listaAlergiasDetectadas = useMemo(() => {
-    const alertas: { remedio: string; alergia: string }[] = [];
-    for (const b of blocos) {
-      const encontrada = checarAlergiaBloco(b);
-      if (encontrada) {
-        alertas.push({ remedio: b.titulo, alergia: encontrada });
-      }
-    }
-    return alertas;
-  }, [blocos, pacienteAtivo]);
-
-  // Auditoria de Farmacovigilância 5G em Tempo Real
-  const relatorioSeguranca = useMemo(() => {
-    const nomes = blocos
-      .filter((b) => b.tipo === 'medicamento')
-      .map((b) => b.medicamento_detalhe?.principio_ativo || b.titulo);
-    if (nomes.length < 2) return null;
-    return avaliarSegurancaMedicamentosa5g(
-      nomes,
-      pacienteAtivo?.idade_anos || 65,
-      pacienteAtivo?.sexo === 'F'
-    );
-  }, [blocos, pacienteAtivo]);
 
   // Salvar no Prontuário do Paciente
   const handleSalvarNoHistorico = () => {
@@ -469,14 +479,21 @@ export const PrescriptionSideDrawer: React.FC<PrescriptionSideDrawerProps> = ({
     }
   };
 
-  // Exportar PDF Direto
+  // Exportar PDF Direto de Alta Precisão (Captura todas as folhas particionadas)
   const handleExportarPdf = async () => {
     try {
-      const el = document.getElementById('folha-receita-modular');
+      let folhas = Array.from(document.querySelectorAll<HTMLElement>('.folha-receita-exportavel'));
+      if (folhas.length === 0) {
+        const offscreen = document.getElementById('container-receita-offscreen');
+        if (offscreen) {
+          folhas = Array.from(offscreen.querySelectorAll<HTMLElement>('.folha-receita-exportavel'));
+        }
+      }
+
       const formato = (perfilMedico.tamanho_papel_receita?.toLowerCase() as 'a4' | 'a5') || 'a4';
-      if (el) {
+      if (folhas.length > 0) {
         await exportarElementosParaPdf(
-          [el],
+          folhas,
           `Receita_${pacienteAtivo?.nome_completo || 'Paciente'}_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}`,
           formato,
           {
@@ -526,25 +543,9 @@ export const PrescriptionSideDrawer: React.FC<PrescriptionSideDrawerProps> = ({
 
   const totalItens = blocos.length;
   const temAlertaGrave =
-    listaAlergiasDetectadas.length > 0 ||
-    Boolean(
-      relatorioSeguranca &&
-        (relatorioSeguranca.triple_whammy.detectado ||
-          relatorioSeguranca.cascatas.length > 0 ||
-          relatorioSeguranca.escore_tisdale.pontuacao_total >= 7)
-    );
-
-  // Filtros estritos para o espelho de impressão sanitária:
-  // Medicamentos simples
-  const blocosReceituarioSimples = blocos.filter(
-    (b) => b.tipo === 'medicamento' && (b.medicamento_detalhe?.tipo_receituario === 'simples' || !b.medicamento_detalhe)
-  );
-  // Medicamentos controlados (Portaria 344 e Antimicrobianos)
-  const blocosControleEspecial = blocos.filter(
-    (b) => b.tipo === 'medicamento' && b.medicamento_detalhe && b.medicamento_detalhe.tipo_receituario !== 'simples'
-  );
-  // Orientações / Dieta / Estilo de Vida (não-farmacológicos)
-  const blocosOrientacoes = blocos.filter((b) => b.tipo !== 'medicamento');
+    (relatorioAuditoria &&
+      (relatorioAuditoria.possui_risco_grave || relatorioAuditoria.alertas_moderados.length > 0)) ||
+    false;
 
   const tamanhoPapel = perfilMedico.tamanho_papel_receita || 'A4';
 
@@ -777,15 +778,61 @@ export const PrescriptionSideDrawer: React.FC<PrescriptionSideDrawerProps> = ({
           ) : (
             /* Modo 2: Item Personalizado / Manipulado */
             <form onSubmit={adicionarItemPersonalizado} className="space-y-2 pt-1 animate-in fade-in text-xs">
-              <div className="grid grid-cols-2 gap-2">
-                <input
-                  type="text"
-                  required
-                  value={customNome}
-                  onChange={(e) => setCustomNome(e.target.value)}
-                  placeholder="Nome do remédio / conduta *"
-                  className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1 text-xs text-slate-900 dark:text-slate-100"
-                />
+              {/* Status da Assinatura Eletrônica & Atalho Direto */}
+          <div className="p-2.5 rounded-xl border bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs">
+            <div className="flex items-center gap-2 min-w-0">
+              <ShieldCheck className={`w-4 h-4 flex-shrink-0 ${perfilMedico.assinatura_base64 ? 'text-teal-600' : 'text-amber-500'}`} />
+              <div className="leading-tight truncate">
+                <span className="font-bold block text-slate-800 dark:text-slate-200 text-[11px] truncate">
+                  {perfilMedico.assinatura_base64 ? 'Assinatura Eletrônica Ativa' : 'Assinatura Pendente'}
+                </span>
+                <span className="text-[10px] text-slate-500 truncate block">
+                  {perfilMedico.assinatura_base64 ? 'Chancela MP 2.200-2/01 inclusa' : 'Carregue imagem ou desenhe sua rubrica'}
+                </span>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={abrirConfiguracaoAssinatura}
+              className="flex-shrink-0 px-2.5 py-1 bg-teal-50 hover:bg-teal-100 dark:bg-teal-950/60 dark:hover:bg-teal-900/60 text-teal-700 dark:text-teal-300 border border-teal-300 dark:border-teal-700 rounded-lg text-[10px] font-bold transition ml-2"
+            >
+              {perfilMedico.assinatura_base64 ? 'Editar' : '🖋️ Assinatura'}
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+                {customTipo === 'medicamento' ? (
+                  <MedicationAutocomplete
+                    required
+                    value={customNome}
+                    onChange={(val) => setCustomNome(val)}
+                    onSelect={(sugestao) => {
+                      setCustomNome(sugestao.nome);
+                      if (sugestao.detalhes?.apresentacao) {
+                        setCustomApresentacao(sugestao.detalhes.apresentacao);
+                      }
+                      if (sugestao.detalhes?.posologia) {
+                        setCustomPosologia(sugestao.detalhes.posologia);
+                      }
+                      if (sugestao.detalhes?.tipo_receituario && sugestao.detalhes.tipo_receituario !== 'simples') {
+                        setCustomControlado(true);
+                      } else if (sugestao.detalhes?.tipo_receituario === 'simples') {
+                        setCustomControlado(false);
+                      }
+                    }}
+                    placeholder="Nome do remédio (busca inteligente) *"
+                    inputClassName="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-teal-500"
+                  />
+                ) : (
+                  <input
+                    type="text"
+                    required
+                    value={customNome}
+                    onChange={(e) => setCustomNome(e.target.value)}
+                    placeholder="Título da orientação / conduta *"
+                    className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1 text-xs text-slate-900 dark:text-slate-100"
+                  />
+                )}
                 <input
                   type="text"
                   value={customApresentacao}
@@ -847,44 +894,37 @@ export const PrescriptionSideDrawer: React.FC<PrescriptionSideDrawerProps> = ({
         </div>
 
         {/* ===================================================================
-            TARJA VERMELHA DE ALERGIA E INTERAÇÕES MEDICAMENTOSAS
+            TARJA VERMELHA / ÂMBAR DE ALERGIA E INTERAÇÕES MEDICAMENTOSAS
            =================================================================== */}
-        {temAlertaGrave && (
-          <div className="p-3 bg-rose-600 text-white font-sans text-xs space-y-1.5 shadow-lg border-b border-rose-700 animate-in slide-in-from-top">
-            <div className="flex items-center gap-1.5 font-black uppercase tracking-wider text-[11px]">
-              <ShieldAlert className="w-4 h-4 shrink-0 animate-bounce" />
-              <span>TARJA VERMELHA: Interação Crítica / Risco do Paciente</span>
-            </div>
-
-            {/* Alerta de Alergia do Paciente */}
-            {listaAlergiasDetectadas.map((al, idx) => (
-              <div key={`alergia_${idx}`} className="bg-rose-700 p-2 rounded-lg text-[11px] font-bold flex items-center gap-1.5">
-                <AlertOctagon className="w-4 h-4 text-white shrink-0" />
-                <span>
-                  <strong>ALERTA DE ALERGIA:</strong> Fármaco <u>{al.remedio}</u> coincide com alergia cadastrada no paciente ({al.alergia})! Risco de reação anafilática grave.
-                </span>
+        {relatorioAuditoria && (relatorioAuditoria.alertas_criticos.length > 0 || relatorioAuditoria.alertas_moderados.length > 0) && (
+          <div className="space-y-1 shadow-lg border-b border-rose-700 animate-in slide-in-from-top">
+            {relatorioAuditoria.alertas_criticos.length > 0 && (
+              <div className="p-3 bg-rose-600 text-white font-sans text-xs space-y-1.5">
+                <div className="flex items-center gap-1.5 font-black uppercase tracking-wider text-[11px]">
+                  <ShieldAlert className="w-4 h-4 shrink-0 animate-bounce" />
+                  <span>TARJA VERMELHA: Interação Crítica / Contraindicação</span>
+                </div>
+                {relatorioAuditoria.alertas_criticos.map((al, idx) => (
+                  <div key={`crit_${idx}`} className="bg-rose-700/95 p-2 rounded-lg text-[11px] font-bold flex items-start gap-1.5 leading-snug">
+                    <AlertOctagon className="w-4 h-4 text-white shrink-0 mt-0.5" />
+                    <span>{al}</span>
+                  </div>
+                ))}
               </div>
-            ))}
-
-            {/* Alerta Triple Whammy */}
-            {relatorioSeguranca?.triple_whammy.detectado && (
-              <p className="text-[11px] leading-tight font-medium bg-rose-700/90 p-2 rounded-lg">
-                <strong>Triple Whammy Renal:</strong> Associação simultânea de IECA/BRA + Diurético + AINE detectada. Risco elevado de Insuficiência Renal Aguda.
-              </p>
             )}
 
-            {/* Cascatas Iatrogênicas */}
-            {relatorioSeguranca?.cascatas.map((c, i) => (
-              <p key={i} className="text-[11px] leading-tight font-medium bg-rose-700/90 p-2 rounded-lg">
-                <strong>Cascata Iatrogênica ({c.farmaco_causador} &rarr; {c.farmaco_prescrito}):</strong> {c.efeito_adverso_confundido} ({c.conduta_desprescricao})
-              </p>
-            ))}
-
-            {/* Risco QTc */}
-            {relatorioSeguranca && relatorioSeguranca.escore_tisdale.pontuacao_total >= 7 && (
-              <p className="text-[11px] leading-tight font-medium bg-rose-700/90 p-2 rounded-lg">
-                <strong>Risco Alto de Prolongamento QTc:</strong> Fármacos torsadogênicos presentes ({relatorioSeguranca.escore_tisdale.farmacos_qtc_presentes.join(', ')}).
-              </p>
+            {relatorioAuditoria.alertas_moderados.length > 0 && (
+              <div className="p-2.5 bg-amber-500 text-amber-950 font-sans text-xs space-y-1">
+                <div className="flex items-center gap-1.5 font-bold uppercase tracking-wider text-[10px]">
+                  <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                  <span>Atenção Clínica: Monitoramento Recomendado (FTN / Farmacovigilância)</span>
+                </div>
+                {relatorioAuditoria.alertas_moderados.map((al, idx) => (
+                  <div key={`mod_${idx}`} className="bg-amber-100 text-amber-900 border border-amber-300 p-1.5 rounded text-[10px] font-medium leading-snug">
+                    {al}
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         )}
@@ -992,7 +1032,29 @@ export const PrescriptionSideDrawer: React.FC<PrescriptionSideDrawerProps> = ({
                     <div className="p-3 space-y-2.5 text-xs">
                       {isMed ? (
                         <>
-                          <div className="grid grid-cols-2 gap-2">
+                          {/* Status da Assinatura Eletrônica & Atalho Direto */}
+          <div className="p-2.5 rounded-xl border bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs">
+            <div className="flex items-center gap-2 min-w-0">
+              <ShieldCheck className={`w-4 h-4 flex-shrink-0 ${perfilMedico.assinatura_base64 ? 'text-teal-600' : 'text-amber-500'}`} />
+              <div className="leading-tight truncate">
+                <span className="font-bold block text-slate-800 dark:text-slate-200 text-[11px] truncate">
+                  {perfilMedico.assinatura_base64 ? 'Assinatura Eletrônica Ativa' : 'Assinatura Pendente'}
+                </span>
+                <span className="text-[10px] text-slate-500 truncate block">
+                  {perfilMedico.assinatura_base64 ? 'Chancela MP 2.200-2/01 inclusa' : 'Carregue imagem ou desenhe sua rubrica'}
+                </span>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={abrirConfiguracaoAssinatura}
+              className="flex-shrink-0 px-2.5 py-1 bg-teal-50 hover:bg-teal-100 dark:bg-teal-950/60 dark:hover:bg-teal-900/60 text-teal-700 dark:text-teal-300 border border-teal-300 dark:border-teal-700 rounded-lg text-[10px] font-bold transition ml-2"
+            >
+              {perfilMedico.assinatura_base64 ? 'Editar' : '🖋️ Assinatura'}
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
                             {/* Seletor de Via */}
                             <div>
                               <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
@@ -1034,7 +1096,29 @@ export const PrescriptionSideDrawer: React.FC<PrescriptionSideDrawerProps> = ({
                             </div>
                           </div>
 
-                          <div className="grid grid-cols-2 gap-2">
+                          {/* Status da Assinatura Eletrônica & Atalho Direto */}
+          <div className="p-2.5 rounded-xl border bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs">
+            <div className="flex items-center gap-2 min-w-0">
+              <ShieldCheck className={`w-4 h-4 flex-shrink-0 ${perfilMedico.assinatura_base64 ? 'text-teal-600' : 'text-amber-500'}`} />
+              <div className="leading-tight truncate">
+                <span className="font-bold block text-slate-800 dark:text-slate-200 text-[11px] truncate">
+                  {perfilMedico.assinatura_base64 ? 'Assinatura Eletrônica Ativa' : 'Assinatura Pendente'}
+                </span>
+                <span className="text-[10px] text-slate-500 truncate block">
+                  {perfilMedico.assinatura_base64 ? 'Chancela MP 2.200-2/01 inclusa' : 'Carregue imagem ou desenhe sua rubrica'}
+                </span>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={abrirConfiguracaoAssinatura}
+              className="flex-shrink-0 px-2.5 py-1 bg-teal-50 hover:bg-teal-100 dark:bg-teal-950/60 dark:hover:bg-teal-900/60 text-teal-700 dark:text-teal-300 border border-teal-300 dark:border-teal-700 rounded-lg text-[10px] font-bold transition ml-2"
+            >
+              {perfilMedico.assinatura_base64 ? 'Editar' : '🖋️ Assinatura'}
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
                             {/* Frequência / Intervalo */}
                             <div>
                               <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
@@ -1159,208 +1243,27 @@ export const PrescriptionSideDrawer: React.FC<PrescriptionSideDrawerProps> = ({
           /* ===================================================================
               CONTEÚDO: MODO IMPRESSÃO / FOLHAS SANITÁRIAS PARTICIONADAS
              =================================================================== */
-          <div className="flex-1 overflow-y-auto p-4 space-y-5 bg-slate-100 dark:bg-[#070d18]">
-            <div id="folha-receita-modular" className="space-y-6">
-              {/* 1. Receituário Simples (Medicamentos Comuns) */}
-              {blocosReceituarioSimples.length > 0 && (
-                <div
-                  className={`bg-white text-slate-900 p-6 rounded-2xl shadow-lg border border-slate-200 text-xs space-y-4 font-sans ${
-                    tamanhoPapel === 'A5' ? 'max-w-[420px] mx-auto text-[11px]' : ''
-                  }`}
-                >
-                  {/* Cabeçalho Charmoso do Consultório */}
-                  <div className="border-b-2 border-teal-700/60 pb-3 flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      {perfilMedico.logo_base64 ? (
-                        <img src={perfilMedico.logo_base64} alt="Logo" className="w-12 h-12 object-contain" />
-                      ) : (
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-teal-700 to-emerald-600 text-white flex items-center justify-center shadow-md">
-                          <HeartPulse className="w-5 h-5" />
-                        </div>
-                      )}
-                      <div>
-                        <h4 className="font-black text-sm uppercase tracking-wide text-slate-900">
-                          {perfilMedico.nome_completo}
-                        </h4>
-                        <p className="text-[10px] text-teal-800 font-bold font-mono">
-                          CRM/{perfilMedico.uf_crm} {perfilMedico.crm} {perfilMedico.rqe ? `• RQE ${perfilMedico.rqe}` : ''}
-                        </p>
-                        {perfilMedico.especialidade && (
-                          <p className="text-[10px] text-slate-500 font-medium">{perfilMedico.especialidade}</p>
-                        )}
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <span className="text-[9px] font-bold px-2 py-0.5 bg-teal-50 border border-teal-300 text-teal-800 rounded font-mono uppercase">
-                        Receituário Simples ({tamanhoPapel})
-                      </span>
-                      {perfilMedico.nome_clinica && (
-                        <p className="text-[10px] text-slate-500 font-semibold mt-1">{perfilMedico.nome_clinica}</p>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Identificação do Paciente */}
-                  <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-[11px] space-y-0.5">
-                    <div>
-                      Paciente: <strong>{pacienteAtivo ? pacienteAtivo.nome_completo : 'Paciente Geral'}</strong>
-                      {pacienteAtivo?.idade_anos ? ` (${pacienteAtivo.idade_anos} anos)` : ''}
-                    </div>
-                    {pacienteAtivo?.cpf && <div className="text-slate-500 text-[10px]">CPF: {pacienteAtivo.cpf}</div>}
-                  </div>
-
-                  {/* Lista de Medicamentos */}
-                  <div className="space-y-3 pt-1">
-                    {blocosReceituarioSimples.map((b, i) => (
-                      <div key={b.id} className="text-xs border-b border-slate-100 pb-2">
-                        <div className="flex justify-between font-black text-slate-900">
-                          <span>{i + 1}) {b.titulo}</span>
-                          <span className="font-mono text-teal-800 font-bold">
-                            {b.medicamento_detalhe?.quantidade_embalagens || 1} cx/fr
-                          </span>
-                        </div>
-                        <div className="text-slate-600 pl-3.5 pt-0.5 leading-relaxed italic">
-                          {b.conteudo}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Rodapé e Assinatura */}
-                  <div className="pt-4 border-t border-slate-200 flex justify-between items-end text-[10px] text-slate-500">
-                    <div>
-                      <div>Emissão: {new Date().toLocaleDateString('pt-BR')}</div>
-                      {perfilMedico.endereco_consultorio && (
-                        <div className="text-[9px] text-slate-400 mt-0.5">{perfilMedico.endereco_consultorio}</div>
-                      )}
-                      {perfilMedico.texto_rodape_customizado && (
-                        <div className="text-[9px] text-teal-700 italic mt-1 max-w-[280px]">
-                          {perfilMedico.texto_rodape_customizado}
-                        </div>
-                      )}
-                    </div>
-                    {perfilMedico.mostrar_linha_assinatura !== false && (
-                      <div className="text-center">
-                        <div className="w-36 border-b border-slate-400 mb-1" />
-                        <span className="font-bold text-slate-700">{perfilMedico.nome_completo}</span>
-                        <div className="text-[9px] text-slate-400">Assinatura / Carimbo</div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* 2. Receituário de Controle Especial (Portaria 344/98 & RDC 471) em 2 Vias */}
-              {blocosControleEspecial.length > 0 && (
-                <div
-                  className={`bg-white text-slate-900 p-6 rounded-2xl shadow-lg border-2 border-amber-400 text-xs space-y-4 font-sans ${
-                    tamanhoPapel === 'A5' ? 'max-w-[420px] mx-auto text-[11px]' : ''
-                  }`}
-                >
-                  <div className="border-b-2 border-amber-400 pb-3 flex justify-between items-start gap-3">
-                    <div>
-                      <h4 className="font-black text-sm uppercase tracking-wide text-amber-900">
-                        Receituário de Controle Especial
-                      </h4>
-                      <p className="text-[10px] text-amber-800 font-bold">
-                        VÁLIDO EM TODO O BRASIL &bull; 1ª VIA FARMÁCIA / 2ª VIA PACIENTE
-                      </p>
-                      <p className="text-[10px] text-slate-500 font-medium">
-                        {perfilMedico.nome_completo} &bull; CRM/{perfilMedico.uf_crm} {perfilMedico.crm}
-                      </p>
-                    </div>
-                    <span className="text-[9px] font-bold px-2 py-0.5 bg-amber-100 border border-amber-300 rounded text-amber-900 font-mono uppercase">
-                      Portaria 344/98 ({tamanhoPapel})
-                    </span>
-                  </div>
-
-                  <div className="bg-amber-50/60 p-2.5 rounded-xl border border-amber-200 text-[11px] space-y-0.5">
-                    <div>
-                      Paciente: <strong>{pacienteAtivo ? pacienteAtivo.nome_completo : 'Paciente Geral'}</strong>
-                    </div>
-                    <div>Endereço: {pacienteAtivo?.endereco || 'Endereço fornecido em prontuário'}</div>
-                  </div>
-
-                  <div className="space-y-3 pt-1">
-                    {blocosControleEspecial.map((b, i) => (
-                      <div key={b.id} className="text-xs border-b border-amber-100 pb-2">
-                        <div className="flex justify-between font-black text-slate-900">
-                          <span>{i + 1}) {b.titulo}</span>
-                          <span className="font-mono text-amber-900 font-bold">
-                            {b.medicamento_detalhe?.quantidade_embalagens || 1} cx
-                          </span>
-                        </div>
-                        <div className="text-slate-600 pl-3.5 pt-0.5 leading-relaxed italic">
-                          {b.conteudo}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Campos Oficiais de Farmácia / Portaria 344 */}
-                  <div className="pt-2 border-t border-amber-200 grid grid-cols-2 gap-2 text-[9px] text-slate-500">
-                    <div className="border border-slate-200 p-2 rounded-lg bg-slate-50">
-                      <strong>IDENTIFICAÇÃO DO COMPRADOR:</strong>
-                      <div>Nome: ____________________________</div>
-                      <div>Identidade / Órgão: ______________</div>
-                      <div>Telefone: __________________________</div>
-                    </div>
-                    <div className="border border-slate-200 p-2 rounded-lg bg-slate-50">
-                      <strong>IDENTIFICAÇÃO DO FORNECEDOR:</strong>
-                      <div>Farmacêutico: _____________________</div>
-                      <div>Data de Retirada: ___/___/______</div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* 3. Folha de Recomendações e Estilo de Vida (Não-Farmacológicos) */}
-              {blocosOrientacoes.length > 0 && (
-                <div
-                  className={`bg-white text-slate-900 p-6 rounded-2xl shadow-lg border border-emerald-300 text-xs space-y-4 font-sans ${
-                    tamanhoPapel === 'A5' ? 'max-w-[420px] mx-auto text-[11px]' : ''
-                  }`}
-                >
-                  <div className="border-b-2 border-emerald-600/60 pb-3 flex justify-between items-start gap-3">
-                    <div>
-                      <h4 className="font-black text-sm uppercase tracking-wide text-emerald-900">
-                        Orientações, Estilo de Vida & Cuidados
-                      </h4>
-                      <p className="text-[10px] text-slate-500">
-                        {perfilMedico.nome_completo} &bull; CRM/{perfilMedico.uf_crm} {perfilMedico.crm}
-                      </p>
-                    </div>
-                    <span className="text-[9px] font-bold px-2 py-0.5 bg-emerald-50 border border-emerald-300 rounded text-emerald-800 font-mono uppercase">
-                      Não-Farmacológico
-                    </span>
-                  </div>
-
-                  <div className="text-[11px] text-slate-700">
-                    Paciente: <strong>{pacienteAtivo ? pacienteAtivo.nome_completo : 'Paciente Geral'}</strong>
-                  </div>
-
-                  <div className="space-y-3 pt-1">
-                    {blocosOrientacoes.map((b, i) => (
-                      <div key={b.id} className="p-3 bg-emerald-50/50 rounded-xl border border-emerald-100 text-xs">
-                        <div className="font-bold text-emerald-950 mb-1">
-                          {i + 1}. {b.titulo}
-                        </div>
-                        <div className="text-slate-700 leading-relaxed whitespace-pre-wrap">
-                          {b.conteudo}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="pt-3 border-t border-slate-200 text-[10px] text-slate-400 flex justify-between items-end">
-                    <span>Emissão: {new Date().toLocaleDateString('pt-BR')}</span>
-                    <span className="text-slate-600 font-semibold">{perfilMedico.nome_completo}</span>
-                  </div>
-                </div>
-              )}
-            </div>
+          <div className="flex-1 overflow-y-auto p-4 bg-slate-100 dark:bg-[#070d18] flex justify-center">
+            <PrescriptionSheetRenderer
+              blocos={blocos}
+              perfilMedico={perfilMedico}
+              pacienteAtivo={pacienteAtivo}
+            />
           </div>
         )}
+
+        {/* Renderizador Offscreen para garantir exportação imediata de PDF em qualquer aba */}
+        <div
+          id="container-receita-offscreen"
+          className="fixed -left-[9999px] top-0 pointer-events-none opacity-0 select-none overflow-hidden"
+          aria-hidden="true"
+        >
+          <PrescriptionSheetRenderer
+            blocos={blocos}
+            perfilMedico={perfilMedico}
+            pacienteAtivo={pacienteAtivo}
+          />
+        </div>
 
         {/* ===================================================================
             RODAPÉ DE AÇÕES DA GAVETA
@@ -1377,6 +1280,28 @@ export const PrescriptionSideDrawer: React.FC<PrescriptionSideDrawerProps> = ({
               <Check className="w-3.5 h-3.5" /> Texto da receita copiado para a área de transferência!
             </div>
           )}
+
+          {/* Status da Assinatura Eletrônica & Atalho Direto */}
+          <div className="p-2.5 rounded-xl border bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs">
+            <div className="flex items-center gap-2 min-w-0">
+              <ShieldCheck className={`w-4 h-4 flex-shrink-0 ${perfilMedico.assinatura_base64 ? 'text-teal-600' : 'text-amber-500'}`} />
+              <div className="leading-tight truncate">
+                <span className="font-bold block text-slate-800 dark:text-slate-200 text-[11px] truncate">
+                  {perfilMedico.assinatura_base64 ? 'Assinatura Eletrônica Ativa' : 'Assinatura Pendente'}
+                </span>
+                <span className="text-[10px] text-slate-500 truncate block">
+                  {perfilMedico.assinatura_base64 ? 'Chancela MP 2.200-2/01 inclusa' : 'Carregue imagem ou desenhe sua rubrica'}
+                </span>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={abrirConfiguracaoAssinatura}
+              className="flex-shrink-0 px-2.5 py-1 bg-teal-50 hover:bg-teal-100 dark:bg-teal-950/60 dark:hover:bg-teal-900/60 text-teal-700 dark:text-teal-300 border border-teal-300 dark:border-teal-700 rounded-lg text-[10px] font-bold transition ml-2"
+            >
+              {perfilMedico.assinatura_base64 ? 'Editar' : '🖋️ Assinatura'}
+            </button>
+          </div>
 
           <div className="grid grid-cols-2 gap-2">
             {/* Exportar PDF Direto */}

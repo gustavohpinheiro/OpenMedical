@@ -208,33 +208,33 @@ export const FormularioView: React.FC<FormularioViewProps> = ({
   return (
     <div className="space-y-6">
       {/* Cabeçalho */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
         <div className="flex flex-col xl:flex-row gap-4 xl:items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="p-2.5 bg-teal-500/10 text-teal-400 rounded-xl">
+            <div className="p-2.5 bg-teal-500/10 text-teal-600 dark:text-teal-400 rounded-xl">
               <BookMarked className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-slate-100 flex flex-wrap items-center gap-2">
+              <h2 className="text-base font-bold text-slate-900 dark:text-slate-100 flex flex-wrap items-center gap-2">
                 Formulário Terapêutico Nacional
-                <span className="text-[10px] bg-teal-900/60 text-teal-300 border border-teal-700/60 px-2 py-0.5 rounded-full font-mono font-semibold">
+                <span className="text-[10px] bg-teal-50 dark:bg-teal-900/60 text-teal-800 dark:text-teal-300 border border-teal-300 dark:border-teal-700/60 px-2 py-0.5 rounded-full font-mono font-semibold">
                   {monografias.length} medicamentos
                 </span>
               </h2>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-600 dark:text-slate-400">
                 Posologia oficial do Ministério da Saúde para montar a receita: escolha a apresentação e o esquema.
               </p>
             </div>
           </div>
           <div className="relative w-full xl:w-96">
-            <Search className="w-4 h-4 text-teal-400 absolute left-3 top-2.5" />
+            <Search className="w-4 h-4 text-teal-600 dark:text-teal-400 absolute left-3 top-2.5" />
             <input
               type="text"
               value={termo}
               onChange={(e) => setTermo(e.target.value)}
               placeholder="Buscar medicamento, apresentação ou indicação..."
               aria-label="Buscar no Formulário Terapêutico"
-              className="w-full bg-slate-950 border border-slate-750 rounded-xl pl-9 pr-4 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none"
+              className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-750 rounded-xl pl-9 pr-4 py-2 text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none"
             />
           </div>
         </div>
@@ -251,7 +251,9 @@ export const FormularioView: React.FC<FormularioViewProps> = ({
               onClick={() => setFiltro(opcao.id)}
               aria-pressed={filtro === opcao.id}
               className={`px-3 py-1.5 rounded-xl font-semibold whitespace-nowrap transition-all ${
-                filtro === opcao.id ? 'bg-teal-600 text-white shadow-md' : 'bg-slate-800/80 border border-slate-750 text-slate-300 hover:bg-slate-750'
+                filtro === opcao.id
+                  ? 'bg-teal-600 text-white shadow-md'
+                  : 'bg-slate-100 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-750 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-750'
               }`}
             >
               {opcao.label}
@@ -262,8 +264,8 @@ export const FormularioView: React.FC<FormularioViewProps> = ({
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Lista */}
-        <div className="lg:col-span-4 bg-slate-900 border border-slate-800 rounded-2xl p-3 shadow-xl space-y-1.5 max-h-[420px] lg:max-h-[820px] overflow-y-auto">
-          <div className="px-2 pb-2 border-b border-slate-800 text-[11px] font-bold text-slate-300 uppercase tracking-wider">
+        <div className="lg:col-span-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-3 shadow-xl space-y-1.5 max-h-[420px] lg:max-h-[820px] overflow-y-auto">
+          <div className="px-2 pb-2 border-b border-slate-200 dark:border-slate-800 text-[11px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
             {listaFiltrada.length} encontrado(s)
           </div>
           {listaFiltrada.length === 0 && (
@@ -278,29 +280,29 @@ export const FormularioView: React.FC<FormularioViewProps> = ({
                 onClick={() => selecionarMonografia(m)}
                 className={`w-full text-left p-3 rounded-xl border transition-all ${
                   ativo
-                    ? 'bg-teal-950/60 border-teal-500 ring-1 ring-teal-500/40'
-                    : 'bg-slate-850/60 border-slate-800 hover:bg-slate-800/80 hover:border-slate-700'
+                    ? 'bg-teal-50 dark:bg-teal-950/60 border-teal-500 ring-1 ring-teal-500/40 text-teal-950 dark:text-white shadow-sm'
+                    : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/80 hover:border-teal-500/50 shadow-sm'
                 }`}
               >
-                <div className="text-xs font-bold text-slate-100 leading-snug">{capitalizar(m.nome)}</div>
-                <div className="text-[10px] text-slate-400 line-clamp-1 mt-0.5">{m.apresentacoes.join(' · ')}</div>
+                <div className="text-xs font-bold text-slate-900 dark:text-slate-100 leading-snug">{capitalizar(m.nome)}</div>
+                <div className="text-[10px] text-slate-500 dark:text-slate-400 line-clamp-1 mt-0.5">{m.apresentacoes.join(' · ')}</div>
                 <div className="flex flex-wrap gap-1 mt-1.5">
                   {m.rename_2024.length > 0 ? (
-                    <span className="text-[9px] bg-emerald-950 text-emerald-300 border border-emerald-700/60 px-1.5 py-px rounded font-semibold">
+                    <span className="text-[9px] bg-emerald-50 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700/60 px-1.5 py-px rounded font-semibold">
                       SUS · {componentesSus(m)}
                     </span>
                   ) : (
-                    <span className="text-[9px] bg-slate-800 text-slate-400 border border-slate-700 px-1.5 py-px rounded font-semibold">
+                    <span className="text-[9px] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-slate-700 px-1.5 py-px rounded font-semibold">
                       Fora do SUS
                     </span>
                   )}
                   {temPediatrico && (
-                    <span className="text-[9px] bg-sky-950 text-sky-300 border border-sky-700/60 px-1.5 py-px rounded font-semibold">
+                    <span className="text-[9px] bg-sky-50 dark:bg-sky-950 text-sky-800 dark:text-sky-300 border border-sky-300 dark:border-sky-700/60 px-1.5 py-px rounded font-semibold">
                       Pediátrico mg/kg
                     </span>
                   )}
                   {m.tipo_receituario !== 'Receituário simples' && (
-                    <span className="text-[9px] bg-amber-950 text-amber-300 border border-amber-700/60 px-1.5 py-px rounded font-semibold">
+                    <span className="text-[9px] bg-amber-50 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700/60 px-1.5 py-px rounded font-semibold">
                       Receita especial
                     </span>
                   )}
@@ -316,10 +318,10 @@ export const FormularioView: React.FC<FormularioViewProps> = ({
         {/* Detalhe */}
         {selecionada && (
           <div ref={painelDetalheRef} className="lg:col-span-8 space-y-5 scroll-mt-28">
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl shadow-xl overflow-hidden">
-              <div className="p-5 border-b border-slate-800 space-y-3">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl overflow-hidden">
+              <div className="p-5 border-b border-slate-200 dark:border-slate-800 space-y-3">
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <h2 className="text-xl font-extrabold text-slate-100 leading-tight">{capitalizar(selecionada.nome)}</h2>
+                  <h2 className="text-xl font-extrabold text-slate-900 dark:text-slate-100 leading-tight">{capitalizar(selecionada.nome)}</h2>
                   <button
                     type="button"
                     onClick={() => adicionarMonografiaNaReceitaDigital(selecionada, apresentacao, esquema)}
@@ -334,8 +336,8 @@ export const FormularioView: React.FC<FormularioViewProps> = ({
                   <span
                     className={`px-2 py-0.5 rounded-full border font-semibold ${
                       selecionada.tipo_receituario === 'Receituário simples'
-                        ? 'bg-slate-800 text-slate-300 border-slate-700'
-                        : 'bg-amber-950 text-amber-300 border-amber-700/60'
+                        ? 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700'
+                        : 'bg-amber-50 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-700/60'
                     }`}
                   >
                     {selecionada.tipo_receituario}
@@ -343,24 +345,24 @@ export const FormularioView: React.FC<FormularioViewProps> = ({
                   {selecionada.rename_2024.length > 0 ? (
                     <span
                       title="Princípio ativo na RENAME 2024: as apresentações dispensadas pelo SUS estão na lista de apresentações (RENAME 2024)."
-                      className="px-2 py-0.5 rounded-full border bg-emerald-950 text-emerald-300 border-emerald-700/60 font-semibold"
+                      className="px-2 py-0.5 rounded-full border bg-emerald-50 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700/60 font-semibold"
                     >
                       Disponível no SUS (RENAME 2024 · {componentesSus(selecionada)})
                     </span>
                   ) : (
                     <span
                       title="Não consta da RENAME 2024 (lista ambulatorial). Medicamentos de uso hospitalar ou oncológico podem ser fornecidos por outras vias do SUS."
-                      className="px-2 py-0.5 rounded-full border bg-slate-800 text-slate-300 border-slate-700"
+                      className="px-2 py-0.5 rounded-full border bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700"
                     >
                       Fora do SUS ambulatorial (não está na RENAME 2024)
                     </span>
                   )}
-                  <span className="px-2 py-0.5 rounded-full border bg-slate-800 text-slate-400 border-slate-700 font-mono">
+                  <span className="px-2 py-0.5 rounded-full border bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-300 dark:border-slate-700 font-mono">
                     FTN 2010 · p. {selecionada.pagina}
                   </span>
                 </div>
-                <div className="text-xs text-slate-300">
-                  <span className="font-semibold text-slate-400">Apresentações: </span>
+                <div className="text-xs text-slate-700 dark:text-slate-300">
+                  <span className="font-semibold text-slate-500 dark:text-slate-400">Apresentações: </span>
                   {selecionada.apresentacoes.join(' · ') || 'não informadas no FTN'}
                 </div>
                 <PcdtsDoFarmaco
@@ -371,7 +373,7 @@ export const FormularioView: React.FC<FormularioViewProps> = ({
               </div>
 
               {/* Abas */}
-              <div className="flex border-b border-slate-800 px-3 overflow-x-auto scrollbar-none">
+              <div className="flex border-b border-slate-200 dark:border-slate-800 px-3 overflow-x-auto scrollbar-none">
                 {(
                   [
                     { id: 'posologia', label: 'Posologia & Receita', icone: Stethoscope },
@@ -414,16 +416,16 @@ export const FormularioView: React.FC<FormularioViewProps> = ({
                           return (
                             <div
                               key={indice}
-                              className={`p-3 rounded-xl border text-xs space-y-2 ${
-                                ativo ? 'bg-teal-950/50 border-teal-600/70' : 'bg-slate-950/60 border-slate-800'
+                              className={`p-3 rounded-xl border text-xs space-y-2 transition-all ${
+                                ativo ? 'bg-teal-50 dark:bg-teal-950/50 border-teal-500 dark:border-teal-600/70 ring-1 ring-teal-500/30' : 'bg-slate-50 dark:bg-slate-950/60 border-slate-200 dark:border-slate-800'
                               }`}
                             >
-                              {item.indicacao && <div className="font-semibold text-slate-200">{item.indicacao}</div>}
-                              <p className="text-slate-300 leading-relaxed">{item.texto}</p>
+                              {item.indicacao && <div className="font-semibold text-slate-900 dark:text-slate-100">{item.indicacao}</div>}
+                              <p className="text-slate-700 dark:text-slate-300 leading-relaxed">{item.texto}</p>
                               <div className="flex flex-wrap gap-2">
                                 <button
                                   onClick={() => usarEsquema(item)}
-                                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold"
+                                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 font-semibold"
                                   title="Preencher no campo de texto abaixo"
                                 >
                                   <ClipboardCopy className="w-3.5 h-3.5" />
@@ -504,7 +506,7 @@ export const FormularioView: React.FC<FormularioViewProps> = ({
             </div>
 
             {/* Montador de receita */}
-            <div ref={painelReceitaRef} className="bg-slate-950 border-2 border-teal-800/60 rounded-2xl p-5 space-y-3 shadow-inner scroll-mt-28">
+            <div ref={painelReceitaRef} className="bg-slate-50 dark:bg-slate-950 border-2 border-teal-500/40 dark:border-teal-800/60 rounded-2xl p-5 space-y-3 shadow-inner scroll-mt-28">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-2 text-teal-400 text-xs font-bold uppercase tracking-wider">
                   <Pill className="w-4 h-4" /> Receita pronta para o prontuário

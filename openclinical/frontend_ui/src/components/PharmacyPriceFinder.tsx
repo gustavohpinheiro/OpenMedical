@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { AlertCircle, Check, Copy, ExternalLink, Info, Pill, Search, ShieldCheck, Store } from 'lucide-react';
+import { AlertCircle, Check, Copy, ExternalLink, Info, Pill, Search, ShieldCheck, Store, Plus } from 'lucide-react';
 import type { AnalisePrecoMedicamento, ApresentacaoCmedResumo } from '../types';
 import { analisarPrecoMedicamento, buscarApresentacoesPreco, isTauri } from '../api';
 import { LinkMedicamento } from './LinkMedicamento';
+import { adicionarItemPrescricaoModular } from '../storage_clinico';
+import { classificarTipoReceituario } from '../clinical_auditor';
 
 interface PharmacyPriceFinderProps {
   /** Nome para pesquisar ou id_cmed de uma apresentação já escolhida */
@@ -94,6 +96,28 @@ export const PharmacyPriceFinder: React.FC<PharmacyPriceFinderProps> = ({ medica
       .catch(() => window.alert('Não foi possível copiar. Selecione o texto manualmente.'));
   };
 
+  const adicionarReceitaDigital = () => {
+    if (!analise) return;
+    const tipoRec = classificarTipoReceituario(analise.substancia);
+    adicionarItemPrescricaoModular(
+      'medicamento',
+      `${analise.nome_comercial} (${analise.substancia})`,
+      `Uso Oral: Tomar 1 unidade conforme prescrição médica.\nApresentação: ${analise.apresentacao}`,
+      {
+        id: `cmed_${idSelecionado || Date.now()}`,
+        nome_medicamento: analise.nome_comercial,
+        principio_ativo: analise.substancia,
+        apresentacao: analise.apresentacao,
+        posologia: 'Tomar 1 unidade conforme orientação médica.',
+        quantidade_embalagens: 1,
+        via_administracao: 'oral',
+        tipo_receituario: tipoRec,
+        preco_pmc: analise.preco_pmc_teto ?? 0,
+      },
+      `CMED / Farmácia Popular (${analise.substancia})`
+    );
+  };
+
   return (
     <div className="space-y-6">
       {/* Cabeçalho e busca */}
@@ -166,12 +190,12 @@ export const PharmacyPriceFinder: React.FC<PharmacyPriceFinderProps> = ({ medica
               onClick={() => setIdSelecionado(item.id_cmed)}
               className={`w-full text-left p-3 rounded-xl border transition-all ${
                 idSelecionado === item.id_cmed
-                  ? 'bg-emerald-950/50 border-emerald-500 ring-1 ring-emerald-500/40'
-                  : 'bg-slate-850/60 border-slate-800 hover:bg-slate-800/80'
+                  ? 'bg-teal-50 dark:bg-emerald-950/50 border-teal-500 ring-1 ring-teal-500/40 text-teal-950 dark:text-white shadow-sm'
+                  : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/80 shadow-sm'
               }`}
             >
-              <div className="text-xs font-bold text-slate-100 leading-snug">{item.titulo}</div>
-              <div className="text-[10px] text-slate-400 mt-0.5 line-clamp-2">{item.subtitulo}</div>
+              <div className="text-xs font-bold text-slate-900 dark:text-slate-100 leading-snug">{item.titulo}</div>
+              <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-2">{item.subtitulo}</div>
             </button>
           ))}
         </div>
@@ -204,13 +228,23 @@ export const PharmacyPriceFinder: React.FC<PharmacyPriceFinderProps> = ({ medica
                       <LinkMedicamento nome={analise.substancia} /> &bull; {analise.apresentacao}
                     </p>
                   </div>
-                  <button
-                    onClick={copiarParaPaciente}
-                    className="flex items-center justify-center gap-2 px-3 py-2 bg-slate-800 hover:bg-slate-750 border border-slate-700 rounded-xl text-xs font-bold text-slate-200 flex-shrink-0"
-                  >
-                    {copiado ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
-                    {copiado ? 'Copiado!' : 'Copiar para o paciente'}
-                  </button>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <button
+                      onClick={adicionarReceitaDigital}
+                      className="flex items-center justify-center gap-1.5 px-3 py-2 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white rounded-xl text-xs font-bold shadow-md shadow-teal-950/40 transition"
+                      title="Adicionar à Receita Digital"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>+ Receita Digital</span>
+                    </button>
+                    <button
+                      onClick={copiarParaPaciente}
+                      className="flex items-center justify-center gap-2 px-3 py-2 bg-slate-800 hover:bg-slate-750 border border-slate-700 rounded-xl text-xs font-bold text-slate-200"
+                    >
+                      {copiado ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                      {copiado ? 'Copiado!' : 'Copiar para o paciente'}
+                    </button>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">

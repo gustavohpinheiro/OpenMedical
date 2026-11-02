@@ -94,30 +94,30 @@ export const GRUPOS_NAVEGACAO: GrupoNavegacao[] = [
     itens: [
       {
         id: 'formulario',
-        label: 'Medicamentos & Receitas',
+        label: 'Medicamentos & FTN',
         icon: BookMarked,
-        badge: 'FTN · 346',
+        badge: 'FTN 346',
         descricao: 'Monografias oficiais do Ministério da Saúde',
       },
       {
         id: 'medicamentos',
         label: 'Bulas Estruturadas',
         icon: Pill,
-        badge: '10 DCB',
+        badge: 'DCB',
         descricao: 'Posologias adulto/pediátrica e ajuste renal',
       },
       {
         id: 'precos',
-        label: 'Preço & Farmácia Popular',
+        label: 'Preços & Farmácia Popular',
         icon: Store,
-        badge: 'PMC · SUS',
+        badge: 'SUS · PMC',
         descricao: 'Preço máximo ao consumidor e gratuidade SUS',
       },
       {
         id: 'pcdt',
-        label: 'Bases Públicas & LME',
+        label: 'Bases Públicas & PCDT',
         icon: FileCheck,
-        badge: 'CMED · PCDT',
+        badge: 'PCDT',
         descricao: 'Dados abertos ANVISA, PCDT CONITEC e LME',
       },
     ],
@@ -128,30 +128,30 @@ export const GRUPOS_NAVEGACAO: GrupoNavegacao[] = [
     itens: [
       {
         id: 'prontuario',
-        label: 'Prontuário & Paciente',
+        label: 'Prontuário do Paciente',
         icon: FileSpreadsheet,
-        badge: 'Histórico · Evolução',
+        badge: 'Histórico',
         descricao: 'Ficha do paciente, histórico de receitas e laudos',
       },
       {
         id: 'protocolos',
         label: 'Receitas & Diretrizes',
         icon: BookOpen,
-        badge: 'SUS · NICE · 62',
+        badge: 'NICE/SUS',
         descricao: 'PCDT SUS e diretrizes internacionais (NICE, CDC, OMS)',
       },
       {
         id: 'prescricao',
-        label: 'Cesta Modular & Receita PDF',
+        label: 'Receita Digital',
         icon: FileText,
-        badge: 'Port. 344 · RDC',
-        descricao: 'Peças modulares, separação em 2 vias, templates e PDF',
+        badge: 'Port. 344',
+        descricao: 'Prescrição inteligente, particionamento legal em 2 vias e PDF',
       },
       {
         id: 'guia_antimicrobiano',
-        label: 'Guia Antimicrobiano & CCIH',
+        label: 'Guia Antimicrobianos',
         icon: Stethoscope,
-        badge: '15 ATBs · IV→VO',
+        badge: 'CCIH',
         descricao: 'Terapia empírica, espectro bacteriano e switch IV→VO',
       },
     ],
@@ -171,28 +171,28 @@ export const GRUPOS_NAVEGACAO: GrupoNavegacao[] = [
         id: 'testes_rapidos',
         label: 'Testes de Consultório',
         icon: Brain,
-        badge: 'MEEM · PHQ-9 · AVC',
+        badge: 'Escalas',
         descricao: 'Escalas cognitivas, depressão, ansiedade e laudo PDF',
       },
       {
         id: 'pediatria',
-        label: 'Calculadora Pediátrica',
+        label: 'Dose Pediátrica',
         icon: Baby,
-        badge: 'Teto de dose',
+        badge: 'mg/kg',
         descricao: 'Cálculo mg/kg com corte de segurança e apresentações',
       },
       {
         id: 'interacoes',
         label: 'Interações & Radar 5G',
         icon: ShieldAlert,
-        badge: 'Whammy · CPIC',
+        badge: 'Radar 5G',
         descricao: 'Cascata iatrogênica, risco QTc e farmacogenômica',
       },
       {
         id: 'calculadoras',
-        label: 'Escores & Sala Vermelha',
+        label: 'Escores & Emergência',
         icon: Calculator,
-        badge: 'ISR · Gaso · UTI',
+        badge: 'Escores',
         descricao: 'Gasometria, Parkland, SOFA, Wells e CKD-EPI',
       },
     ],
@@ -205,6 +205,7 @@ export const App: React.FC = () => {
   const modoNativo = isTauri();
   const [buscaAberta, setBuscaAberta] = useState(false);
   const [modalMedicoAberto, setModalMedicoAberto] = useState(false);
+  const [modalMedicoAbaInicial, setModalMedicoAbaInicial] = useState<'dados' | 'assinatura' | 'receita'>('dados');
   const [modalBackupAberto, setModalBackupAberto] = useState(false);
   const [perfilMedico, setPerfilMedico] = useState<PerfilMedico>(obterPerfilMedicoAtivo());
   const [termoBuscaInicial, setTermoBuscaInicial] = useState<string | undefined>(undefined);
@@ -217,7 +218,21 @@ export const App: React.FC = () => {
     aplicarTema(temaAtual);
     const handleTema = (e: any) => setTemaAtual(e.detail);
     window.addEventListener('openclinical_tema_alterado', handleTema);
-    return () => window.removeEventListener('openclinical_tema_alterado', handleTema);
+
+    const handleAbrirModalMedico = (e: any) => {
+      if (e.detail?.aba) {
+        setModalMedicoAbaInicial(e.detail.aba);
+      } else {
+        setModalMedicoAbaInicial('dados');
+      }
+      setModalMedicoAberto(true);
+    };
+    window.addEventListener('openclinical_abrir_modal_medico', handleAbrirModalMedico);
+
+    return () => {
+      window.removeEventListener('openclinical_tema_alterado', handleTema);
+      window.removeEventListener('openclinical_abrir_modal_medico', handleAbrirModalMedico);
+    };
   }, []);
 
   const toggleTema = () => {
@@ -584,7 +599,7 @@ export const App: React.FC = () => {
           {/* SIDEBAR DESKTOP (COLLAPSIBLE) */}
           <aside
             className={`hidden lg:flex flex-col border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-[#080e1a] sticky top-[57px] h-[calc(100vh-57px)] transition-all duration-300 flex-shrink-0 z-20 ${
-              sidebarColapsada ? 'w-16' : 'w-72'
+              sidebarColapsada ? 'w-16' : 'w-80'
             }`}
           >
             <div className="flex-1 overflow-y-auto py-2.5 space-y-4 scrollbar-none">
@@ -608,17 +623,19 @@ export const App: React.FC = () => {
                             className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-all text-left ${
                               ativo
                                 ? 'bg-gradient-to-r from-teal-600 to-emerald-600 text-white shadow-md shadow-teal-950/40 ring-1 ring-white/20'
-                                : 'text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/70 border border-transparent'
+                                : 'text-slate-800 dark:text-slate-200 hover:text-slate-950 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/70 border border-transparent'
                             }`}
                             title={item.descricao}
                           >
-                            <div className="flex items-center space-x-2.5 truncate">
+                            <div className="flex items-center space-x-2.5 min-w-0 flex-1 mr-2">
                               <Icone className={`w-4 h-4 flex-shrink-0 ${ativo ? 'text-white' : 'text-teal-600 dark:text-teal-400'}`} />
                               <span className="truncate">{item.label}</span>
                             </div>
                             <span
-                              className={`text-[9px] px-1.5 py-0.5 rounded-md font-mono flex-shrink-0 ml-1 border ${
-                                ativo ? 'bg-black/20 text-teal-100 border-white/20' : 'bg-slate-100 dark:bg-slate-800/90 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700/60'
+                              className={`text-[9px] px-1.5 py-0.5 rounded-md font-mono flex-shrink-0 border ${
+                                ativo
+                                  ? 'bg-white/20 text-white border-white/30 font-bold'
+                                  : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700 font-semibold'
                               }`}
                             >
                               {item.badge}
@@ -709,16 +726,18 @@ export const App: React.FC = () => {
                               className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all text-left ${
                                 ativo
                                   ? 'bg-gradient-to-r from-teal-600 to-emerald-600 text-white shadow-md shadow-teal-950/40'
-                                  : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/80'
+                                  : 'text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/80'
                               }`}
                             >
-                              <div className="flex items-center space-x-2.5 truncate">
+                              <div className="flex items-center space-x-2.5 min-w-0 flex-1 mr-2">
                                 <Icone className={`w-4 h-4 flex-shrink-0 ${ativo ? 'text-white' : 'text-teal-600 dark:text-teal-400'}`} />
                                 <span className="truncate">{item.label}</span>
                               </div>
                               <span
-                                className={`text-[9px] px-1.5 py-0.5 rounded-md font-mono border ${
-                                  ativo ? 'bg-black/20 text-teal-100 border-white/20' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700/60'
+                                className={`text-[9px] px-1.5 py-0.5 rounded-md font-mono flex-shrink-0 border ${
+                                  ativo
+                                    ? 'bg-white/20 text-white border-white/30 font-bold'
+                                    : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700 font-semibold'
                                 }`}
                               >
                                 {item.badge}
@@ -848,6 +867,7 @@ export const App: React.FC = () => {
         {/* Modal de Gestão e Identificação do Médico Prescritor */}
         <DoctorProfileModal
           isOpen={modalMedicoAberto}
+          abaInicial={modalMedicoAbaInicial}
           onClose={() => setModalMedicoAberto(false)}
           perfil={perfilMedico}
           onPerfilSalvo={(novo) => {

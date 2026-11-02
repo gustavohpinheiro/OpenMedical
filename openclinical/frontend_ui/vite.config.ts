@@ -26,6 +26,7 @@ export default defineConfig({
   plugins: [react(), manifestoPrecache()],
   clearScreen: false,
   server: {
+    host: true,
     port: 5173,
     strictPort: true,
   },
