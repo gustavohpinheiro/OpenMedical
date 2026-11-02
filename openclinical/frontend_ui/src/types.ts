@@ -754,6 +754,11 @@ export interface PerfilMedico {
   mostrar_qr_code?: boolean;
   mostrar_linha_assinatura?: boolean;
   texto_rodape_customizado?: string;
+  ocultar_logo_padrao?: boolean;
+  ocultar_papel_timbrado_padrao?: boolean;
+  usar_assinatura_eletronica?: boolean;
+  texto_assinatura_eletronica?: string;
+  hash_assinatura_eletronica?: string;
 }
 
 export interface ReceitaSalva {

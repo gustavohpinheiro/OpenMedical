@@ -36,6 +36,7 @@ import { RapidClinicTestsView } from './components/RapidClinicTestsView';
 import { SymptomDiagnosticoView } from './components/SymptomDiagnosticoView';
 import { DataBackupModal } from './components/DataBackupModal';
 import { DoctorProfileModal } from './components/DoctorProfileModal';
+import { OpenClinicalLogo } from './components/OpenClinicalLogo';
 import { PatientSelectorBar } from './components/PatientSelectorBar';
 import { AntimicrobialGuideView } from './components/AntimicrobialGuideView';
 import { obterPerfilMedicoAtivo, salvarPerfilMedicoAtivo } from './storage_clinico';
@@ -488,22 +489,7 @@ export const App: React.FC = () => {
               {sidebarColapsada ? <PanelLeft className="w-4 h-4 text-teal-400" /> : <PanelLeftClose className="w-4 h-4 text-slate-400" />}
             </button>
 
-            <div className="flex items-center space-x-3">
-              <div className="w-9 h-9 bg-gradient-to-tr from-teal-500 via-emerald-500 to-cyan-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-teal-950/60 ring-1 ring-white/20">
-                <HeartPulse className="w-4 h-4" />
-              </div>
-              <div>
-                <div className="flex items-center gap-1.5">
-                  <span className="text-base font-black tracking-tight text-slate-900 dark:text-white font-sans">OpenClinical</span>
-                  <span className="text-[9px] font-extrabold bg-gradient-to-r from-teal-900 to-emerald-900 text-teal-300 border border-teal-600/50 px-1.5 py-0.5 rounded-full uppercase tracking-wider">
-                    Point-of-Care
-                  </span>
-                </div>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium hidden sm:block">
-                  Suporte Clínico Determinístico &bull; SUS &bull; ANVISA &bull; RENAME
-                </p>
-              </div>
-            </div>
+            <OpenClinicalLogo variant="full" size="md" />
           </div>
 
           {/* Barra Central de Busca Rápida (Ctrl+K) */}
@@ -696,10 +682,7 @@ export const App: React.FC = () => {
               />
               <aside className="relative w-72 max-w-[85vw] bg-[#09101d] border-r border-slate-800 h-full flex flex-col z-10 shadow-2xl overflow-y-auto">
                 <div className="p-4 bg-slate-950 border-b border-slate-800 flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <HeartPulse className="w-5 h-5 text-teal-400" />
-                    <span className="font-bold text-sm text-white">Módulos Clínicos</span>
-                  </div>
+                  <OpenClinicalLogo variant="compact" size="sm" />
                   <button
                     onClick={() => setSidebarMobileAberta(false)}
                     className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"

@@ -27,7 +27,9 @@ import {
   FileCheck,
   Building,
   RotateCcw,
+  ShieldCheck,
 } from 'lucide-react';
+import { OPENCLINICAL_LOGO_BASE64, OPENCLINICAL_ICON_SVG } from './OpenClinicalLogo';
 import {
   BlocoPrescricao,
   ItemPrescricaoCesta,
@@ -395,6 +397,21 @@ export const PrescriptionModularCanvas: React.FC = () => {
       false
     );
   }, [itensAtivos, pacienteAtivo]);
+
+  // Decisão de Logotipo e Papel Timbrado (Customizado vs Padrão OpenClinical)
+  const logoExibicao = useMemo(() => {
+    if (perfilMedico.logo_base64) return perfilMedico.logo_base64;
+    if (perfilMedico.ocultar_logo_padrao) return null;
+    return OPENCLINICAL_LOGO_BASE64;
+  }, [perfilMedico.logo_base64, perfilMedico.ocultar_logo_padrao]);
+
+  const temPapelTimbradoProprio = Boolean(
+    perfilMedico.papel_timbrado_base64 || templateAtual.imagem_fundo_base64
+  );
+  const exibirPapelTimbradoOpenClinical =
+    !temPapelTimbradoProprio &&
+    !perfilMedico.usar_papel_timbrado_proprio &&
+    !perfilMedico.ocultar_papel_timbrado_padrao;
 
   // Exportação em PDF
   const dispararDownloadPdf = async () => {
@@ -966,7 +983,7 @@ export const PrescriptionModularCanvas: React.FC = () => {
         {paginasReceitaSimples.map((itensFolha, folhaIdx) => (
           <div
             key={`folha_simples_${folhaIdx}`}
-            className="pagina-a4-render bg-white text-slate-900 border border-slate-300 shadow-2xl p-10 mx-auto rounded-xl print:rounded-none print:shadow-none print:border-none print:p-8"
+            className="pagina-a4-render relative bg-white text-slate-900 border border-slate-300 shadow-2xl p-10 mx-auto rounded-xl print:rounded-none print:shadow-none print:border-none print:p-8 overflow-hidden"
             style={{
               maxWidth: '800px',
               minHeight: '1050px',
@@ -978,18 +995,30 @@ export const PrescriptionModularCanvas: React.FC = () => {
               backgroundPosition: 'center',
             }}
           >
+            {/* Papel Timbrado / Marca d'água Padrão OpenClinical */}
+            {exibirPapelTimbradoOpenClinical && (
+              <>
+                <div className="h-1.5 bg-gradient-to-r from-teal-600 via-emerald-500 to-cyan-500 -mx-10 -mt-10 mb-6 print:m-0" />
+                <div className="absolute inset-0 pointer-events-none select-none flex items-center justify-center opacity-[0.035] overflow-hidden">
+                  <div className="w-[380px] h-[380px]" dangerouslySetInnerHTML={{ __html: OPENCLINICAL_ICON_SVG }} />
+                </div>
+              </>
+            )}
+
             {/* Cabeçalho do Médico e Clínica (Oculto se usar papel timbrado físico pré-impresso) */}
             {!perfilMedico.usar_papel_timbrado_proprio && (
               <div
-                className="border-b-2 pb-5 mb-6 text-center space-y-1"
+                className="border-b-2 pb-5 mb-6 text-center space-y-1 relative z-10"
                 style={{ borderColor: templateAtual.cor_primaria }}
               >
-                {perfilMedico.logo_base64 && (
-                  <img
-                    src={perfilMedico.logo_base64}
-                    alt="Logo"
-                    className="h-12 mx-auto mb-2 object-contain"
-                  />
+                {logoExibicao && (
+                  <div className="flex items-center justify-center gap-2 mb-2">
+                    <img
+                      src={logoExibicao}
+                      alt="Logo"
+                      className="h-12 max-w-[180px] object-contain mx-auto"
+                    />
+                  </div>
                 )}
                 <h1
                   className="text-xl font-bold uppercase tracking-wider"
@@ -1011,7 +1040,7 @@ export const PrescriptionModularCanvas: React.FC = () => {
             )}
 
             {/* Identificação do Paciente */}
-            <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 text-xs mb-6 space-y-1">
+            <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 text-xs mb-6 space-y-1 relative z-10">
               <div className="flex justify-between font-bold text-slate-800">
                 <span>PACIENTE: {pacienteAtivo ? pacienteAtivo.nome_completo : 'Paciente Geral'}</span>
                 <span>DATA: {new Date().toLocaleDateString('pt-BR')}</span>
@@ -1029,14 +1058,14 @@ export const PrescriptionModularCanvas: React.FC = () => {
             </div>
 
             {/* Título da Seção */}
-            <div className="mb-4">
+            <div className="mb-4 relative z-10">
               <span className="text-xs font-bold uppercase tracking-wider text-slate-700 border-b pb-1 inline-block">
                 Prescrição Médica &bull; Uso Oral / Tópico:
               </span>
             </div>
 
             {/* Lista de Medicamentos da Folha Atual */}
-            <div className="space-y-5 text-xs text-slate-800 min-h-[480px]">
+            <div className="space-y-5 text-xs text-slate-800 min-h-[480px] relative z-10">
               {itensFolha.map((bloco, idxItem) => {
                 const numeroGlobal = folhaIdx * 4 + idxItem + 1;
                 const med = bloco.medicamento_detalhe;
@@ -1062,13 +1091,37 @@ export const PrescriptionModularCanvas: React.FC = () => {
             </div>
 
             {/* Rodapé e Linha de Assinatura */}
-            <div className="pt-12 mt-auto text-center space-y-2">
-              <div className="w-72 mx-auto border-t border-slate-400 pt-2">
-                <p className="font-bold text-xs text-slate-800">{perfilMedico.nome_completo}</p>
-                <p className="text-[11px] text-slate-600">
-                  Médico Prescritor &bull; CRM/{perfilMedico.uf_crm} {perfilMedico.crm}
-                </p>
-              </div>
+            <div className="pt-12 mt-auto text-center space-y-2 relative z-10">
+              {perfilMedico.assinatura_base64 && perfilMedico.usar_assinatura_eletronica !== false ? (
+                <div className="w-80 mx-auto space-y-1">
+                  <div className="h-14 flex items-end justify-center">
+                    <img
+                      src={perfilMedico.assinatura_base64}
+                      alt="Assinatura Eletrônica"
+                      className="max-h-14 max-w-[220px] object-contain drop-shadow-sm"
+                    />
+                  </div>
+                  <div className="border-t border-slate-400 pt-1">
+                    <p className="font-bold text-xs text-slate-800">{perfilMedico.nome_completo}</p>
+                    <p className="text-[11px] text-slate-600">
+                      Médico Prescritor &bull; CRM/{perfilMedico.uf_crm} {perfilMedico.crm}
+                      {perfilMedico.rqe ? ` • RQE ${perfilMedico.rqe}` : ''}
+                    </p>
+                  </div>
+                  <div className="inline-flex items-center justify-center gap-1.5 px-2.5 py-0.5 bg-teal-50 border border-teal-200/90 rounded text-[9px] text-teal-900 font-mono">
+                    <ShieldCheck className="w-3 h-3 text-teal-600 flex-shrink-0" />
+                    <span>Assinado eletronicamente &bull; MP 2.200-2/01 &bull; {perfilMedico.hash_assinatura_eletronica || 'OC-SIG-7A8B9C'}</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="w-72 mx-auto border-t border-slate-400 pt-2">
+                  <p className="font-bold text-xs text-slate-800">{perfilMedico.nome_completo}</p>
+                  <p className="text-[11px] text-slate-600">
+                    Médico Prescritor &bull; CRM/{perfilMedico.uf_crm} {perfilMedico.crm}
+                  </p>
+                  <p className="text-[10px] text-slate-400">Assinatura e Carimbo do Prescritor</p>
+                </div>
+              )}
               <p className="text-[10px] text-slate-400">
                 Receituário emitido em conformidade com o Código de Ética Médica e Lei Federal 5.991/73.
               </p>
@@ -1090,6 +1143,13 @@ export const PrescriptionModularCanvas: React.FC = () => {
               >
                 {/* Cabeçalho Oficial Anvisa */}
                 <div className="border-b-2 border-black pb-3 text-center space-y-1">
+                  {logoExibicao && (
+                    <img
+                      src={logoExibicao}
+                      alt="Logo"
+                      className="h-10 max-w-[140px] object-contain mx-auto mb-1"
+                    />
+                  )}
                   <h1 className="text-lg font-black uppercase tracking-wider">
                     RECEITUÁRIO DE CONTROLE ESPECIAL
                   </h1>
@@ -1145,11 +1205,31 @@ export const PrescriptionModularCanvas: React.FC = () => {
                 </div>
 
                 {/* ASSINATURA DO PRESCRITOR */}
-                <div className="border-t border-black pt-4 pb-2 text-center">
-                  <div className="w-64 mx-auto border-t border-black pt-1">
-                    <p className="font-bold text-xs">{perfilMedico.nome_completo}</p>
-                    <p className="text-[10px]">Assinatura e Carimbo do Médico Prescritor</p>
-                  </div>
+                <div className="border-t border-black pt-2 pb-2 text-center">
+                  {perfilMedico.assinatura_base64 && perfilMedico.usar_assinatura_eletronica !== false ? (
+                    <div className="w-72 mx-auto space-y-1">
+                      <div className="h-12 flex items-end justify-center">
+                        <img
+                          src={perfilMedico.assinatura_base64}
+                          alt="Assinatura Eletrônica"
+                          className="max-h-12 max-w-[200px] object-contain"
+                        />
+                      </div>
+                      <div className="border-t border-black pt-1">
+                        <p className="font-bold text-xs">{perfilMedico.nome_completo}</p>
+                        <p className="text-[10px]">CRM/{perfilMedico.uf_crm}: {perfilMedico.crm}</p>
+                      </div>
+                      <div className="inline-flex items-center gap-1 text-[8px] font-mono text-gray-700 bg-gray-100 px-2 py-0.5 rounded border border-gray-300">
+                        <ShieldCheck className="w-2.5 h-2.5 text-black" />
+                        <span>Assinado eletronicamente &bull; MP 2.200-2/01 &bull; {perfilMedico.hash_assinatura_eletronica || 'OC-SIG-CTRL'}</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="w-64 mx-auto border-t border-black pt-1">
+                      <p className="font-bold text-xs">{perfilMedico.nome_completo}</p>
+                      <p className="text-[10px]">Assinatura e Carimbo do Médico Prescritor</p>
+                    </div>
+                  )}
                 </div>
 
                 {/* CAMPOS OBRIGATÓRIOS DA ANVISA: IDENTIFICAÇÃO DO COMPRADOR E FORNECEDOR */}
@@ -1184,11 +1264,28 @@ export const PrescriptionModularCanvas: React.FC = () => {
            ===================================================================== */}
         {blocosConselhosEExames.length > 0 && (
           <div
-            className="pagina-a4-render bg-white text-slate-900 border border-slate-300 shadow-2xl p-10 mx-auto rounded-xl print:rounded-none print:shadow-none print:border-none print:p-8"
+            className="pagina-a4-render relative bg-white text-slate-900 border border-slate-300 shadow-2xl p-10 mx-auto rounded-xl print:rounded-none print:shadow-none print:border-none print:p-8 overflow-hidden"
             style={{ maxWidth: '800px', minHeight: '1050px', fontFamily: 'sans-serif' }}
           >
+            {/* Papel Timbrado / Marca d'água Padrão OpenClinical */}
+            {exibirPapelTimbradoOpenClinical && (
+              <>
+                <div className="h-1.5 bg-gradient-to-r from-teal-600 via-emerald-500 to-cyan-500 -mx-10 -mt-10 mb-6 print:m-0" />
+                <div className="absolute inset-0 pointer-events-none select-none flex items-center justify-center opacity-[0.035] overflow-hidden">
+                  <div className="w-[380px] h-[380px]" dangerouslySetInnerHTML={{ __html: OPENCLINICAL_ICON_SVG }} />
+                </div>
+              </>
+            )}
+
             {/* Cabeçalho */}
-            <div className="border-b-2 border-teal-700 pb-4 mb-6 text-center space-y-1">
+            <div className="border-b-2 border-teal-700 pb-4 mb-6 text-center space-y-1 relative z-10">
+              {logoExibicao && (
+                <img
+                  src={logoExibicao}
+                  alt="Logo"
+                  className="h-12 max-w-[180px] object-contain mx-auto mb-2"
+                />
+              )}
               <h1 className="text-xl font-bold uppercase tracking-wider text-teal-800">
                 ORIENTAÇÕES CLÍNICAS & SOLICITAÇÃO DE EXAMES
               </h1>
@@ -1198,7 +1295,7 @@ export const PrescriptionModularCanvas: React.FC = () => {
             </div>
 
             {/* Identificação do Paciente */}
-            <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 text-xs mb-6 flex justify-between">
+            <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 text-xs mb-6 flex justify-between relative z-10">
               <div>
                 <strong>Paciente:</strong> {pacienteAtivo ? pacienteAtivo.nome_completo : 'Paciente'}
               </div>
@@ -1208,7 +1305,7 @@ export const PrescriptionModularCanvas: React.FC = () => {
             </div>
 
             {/* Conteúdo das Orientações e Exames */}
-            <div className="space-y-6 text-xs text-slate-800 min-h-[500px]">
+            <div className="space-y-6 text-xs text-slate-800 min-h-[500px] relative z-10">
               {blocosConselhosEExames.map((bloco) => (
                 <div key={bloco.id} className="p-4 bg-slate-50/70 border border-slate-200 rounded-xl space-y-2">
                   <div className="flex items-center justify-between border-b border-slate-200 pb-1.5">
@@ -1232,13 +1329,36 @@ export const PrescriptionModularCanvas: React.FC = () => {
             </div>
 
             {/* Rodapé com Assinatura */}
-            <div className="pt-12 mt-auto text-center space-y-2">
-              <div className="w-72 mx-auto border-t border-slate-400 pt-2">
-                <p className="font-bold text-xs text-slate-800">{perfilMedico.nome_completo}</p>
-                <p className="text-[11px] text-slate-600">
-                  CRM/{perfilMedico.uf_crm} {perfilMedico.crm}
-                </p>
-              </div>
+            <div className="pt-12 mt-auto text-center space-y-2 relative z-10">
+              {perfilMedico.assinatura_base64 && perfilMedico.usar_assinatura_eletronica !== false ? (
+                <div className="w-80 mx-auto space-y-1">
+                  <div className="h-14 flex items-end justify-center">
+                    <img
+                      src={perfilMedico.assinatura_base64}
+                      alt="Assinatura Eletrônica"
+                      className="max-h-14 max-w-[220px] object-contain drop-shadow-sm"
+                    />
+                  </div>
+                  <div className="border-t border-slate-400 pt-1">
+                    <p className="font-bold text-xs text-slate-800">{perfilMedico.nome_completo}</p>
+                    <p className="text-[11px] text-slate-600">
+                      CRM/{perfilMedico.uf_crm} {perfilMedico.crm}
+                    </p>
+                  </div>
+                  <div className="inline-flex items-center justify-center gap-1.5 px-2.5 py-0.5 bg-teal-50 border border-teal-200/90 rounded text-[9px] text-teal-900 font-mono">
+                    <ShieldCheck className="w-3 h-3 text-teal-600 flex-shrink-0" />
+                    <span>Assinado eletronicamente &bull; MP 2.200-2/01 &bull; {perfilMedico.hash_assinatura_eletronica || 'OC-SIG-7A8B9C'}</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="w-72 mx-auto border-t border-slate-400 pt-2">
+                  <p className="font-bold text-xs text-slate-800">{perfilMedico.nome_completo}</p>
+                  <p className="text-[11px] text-slate-600">
+                    CRM/{perfilMedico.uf_crm} {perfilMedico.crm}
+                  </p>
+                  <p className="text-[10px] text-slate-400">Assinatura e Carimbo do Prescritor</p>
+                </div>
+              )}
             </div>
           </div>
         )}

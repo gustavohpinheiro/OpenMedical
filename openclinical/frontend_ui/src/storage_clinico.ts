@@ -41,6 +41,13 @@ export const PERFIL_MEDICO_PADRAO: PerfilMedico = {
   telefone_consultorio: '(11) 3254-8900 / (11) 99876-5432',
   email_contato: 'contato@drpaulomedeiros.med.br',
   usar_papel_timbrado_proprio: false,
+  ocultar_logo_padrao: false,
+  ocultar_papel_timbrado_padrao: false,
+  usar_assinatura_eletronica: true,
+  tamanho_papel_receita: 'A4',
+  estilo_receita: 'moderno',
+  mostrar_qr_code: true,
+  mostrar_linha_assinatura: true,
 };
 
 export const PACIENTES_PADRAO: Paciente[] = [

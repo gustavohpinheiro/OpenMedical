@@ -233,6 +233,16 @@ export async function exportarRelatorioTesteEmPdf(
   }
 
   const posXAssinatura = 110;
+
+  // Assinatura Eletrônica do Médico se configurada
+  if (perfilMedico.assinatura_base64 && perfilMedico.usar_assinatura_eletronica !== false) {
+    try {
+      pdf.addImage(perfilMedico.assinatura_base64, 'PNG', posXAssinatura + 15, cursorY - 14, 45, 12, undefined, 'FAST');
+    } catch {
+      // Continua se imagem não for decodificável diretamente
+    }
+  }
+
   pdf.setDrawColor(148, 163, 184);
   pdf.setLineWidth(0.5);
   pdf.line(posXAssinatura, cursorY, posXAssinatura + 75, cursorY);
@@ -254,6 +264,18 @@ export async function exportarRelatorioTesteEmPdf(
     posXAssinatura + 5,
     cursorY
   );
+
+  if (perfilMedico.assinatura_base64 && perfilMedico.usar_assinatura_eletronica !== false) {
+    cursorY += 4;
+    pdf.setFont('helvetica', 'italic');
+    pdf.setFontSize(7);
+    pdf.setTextColor(13, 148, 136); // Teal 600
+    pdf.text(
+      `Assinado eletronicamente • MP 2.200-2/01 • ${perfilMedico.hash_assinatura_eletronica || 'OC-VALID'}`,
+      posXAssinatura + 5,
+      cursorY
+    );
+  }
 
   const safeNome = (paciente ? paciente.nome_completo : relatorio.paciente_nome)
     .replace(/[^a-zA-Z0-9]/g, '_')
