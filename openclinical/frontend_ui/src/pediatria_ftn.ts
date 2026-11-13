@@ -98,13 +98,9 @@ export function interpretarEsquemaPediatrico(esquema: EsquemaAdministracaoFtn): 
 
   const [trecho, minimo, maximo, porDia] = doses[0];
   const depois = t.slice((doses[0].index ?? 0) + trecho.length);
-  let modo: ModoDose | null = null;
-  if (porDia || /^[^.;]*?(por dia|ao dia|diari|divididos?|dividida|fracionad)/.test(depois)) modo = 'dia';
   // "a cada N horas" sozinho não diz se a dose é por tomada: o FTN escreve "20 a 90 mg/kg de amoxicilina,
   // a cada 8 ou 12 horas" querendo dose diária dividida. Só a menção explícita define "por tomada".
-  else if (/^[^.;]*?(dose unica|por dose|por tomada|cada dose|cada tomada)/.test(depois)) modo = 'tomada';
-  // "10 a 15 mg/kg, a cada 4 a 6 horas (máximo de 5 doses em 24 horas)": o limite em doses diz que é por tomada
-  else if (/^[^;]*?maximo de \d+ doses/.test(depois)) modo = 'tomada';
+  const modo = modoDoTrecho(porDia, depois);
 
   return {
     doseMin: numero(minimo),
@@ -113,6 +109,73 @@ export function interpretarEsquemaPediatrico(esquema: EsquemaAdministracaoFtn): 
     fracionamento: fracionamento ?? (doseUnica ? 1 : null),
     tetoDiarioMg: esquema.dose_maxima_diaria_mg,
     doseUnica,
+  };
+}
+
+/** Modo da dose (por dia ou por tomada) pelo trecho logo depois de "N mg/kg". */
+function modoDoTrecho(porDia: string | undefined, depois: string): ModoDose | null {
+  if (porDia || /^[^.;]*?(por dia|ao dia|diari|divididos?|dividida|fracionad)/.test(depois)) return 'dia';
+  if (/^[^.;]*?(dose unica|por dose|por tomada|cada dose|cada tomada)/.test(depois)) return 'tomada';
+  if (/^[^;]*?maximo de \d+ doses/.test(depois)) return 'tomada';
+  return null;
+}
+
+/** "Dose máxima diária: 4 g" / "dose máxima diária de 4.000 mg" no texto do esquema, em mg. */
+export function tetoDiarioDoTexto(texto: string): number | null {
+  const m = /dose maxima diaria(?: de|:)?\s*(\d+(?:[.,]\d+)?)\s*(g|mg)\b(?!\s*\/)/.exec(normalizar(texto));
+  if (!m) return null;
+  const valor = m[2] === 'g' ? parseFloat(m[1].replace(',', '.')) * 1000 : numero(m[1]);
+  return Number.isFinite(valor) && valor > 0 ? valor : null;
+}
+
+export interface FaixaDoEsquema extends DosePediatricaInterpretada {
+  /** limites aceitos sem o médico marcar "ultrapassar": a menor e a maior dose em mg/kg do esquema */
+  limiteMin: number;
+  limiteMax: number;
+}
+
+/**
+ * Faixa para limitar a dose. Além do caso de uma dose só (interpretarEsquemaPediatrico), aceita esquemas com
+ * faixas alternativas no mesmo modo, como a cefalexina ("25 a 50 mg/kg ... Em infecções graves, 50 a 100 mg/kg"):
+ * a dose sugerida é a primeira faixa e o limite vai da menor à maior. Esquemas em sequência (ataque e manutenção,
+ * dose inicial seguida de outra) e doses por tempo de infusão continuam sem faixa.
+ */
+export function lerFaixaDoEsquema(esquema: EsquemaAdministracaoFtn): FaixaDoEsquema | null {
+  const tetoTexto = tetoDiarioDoTexto(esquema.texto);
+  const lido = interpretarEsquemaPediatrico(esquema);
+  if (lido) return { ...lido, tetoDiarioMg: lido.tetoDiarioMg ?? tetoTexto, limiteMin: lido.doseMin, limiteMax: lido.doseMax };
+
+  const t = normalizar(esquema.texto);
+  if (/\/\s*kg\s*(\/\s*(h|hora|min)|por (hora|minuto))/.test(t)) return null;
+  // Esquemas em etapas, escalonados ou com outro fármaco na mesma frase: a faixa não seria de uma dose só
+  if (/ataque|manutencao|dose inicial|dose teste|seguid[oa] de|apos|entao|dias? \d|aument|reduz|inici|repetir|combina|associad|\+/.test(t)) {
+    return null;
+  }
+  const doses = [...t.matchAll(PADRAO_MG_KG)];
+  if (doses.length < 2) return null;
+  // "Dose máxima de 20 mg/kg": teto em mg/kg, só alarga o limite de cima
+  const ehTeto = (d: RegExpMatchArray) => /maxim[ao][^.;\d]{0,20}$/.test(t.slice(Math.max(0, (d.index ?? 0) - 30), d.index));
+  const faixas = doses.filter((d) => !ehTeto(d));
+  if (faixas.length === 0) return null;
+  // Faixas alternativas só valem com a mesma via e o mesmo intervalo ("25 a 50 mg/kg, por via oral, dividido a
+  // cada 6 horas. Em infecções graves, 50 a 100 mg/kg, por via oral, dividido a cada 6 horas")
+  const clausula = (d: RegExpMatchArray) => /^[^.;]*/.exec(t.slice((d.index ?? 0) + d[0].length))?.[0].trim() ?? '';
+  if (new Set(faixas.map(clausula)).size !== 1) return null;
+  const modos = new Set(faixas.map((d) => modoDoTrecho(d[3], t.slice((d.index ?? 0) + d[0].length))));
+  if (modos.size !== 1) return null;
+  const valoresFaixas = faixas.flatMap((d) => [numero(d[1]), d[2] ? numero(d[2]) : numero(d[1])]);
+  const valores = doses.flatMap((d) => [numero(d[1]), d[2] ? numero(d[2]) : numero(d[1])]);
+  const fracionamento = esquema.fracionamento_diario ?? fracionamentoDoTexto(esquema.texto);
+  const doseUnica = /dose unica/.test(t);
+  return {
+    doseMin: numero(faixas[0][1]),
+    doseMax: faixas[0][2] ? numero(faixas[0][2]) : numero(faixas[0][1]),
+    modo: [...modos][0],
+    fracionamento: fracionamento ?? (doseUnica ? 1 : null),
+    tetoDiarioMg: esquema.dose_maxima_diaria_mg ?? tetoTexto,
+    doseUnica,
+    limiteMin: Math.min(...valoresFaixas),
+    limiteMax: Math.max(...valores),
   };
 }
 

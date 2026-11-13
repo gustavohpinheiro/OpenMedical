@@ -171,6 +171,17 @@ test('Calculadora pediátrica lê os esquemas do FTN de qualquer medicamento sem
   // "máximo de 5 doses em 24 horas" (paracetamol): a faixa em mg/kg é por tomada
   assert.equal(P.interpretarEsquemaPediatrico(esquema('10 a 15 mg/kg, por via oral, a cada 4 a 6 horas (máximo de 5 doses em 24 horas).')).modo, 'tomada');
 
+  // Faixas alternativas com a mesma via e intervalo (cefalexina): sugere a primeira e limita da menor à maior
+  const cefalexina = P.lerFaixaDoEsquema(esquema('25 a 50 mg/kg, por via oral, dividido a cada 6 horas. Em infecções graves, 50 a 100 mg/kg, por via oral, dividido a cada 6 horas. Dose máxima diária: 4 g.'));
+  assert.deepEqual([cefalexina.doseMin, cefalexina.limiteMin, cefalexina.limiteMax, cefalexina.modo, cefalexina.tetoDiarioMg], [25, 25, 100, 'dia', 4000]);
+  // "Dose máxima de 20 mg/kg" alarga o limite; "Dose máxima diária: 50 mg/kg" não é teto em mg
+  assert.equal(P.lerFaixaDoEsquema(esquema('10 mg/kg, por via intravenosa, a cada 8 horas. Dose máxima de 20 mg/kg, por via intravenosa, a cada 8 horas.')).limiteMax, 20);
+  assert.equal(P.tetoDiarioDoTexto('Dose máxima diária: 50 mg/kg.'), null);
+  // Etapas, outro fármaco na frase ou vias diferentes continuam sem faixa
+  assert.equal(P.lerFaixaDoEsquema(esquema('Ataque: 15 mg/kg; manutenção: 5 mg/kg a cada 12 horas.')), null);
+  assert.equal(P.lerFaixaDoEsquema(esquema('30 a 50 mg/kg (sulfametoxazol) + 6 a 10 mg/kg (trimetoprima), por via oral, dividido a cada 12 horas.')), null);
+  assert.equal(P.lerFaixaDoEsquema(esquema('25 a 50 mg/kg, por via intravenosa, a cada 4 a 6 horas ou 100 a 200 mg/kg, por via oral, a cada 6 horas.')), null);
+
   // Intervalo em faixa: a sugestão é o intervalo mais longo (menos tomadas)
   assert.equal(P.fracionamentoSugerido('10 a 15 mg/kg, por via oral, a cada 4 a 6 horas'), 4);
   assert.equal(P.fracionamentoSugerido('Pode ser repetida em 6 a 8 horas se necessário'), 3);

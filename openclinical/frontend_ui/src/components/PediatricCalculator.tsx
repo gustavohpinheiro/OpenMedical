@@ -16,7 +16,7 @@ import {
   formulacoesLiquidas,
   formulacoesSolidas,
   fracionamentoSugerido,
-  interpretarEsquemaPediatrico,
+  lerFaixaDoEsquema,
   type FaixaPesoDose,
   type FormulacaoDisponivel,
   type FormulacaoSolida,
@@ -64,6 +64,7 @@ interface FaixaRecomendada {
 
 // Tolerância de arredondamento ao comparar a dose digitada com a faixa
 const EPSILON_FAIXA = 1e-6;
+const CHAVE_ULTRAPASSAR = 'openclinical_pediatria_permitir_ultrapassar';
 
 export const PediatricCalculator: React.FC<PediatricCalculatorProps> = ({
   pesoInicial = 12.0,
@@ -94,7 +95,22 @@ export const PediatricCalculator: React.FC<PediatricCalculatorProps> = ({
   // A faixa do esquema limita a dose; o médico pode ultrapassá-la marcando a caixa
   const [faixa, setFaixa] = useState<FaixaRecomendada | null>(null);
   const [faixasPeso, setFaixasPeso] = useState<FaixaPesoDose[]>([]);
-  const [ultrapassarFaixa, setUltrapassarFaixa] = useState(false);
+  // Preferência do médico, guardada no aparelho: com ela marcada, dose fora da faixa só gera aviso
+  const [ultrapassarFaixa, setUltrapassarFaixaEstado] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem(CHAVE_ULTRAPASSAR) === '1';
+    } catch {
+      return false;
+    }
+  });
+  const setUltrapassarFaixa = (valor: boolean) => {
+    setUltrapassarFaixaEstado(valor);
+    try {
+      localStorage.setItem(CHAVE_ULTRAPASSAR, valor ? '1' : '0');
+    } catch {
+      // sem armazenamento: vale só nesta sessão
+    }
+  };
   const [resultado, setResultado] = useState<ResultadoDosePediatrica | null>(null);
   const [copiado, setCopiado] = useState(false);
   const [adicionadoPrescricao, setAdicionadoPrescricao] = useState(false);
@@ -204,11 +220,10 @@ export const PediatricCalculator: React.FC<PediatricCalculatorProps> = ({
   );
   const componenteDose = formulacoes[0]?.componente ?? (selecionada?.nome.includes('+') ? selecionada.nome.split('+')[0].trim() : null);
 
-  const legivel = (esquema: EsquemaAdministracaoFtn) => interpretarEsquemaPediatrico(esquema) !== null || faixasDePeso(esquema).length > 0;
+  const legivel = (esquema: EsquemaAdministracaoFtn) => lerFaixaDoEsquema(esquema) !== null || faixasDePeso(esquema).length > 0;
 
   const aplicarEsquema = (esquema: EsquemaAdministracaoFtn, monografia: MonografiaFtn | null = selecionada) => {
     setEsquemaAtivo(esquema);
-    setUltrapassarFaixa(false);
     setReferencia(
       `${esquema.populacao}${esquema.indicacao ? ` · ${esquema.indicacao}` : ''}: ${esquema.texto}` +
         (monografia ? ` (FTN 2010, p. ${monografia.pagina})` : '')
@@ -223,8 +238,8 @@ export const PediatricCalculator: React.FC<PediatricCalculatorProps> = ({
       setDoseUnica(false);
       return;
     }
-    const lido = interpretarEsquemaPediatrico(esquema);
-    setFaixa(lido ? { min: lido.doseMin, max: lido.doseMax, modo: lido.modo } : null);
+    const lido = lerFaixaDoEsquema(esquema);
+    setFaixa(lido ? { min: lido.limiteMin, max: lido.limiteMax, modo: lido.modo } : null);
     setDose(lido ? lido.doseMin : null);
     setModo(lido ? lido.modo : null);
     // Intervalo em faixa no texto ("a cada 4 a 6 horas"): já vem marcado o mais longo
@@ -303,12 +318,13 @@ export const PediatricCalculator: React.FC<PediatricCalculatorProps> = ({
     if (faixasPeso.length === 0) return;
     if (!linhaTabela || peso === null) {
       setFaixa(null);
-      if (!ultrapassarFaixa) setDose(null);
+      setDose(null);
       return;
     }
     const doseMgKg = Math.round((linhaTabela.doseMg / peso) * 1e4) / 1e4;
     setFaixa({ min: doseMgKg, max: doseMgKg, modo: 'tomada' });
-    if (!ultrapassarFaixa) setDose(doseMgKg);
+    // A dose da tabela acompanha o peso; com a preferência de ultrapassar, o médico ainda pode editá-la
+    setDose(doseMgKg);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [faixasPeso, linhaTabela, peso]);
 
@@ -649,24 +665,23 @@ Dar ${quantidade} ${doseUnica ? 'em dose única' : `a cada ${resultado.intervalo
               por tomada
             </button>
           </div>
-          {faixa && (
-            <label className="flex items-start gap-2 mt-2 text-[11px] text-slate-400 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={ultrapassarFaixa}
-                onChange={(e) => {
-                  setUltrapassarFaixa(e.target.checked);
-                  // Ao desmarcar, a dose volta para dentro da faixa do esquema
-                  if (!e.target.checked) {
-                    if (faixa.modo) setModo(faixa.modo);
-                    if (dose === null || dose < faixa.min || dose > faixa.max) setDose(dose !== null && dose > faixa.max ? faixa.max : faixa.min);
-                  }
-                }}
-                className="accent-amber-500 mt-0.5"
-              />
-              Ultrapassar a faixa recomendada (decisão médica)
-            </label>
-          )}
+          {/* Sempre visível: mesmo sem faixa no esquema a preferência fica salva para os próximos medicamentos */}
+          <label className="flex items-start gap-2 mt-2 text-[11px] text-slate-400 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={ultrapassarFaixa}
+              onChange={(e) => {
+                setUltrapassarFaixa(e.target.checked);
+                // Ao desmarcar, a dose volta para dentro da faixa do esquema
+                if (!e.target.checked && faixa) {
+                  if (faixa.modo) setModo(faixa.modo);
+                  if (dose === null || dose < faixa.min || dose > faixa.max) setDose(dose !== null && dose > faixa.max ? faixa.max : faixa.min);
+                }
+              }}
+              className="accent-amber-500 mt-0.5"
+            />
+            Permitir ultrapassar a faixa recomendada (só avisa)
+          </label>
         </div>
 
         <div>
@@ -775,7 +790,7 @@ Dar ${quantidade} ${doseUnica ? 'em dose única' : `a cada ${resultado.intervalo
         <div role="alert" className="bg-red-950/50 border border-red-600/60 rounded-xl p-3 text-xs text-red-200">
           A dose de {formatar(dose ?? 0)} mg/kg está fora da faixa recomendada (
           {faixa.max > faixa.min ? `${formatar(faixa.min)} a ${formatar(faixa.max)}` : formatar(faixa.min)} mg/kg
-          {faixa.modo ? ` ${unidadeModo}` : ''}). Ajuste a dose ou marque "Ultrapassar a faixa recomendada".
+          {faixa.modo ? ` ${unidadeModo}` : ''}). Ajuste a dose ou marque "Permitir ultrapassar a faixa recomendada".
         </div>
       )}
 
@@ -783,11 +798,19 @@ Dar ${quantidade} ${doseUnica ? 'em dose única' : `a cada ${resultado.intervalo
         <div className="bg-amber-950/60 border border-amber-600/60 rounded-xl p-3 flex items-start gap-2 text-xs text-amber-200">
           <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
           <span>
-            Prescrição fora do recomendado pelo FTN por decisão médica
-            {tetoExcedidoAoUltrapassar && tetoMaximo !== null
-              ? `: a dose diária passa do teto de ${formatar(tetoMaximo)} mg/dia`
-              : ''}
-            .
+            <strong className="text-amber-300">
+              {foraDaFaixa && faixa && dose !== null && dose < faixa.min ? 'Abaixo' : 'Acima'} do recomendado pelo FTN.
+            </strong>
+            {foraDaFaixa && faixa && (
+              <>
+                {' '}
+                A faixa é de {faixa.max > faixa.min ? `${formatar(faixa.min)} a ${formatar(faixa.max)}` : formatar(faixa.min)} mg/kg
+                {faixa.modo ? ` ${unidadeModo}` : ''}
+                {peso !== null ? ` (até ${formatar(faixa.max * peso)} mg para ${peso} kg)` : ''}, e a dose digitada é de{' '}
+                {formatar(dose ?? 0)} mg/kg.
+              </>
+            )}
+            {tetoExcedidoAoUltrapassar && tetoMaximo !== null && ` A dose diária passa do teto de ${formatar(tetoMaximo)} mg/dia.`}
           </span>
         </div>
       )}
