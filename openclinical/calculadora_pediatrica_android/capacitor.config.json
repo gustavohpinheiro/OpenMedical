@@ -1,0 +1,8 @@
+{
+  "appId": "br.openclinical.dosepediatrica",
+  "appName": "Dose Pediátrica",
+  "webDir": "dist",
+  "android": {
+    "backgroundColor": "#060b13"
+  }
+}

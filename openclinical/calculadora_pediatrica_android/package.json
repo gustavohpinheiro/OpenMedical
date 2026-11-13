@@ -1,0 +1,35 @@
+{
+  "name": "openclinical-calculadora-pediatrica",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "App Android só com a calculadora de dose pediátrica do OpenClinical. O código e os dados vêm de ../frontend_ui/src (sem cópias).",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "typecheck": "tsc --noEmit -p .",
+    "sync": "npm run build && cap sync android",
+    "icones": "python scripts/gerar_icones_android.py",
+    "apk": "node scripts/gerar_apk.mjs"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.2.1",
+    "@capacitor/core": "^6.2.1",
+    "@fontsource/jetbrains-mono": "^5.3.0",
+    "@fontsource/plus-jakarta-sans": "^5.3.0",
+    "lucide-react": "^0.460.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.2.1",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.3",
+    "autoprefixer": "^10.6.2",
+    "postcss": "^8.5.32",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.10"
+  }
+}

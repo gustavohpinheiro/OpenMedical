@@ -1,0 +1,5 @@
+/* Respeita a barra de status e a barra de gestos do Android (viewport-fit=cover) */
+.area-segura {
+  padding-top: max(1rem, env(safe-area-inset-top));
+  padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
+}

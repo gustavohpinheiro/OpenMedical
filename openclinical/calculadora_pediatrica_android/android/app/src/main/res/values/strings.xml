@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Dose Pediátrica</string>
+    <string name="title_activity_main">Dose Pediátrica</string>
+    <string name="package_name">br.openclinical.dosepediatrica</string>
+    <string name="custom_url_scheme">br.openclinical.dosepediatrica</string>
+</resources>

@@ -70,13 +70,15 @@ def desenhar_icone_base(margem_segura: float = 0.0) -> Image.Image:
     return imagem
 
 
-def desenhar_icone_dose_pediatrica() -> Image.Image:
-    """Atalho da calculadora pediátrica: fundo azul com gota de medicamento e seringa dosadora."""
+def desenhar_icone_dose_pediatrica(margem_segura: float = 0.0) -> Image.Image:
+    """Atalho da calculadora pediátrica: fundo azul com gota de medicamento e seringa dosadora.
+
+    `margem_segura` encolhe o desenho e leva o fundo até a borda (ícone adaptativo do Android).
+    """
     imagem = Image.new("RGBA", (TAMANHO_BASE, TAMANHO_BASE), (0, 0, 0, 0))
     mascara = Image.new("L", (TAMANHO_BASE, TAMANHO_BASE), 0)
-    ImageDraw.Draw(mascara).rounded_rectangle(
-        [0, 0, TAMANHO_BASE - 1, TAMANHO_BASE - 1], radius=int(TAMANHO_BASE * 0.22), fill=255
-    )
+    raio = 0 if margem_segura > 0 else int(TAMANHO_BASE * 0.22)
+    ImageDraw.Draw(mascara).rounded_rectangle([0, 0, TAMANHO_BASE - 1, TAMANHO_BASE - 1], radius=raio, fill=255)
     gradiente = Image.new("RGBA", (TAMANHO_BASE, TAMANHO_BASE))
     pincel = ImageDraw.Draw(gradiente)
     topo, base = (56, 189, 248), (3, 105, 161)
@@ -85,18 +87,27 @@ def desenhar_icone_dose_pediatrica() -> Image.Image:
         pincel.line([(0, y), (TAMANHO_BASE, y)], fill=tuple(round(topo[i] + (base[i] - topo[i]) * fracao) for i in range(3)) + (255,))
     imagem.paste(gradiente, (0, 0), mascara)
 
+    escala = 1.0 - margem_segura
+    deslocamento = TAMANHO_BASE * margem_segura / 2
+
+    def ponto(x: float, y: float) -> tuple[float, float]:
+        return (deslocamento + x * escala, deslocamento + y * escala)
+
+    def caixa(x0: float, y0: float, x1: float, y1: float) -> list[tuple[float, float]]:
+        return [ponto(x0, y0), ponto(x1, y1)]
+
     desenho = ImageDraw.Draw(imagem)
     # Gota: círculo inferior + triângulo superior
-    desenho.ellipse([300, 420, 660, 780], fill=COR_TRACO)
-    desenho.polygon([(480, 170), (318, 540), (642, 540)], fill=COR_TRACO)
+    desenho.ellipse(caixa(300, 420, 660, 780), fill=COR_TRACO)
+    desenho.polygon([ponto(480, 170), ponto(318, 540), ponto(642, 540)], fill=COR_TRACO)
     # Marcações de dose (mL) dentro da gota
     for indice, y in enumerate((520, 590, 660)):
         largura = 110 if indice != 1 else 160
-        desenho.rounded_rectangle([480 - largura // 2, y - 14, 480 + largura // 2, y + 14], radius=14, fill=(3, 105, 161))
+        desenho.rounded_rectangle(caixa(480 - largura // 2, y - 14, 480 + largura // 2, y + 14), radius=int(14 * escala), fill=(3, 105, 161))
     # Selo "+" no canto (dose calculada)
-    desenho.ellipse([640, 600, 900, 860], fill=(16, 185, 129), outline=COR_TRACO, width=24)
-    desenho.rounded_rectangle([745, 655, 795, 805], radius=12, fill=COR_TRACO)
-    desenho.rounded_rectangle([695, 705, 845, 755], radius=12, fill=COR_TRACO)
+    desenho.ellipse(caixa(640, 600, 900, 860), fill=(16, 185, 129), outline=COR_TRACO, width=int(24 * escala))
+    desenho.rounded_rectangle(caixa(745, 655, 795, 805), radius=int(12 * escala), fill=COR_TRACO)
+    desenho.rounded_rectangle(caixa(695, 705, 845, 755), radius=int(12 * escala), fill=COR_TRACO)
     return imagem
 
 

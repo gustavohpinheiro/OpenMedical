@@ -28,6 +28,8 @@ interface PediatricCalculatorProps {
   referenciaDose?: string;
   /** Monografia do FTN de origem: a calculadora a seleciona e relê o esquema de `referenciaDose` */
   idMonografiaInicial?: number;
+  /** false no app Android só da calculadora, que não tem o módulo de receita */
+  permitirAdicionarReceita?: boolean;
 }
 
 const lerNumero = (valor: string): number | null => {
@@ -54,6 +56,7 @@ export const PediatricCalculator: React.FC<PediatricCalculatorProps> = ({
   nomeMedicamento,
   referenciaDose,
   idMonografiaInicial,
+  permitirAdicionarReceita = true,
 }) => {
   const [nome, setNome] = useState<string>(nomeMedicamento ?? '');
   const [referencia, setReferencia] = useState<string | undefined>(referenciaDose);
@@ -623,13 +626,15 @@ Dar ${quantidade} ${doseUnica ? 'em dose única' : `a cada ${resultado.intervalo
             </div>
 
             <div className="flex items-center gap-2">
-              <button
-                onClick={adicionarReceitaPediatrica}
-                className="flex items-center space-x-1.5 px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold rounded-xl transition-all shadow-lg shadow-teal-900/30"
-              >
-                <Plus className="w-4 h-4 text-white" />
-                <span>{adicionadoPrescricao ? 'Adicionado à Receita ✓' : 'Adicionar à Receita'}</span>
-              </button>
+              {permitirAdicionarReceita && (
+                <button
+                  onClick={adicionarReceitaPediatrica}
+                  className="flex items-center space-x-1.5 px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold rounded-xl transition-all shadow-lg shadow-teal-900/30"
+                >
+                  <Plus className="w-4 h-4 text-white" />
+                  <span>{adicionadoPrescricao ? 'Adicionado à Receita ✓' : 'Adicionar à Receita'}</span>
+                </button>
+              )}
               <button
                 onClick={copiarReceitaPediatrica}
                 className="flex items-center space-x-1.5 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl transition-all border border-slate-700"

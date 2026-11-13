@@ -1,0 +1,59 @@
+name: APK Calculadora Pediátrica
+
+# Recompila o APK sempre que o app principal (frontend_ui) ou o próprio subprojeto mudam:
+# a calculadora, os esquemas do FTN e o catálogo CMED vêm direto de openclinical/frontend_ui/src.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'openclinical/frontend_ui/src/**'
+      - 'openclinical/frontend_ui/tailwind.config.js'
+      - 'openclinical/frontend_ui/package-lock.json'
+      - 'openclinical/calculadora_pediatrica_android/**'
+      - '.github/workflows/calculadora-pediatrica-apk.yml'
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: |
+            openclinical/frontend_ui/package-lock.json
+            openclinical/calculadora_pediatrica_android/package-lock.json
+
+      # Os módulos reaproveitados de frontend_ui/src resolvem as dependências de lá
+      - name: Dependências do app principal
+        working-directory: openclinical/frontend_ui
+        run: npm ci
+
+      - name: Dependências do subprojeto
+        working-directory: openclinical/calculadora_pediatrica_android
+        run: npm ci
+
+      - name: Gerar APK
+        working-directory: openclinical/calculadora_pediatrica_android
+        run: npm run apk
+
+      - name: Publicar APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: openclinical-dose-pediatrica-apk
+          path: openclinical/calculadora_pediatrica_android/apk/OpenClinical-DosePediatrica.apk
