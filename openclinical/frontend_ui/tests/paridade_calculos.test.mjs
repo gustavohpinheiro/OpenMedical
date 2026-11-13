@@ -171,6 +171,12 @@ test('Calculadora pediátrica lê os esquemas do FTN de qualquer medicamento sem
   // "máximo de 5 doses em 24 horas" (paracetamol): a faixa em mg/kg é por tomada
   assert.equal(P.interpretarEsquemaPediatrico(esquema('10 a 15 mg/kg, por via oral, a cada 4 a 6 horas (máximo de 5 doses em 24 horas).')).modo, 'tomada');
 
+  // Intervalo em faixa: a sugestão é o intervalo mais longo (menos tomadas)
+  assert.equal(P.fracionamentoSugerido('10 a 15 mg/kg, por via oral, a cada 4 a 6 horas'), 4);
+  assert.equal(P.fracionamentoSugerido('Pode ser repetida em 6 a 8 horas se necessário'), 3);
+  assert.equal(P.fracionamentoSugerido('20 a 90 mg/kg, dividido a cada 8 ou 12 horas'), 2);
+  assert.equal(P.fracionamentoSugerido('10 mg/kg a cada 8 horas'), 3);
+
   // Tabela de dose por faixa de peso (dipirona no FTN), com o peso quebrado entre duas faixas
   const dipirona = MONOGRAFIAS_FTN.find((m) => m.nome === 'dipirona sódica');
   const tabela = P.faixasDePeso(P.esquemasPediatricos(dipirona)[0]);

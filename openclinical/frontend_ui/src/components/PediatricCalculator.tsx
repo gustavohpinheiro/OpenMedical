@@ -15,6 +15,7 @@ import {
   faixasDePeso,
   formulacoesLiquidas,
   formulacoesSolidas,
+  fracionamentoSugerido,
   interpretarEsquemaPediatrico,
   type FaixaPesoDose,
   type FormulacaoDisponivel,
@@ -217,7 +218,7 @@ export const PediatricCalculator: React.FC<PediatricCalculatorProps> = ({
     setFaixasPeso(tabela);
     if (tabela.length > 0) {
       setModo('tomada');
-      setFracionamento(esquema.fracionamento_diario);
+      setFracionamento(esquema.fracionamento_diario ?? fracionamentoSugerido(esquema.texto));
       setTetoMaximo(esquema.dose_maxima_diaria_mg);
       setDoseUnica(false);
       return;
@@ -226,7 +227,8 @@ export const PediatricCalculator: React.FC<PediatricCalculatorProps> = ({
     setFaixa(lido ? { min: lido.doseMin, max: lido.doseMax, modo: lido.modo } : null);
     setDose(lido ? lido.doseMin : null);
     setModo(lido ? lido.modo : null);
-    setFracionamento(lido ? lido.fracionamento : null);
+    // Intervalo em faixa no texto ("a cada 4 a 6 horas"): já vem marcado o mais longo
+    setFracionamento(lido ? (lido.fracionamento ?? (lido.doseUnica ? 1 : fracionamentoSugerido(esquema.texto))) : null);
     setTetoMaximo(lido ? lido.tetoDiarioMg : null);
     setDoseUnica(lido?.doseUnica ?? false);
   };
@@ -241,6 +243,25 @@ export const PediatricCalculator: React.FC<PediatricCalculatorProps> = ({
     setFormaSolida(true);
     setSolida(f);
     setFormulacaoEmGotas(false);
+  };
+
+  // Uma lista só: apresentações padrão (SUS/FTN, líquidas e sólidas) primeiro; marcas da CMED no fim
+  const padraoLiquidas = formulacoes.filter((f) => f.origem !== 'comercial');
+  const comerciaisLiquidas = formulacoes.filter((f) => f.origem === 'comercial');
+  const valorApresentacao = formaSolida
+    ? solida
+      ? `s:${formulacoesSolidasDisponiveis.indexOf(solida)}`
+      : 'mg'
+    : formulacoes.some((f) => f.mgPorMl === concentracao)
+      ? `l:${concentracao}`
+      : 'outra';
+  const concentracaoDigitada = valorApresentacao === 'outra';
+
+  const escolherApresentacao = (valor: string) => {
+    if (valor === 'mg') escolherSolida(null);
+    else if (valor === 'outra') escolherLiquida(null);
+    else if (valor.startsWith('s:')) escolherSolida(formulacoesSolidasDisponiveis[Number(valor.slice(2))] ?? null);
+    else escolherLiquida(formulacoes.find((f) => `l:${f.mgPorMl}` === valor) ?? null);
   };
 
   const escolherMonografia = (monografia: MonografiaFtn) => {
@@ -652,84 +673,59 @@ Dar ${quantidade} ${doseUnica ? 'em dose única' : `a cada ${resultado.intervalo
           <label className="block text-xs font-semibold text-slate-300 mb-1">
             Formulação{componenteDose && !formaSolida ? ` (concentração de ${componenteDose})` : ''}
           </label>
-          <div className="grid grid-cols-2 gap-1.5 mb-2">
-            <button
-              type="button"
-              onClick={() => escolherLiquida(formulacoes.find((f) => f.mgPorMl === concentracao) ?? formulacoes[0] ?? null)}
-              className={classeBotao(!formaSolida)}
-            >
-              Líquido
-            </button>
-            <button
-              type="button"
-              onClick={() => escolherSolida(solida ?? formulacoesSolidasDisponiveis[0] ?? null)}
-              className={classeBotao(formaSolida)}
-            >
-              Comprimido/cápsula
-            </button>
-          </div>
-          {formaSolida ? (
-            // Comprimido: nada a digitar em mg/mL; a dose sai em mg e, com a apresentação escolhida, em comprimidos
-            formulacoesSolidasDisponiveis.length > 0 ? (
-              <select
-                value={solida ? String(formulacoesSolidasDisponiveis.indexOf(solida)) : 'outro'}
-                onChange={(e) => setSolida(e.target.value === 'outro' ? null : formulacoesSolidasDisponiveis[Number(e.target.value)])}
-                className={`${classeCampo} font-sans text-xs`}
-              >
-                {formulacoesSolidasDisponiveis.map((f, i) => (
-                  <option key={i} value={String(i)}>
-                    {f.origem === 'sus' ? 'SUS · ' : 'FTN · '}
-                    {f.rotulo}
+          <select
+            value={valorApresentacao}
+            onChange={(e) => escolherApresentacao(e.target.value)}
+            className={`${classeCampo} font-sans text-xs mb-2`}
+          >
+            {padraoLiquidas.map((f) => (
+              <option key={`l${f.mgPorMl}`} value={`l:${f.mgPorMl}`}>
+                {f.origem === 'sus' ? 'SUS · ' : 'FTN · '}
+                {f.rotulo} ({formatar(f.mgPorMl)} mg/mL{f.componente ? ` de ${f.componente}` : ''})
+              </option>
+            ))}
+            {formulacoesSolidasDisponiveis.map((f, i) => (
+              <option key={`s${i}`} value={`s:${i}`}>
+                {f.origem === 'sus' ? 'SUS · ' : 'FTN · '}
+                {f.rotulo}
+              </option>
+            ))}
+            {comerciaisLiquidas.length > 0 && (
+              <optgroup label="Outras marcas (CMED)">
+                {comerciaisLiquidas.map((f) => (
+                  <option key={`l${f.mgPorMl}`} value={`l:${f.mgPorMl}`}>
+                    {f.rotulo} ({formatar(f.mgPorMl)} mg/mL{f.componente ? ` de ${f.componente}` : ''})
                   </option>
                 ))}
-                <option value="outro">Outro comprimido/cápsula (resultado só em mg)</option>
-              </select>
-            ) : (
-              <p className="text-[11px] text-slate-400">O resultado sai em mg por tomada.</p>
-            )
-          ) : (
-            <>
-              {formulacoes.length > 0 && (
-                <select
-                  value={formulacoes.some((f) => f.mgPorMl === concentracao) ? String(concentracao) : 'outra'}
-                  onChange={(e) => {
-                    const valor = e.target.value;
-                    if (valor === 'outra') setConcentracao(null);
-                    else escolherLiquida(formulacoes.find((f) => String(f.mgPorMl) === valor) ?? null);
-                  }}
-                  className={`${classeCampo} font-sans text-xs mb-2`}
-                >
-                  {formulacoes.map((f) => (
-                    <option key={f.mgPorMl} value={String(f.mgPorMl)}>
-                      {f.origem === 'sus' ? 'SUS · ' : f.origem === 'comercial' ? 'Comercial · ' : 'FTN · '}
-                      {f.rotulo} ({formatar(f.mgPorMl)} mg/mL{f.componente ? ` de ${f.componente}` : ''})
-                    </option>
-                  ))}
-                  <option value="outra">Outra concentração (digitar)</option>
-                </select>
-              )}
-              <div className="relative">
-                <input
-                  type="number"
-                  step="0.1"
-                  value={concentracao ?? ''}
-                  placeholder="concentração"
-                  onChange={(e) => setConcentracao(lerNumero(e.target.value))}
-                  className={classeCampo}
-                />
-                <span className="absolute right-3 top-2.5 text-xs text-slate-400 font-mono">mg/mL</span>
-              </div>
-              <label className="flex items-center gap-2 mt-2 text-[11px] text-slate-400 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={formulacaoEmGotas}
-                  onChange={(e) => setFormulacaoEmGotas(e.target.checked)}
-                  className="accent-teal-500"
-                  disabled={concentracao === null}
-                />
-                Solução em gotas (20 gotas/mL)
-              </label>
-            </>
+              </optgroup>
+            )}
+            <option value="outra">Outra concentração líquida (digitar)</option>
+            <option value="mg">Comprimido/cápsula: resultado só em mg</option>
+          </select>
+          {concentracaoDigitada && (
+            <div className="relative">
+              <input
+                type="number"
+                step="0.1"
+                value={concentracao ?? ''}
+                placeholder="concentração"
+                onChange={(e) => setConcentracao(lerNumero(e.target.value))}
+                className={classeCampo}
+              />
+              <span className="absolute right-3 top-2.5 text-xs text-slate-400 font-mono">mg/mL</span>
+            </div>
+          )}
+          {!formaSolida && (
+            <label className="flex items-center gap-2 mt-2 text-[11px] text-slate-400 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={formulacaoEmGotas}
+                onChange={(e) => setFormulacaoEmGotas(e.target.checked)}
+                className="accent-teal-500"
+                disabled={concentracao === null}
+              />
+              Solução em gotas (20 gotas/mL)
+            </label>
           )}
         </div>
       </div>

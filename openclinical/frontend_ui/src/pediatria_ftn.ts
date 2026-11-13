@@ -58,6 +58,19 @@ export function fracionamentoDoTexto(texto: string): number | null {
 }
 
 /**
+ * Sugestão de tomadas por dia quando o texto dá o intervalo em faixa ("a cada 4 a 6 horas", "8 ou 12 horas",
+ * "repetida em 6 a 8 horas"): o intervalo mais longo, que é o de menos tomadas. O médico pode trocar.
+ */
+export function fracionamentoSugerido(texto: string): number | null {
+  const exato = fracionamentoDoTexto(texto);
+  if (exato !== null) return exato;
+  const faixa = /(?:a cada|em|de) (\d+) (?:ou|a) (\d+) horas/.exec(normalizar(texto));
+  if (!faixa) return null;
+  const horas = Math.max(parseInt(faixa[1], 10), parseInt(faixa[2], 10));
+  return horas > 0 && horas <= 24 && 24 % horas === 0 ? 24 / horas : null;
+}
+
+/**
  * Interpreta um esquema do FTN. Devolve null quando o texto não tem dose em mg/kg ou tem mais de uma
  * (ex.: ataque + manutenção), casos em que o médico preenche a calculadora.
  */
@@ -240,7 +253,9 @@ export function formulacoesLiquidas(
     if (valor === null || valor <= 0) continue;
     const arredondado = Math.round(valor * 1000) / 1000;
     if (lista.some((f) => Math.abs(f.mgPorMl - arredondado) < 1e-9)) continue;
-    lista.push({ rotulo, mgPorMl: arredondado, gotas: /gota|\bgts\b|\bgot\b/i.test(texto), origem, componente });
+    // "Solução oral" concentrada (dipirona 500 mg/mL, paracetamol 200 mg/mL) é o frasco gotejador; xaropes ficam abaixo de 50 mg/mL
+    const solucaoGotas = /solu[cç][aã]o oral/i.test(texto) && arredondado >= 50;
+    lista.push({ rotulo, mgPorMl: arredondado, gotas: solucaoGotas || /gota|\bgts\b|\bgot\b/i.test(texto), origem, componente });
   }
   return lista;
 }
