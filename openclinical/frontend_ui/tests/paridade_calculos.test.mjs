@@ -168,6 +168,23 @@ test('Calculadora pediátrica lê os esquemas do FTN de qualquer medicamento sem
   assert.equal(P.interpretarEsquemaPediatrico(esquema('0,1 mg/kg, por via intravenosa, a cada 2 a 3 horas.')).fracionamento, null);
   // Sem indicação de dia ou tomada: o médico escolhe
   assert.equal(P.interpretarEsquemaPediatrico(esquema('0,2 a 0,4 mg/kg, por bolo intravenoso.')).modo, null);
+  // "máximo de 5 doses em 24 horas" (paracetamol): a faixa em mg/kg é por tomada
+  assert.equal(P.interpretarEsquemaPediatrico(esquema('10 a 15 mg/kg, por via oral, a cada 4 a 6 horas (máximo de 5 doses em 24 horas).')).modo, 'tomada');
+
+  // Tabela de dose por faixa de peso (dipirona no FTN), com o peso quebrado entre duas faixas
+  const dipirona = MONOGRAFIAS_FTN.find((m) => m.nome === 'dipirona sódica');
+  const tabela = P.faixasDePeso(P.esquemasPediatricos(dipirona)[0]);
+  assert.deepEqual(tabela.map((f) => f.doseMg), [50, 100, 150, 200, 250, 400]);
+  assert.equal(P.faixaDoPeso(tabela, 12).doseMg, 100);
+  assert.equal(P.faixaDoPeso(tabela, 8.5).doseMg, 50);
+  assert.equal(P.faixaDoPeso(tabela, 60), null);
+  assert.equal(P.esquemaParenteral(P.esquemasPediatricos(dipirona)[0]), true);
+  assert.deepEqual(P.faixasDePeso(esquema('Crianças de 10 a 20 kg: 250 mg a cada 8 horas.')), []);
+
+  // Comprimidos e cápsulas: dose em mg por unidade, sem mg/mL
+  assert.deepEqual(P.formulacoesSolidas(dipirona).map((f) => [f.unidade, f.mgPorUnidade]), [['comprimido', 500]]);
+  const ibuprofenoSolidos = P.formulacoesSolidas(MONOGRAFIAS_FTN.find((m) => m.nome === 'ibuprofeno'));
+  assert.deepEqual(ibuprofenoSolidos.map((f) => f.mgPorUnidade), [200, 300, 600, 600]);
 
   // Formulações líquidas do FTN/RENAME com a concentração em mg/mL
   assert.equal(P.mgPorMl('Suspensão oral 250 mg/5 mL'), 50);

@@ -90,6 +90,8 @@ export function interpretarEsquemaPediatrico(esquema: EsquemaAdministracaoFtn): 
   // "a cada N horas" sozinho não diz se a dose é por tomada: o FTN escreve "20 a 90 mg/kg de amoxicilina,
   // a cada 8 ou 12 horas" querendo dose diária dividida. Só a menção explícita define "por tomada".
   else if (/^[^.;]*?(dose unica|por dose|por tomada|cada dose|cada tomada)/.test(depois)) modo = 'tomada';
+  // "10 a 15 mg/kg, a cada 4 a 6 horas (máximo de 5 doses em 24 horas)": o limite em doses diz que é por tomada
+  else if (/^[^;]*?maximo de \d+ doses/.test(depois)) modo = 'tomada';
 
   return {
     doseMin: numero(minimo),
@@ -106,6 +108,68 @@ export function esquemasPediatricos(monografia: MonografiaFtn): EsquemaAdministr
   return monografia.esquemas.filter(
     (e) => ehPopulacaoPediatrica(e.populacao) || (/mg\s*\/\s*kg/i.test(e.texto) && !/^adult/i.test(e.populacao))
   );
+}
+
+/** Linha de uma tabela de dose por faixa de peso do FTN ("9-15 kg 100 mg"). */
+export interface FaixaPesoDose {
+  pesoMin: number;
+  pesoMax: number;
+  /** dose por tomada em mg */
+  doseMg: number;
+}
+
+const PADRAO_FAIXA_PESO = /(\d+(?:[.,]\d+)?)\s*(?:-|–|a|ate)\s*(\d+(?:[.,]\d+)?)\s*kg\s*:?\s*(\d+(?:[.,]\d+)?)\s*mg\b(?!\s*\/)/g;
+
+/**
+ * Tabela de dose fixa por faixa de peso, como a da dipirona no FTN ("5 – 8 kg 50 mg ... 9-15 kg 100 mg").
+ * Só vale com pelo menos duas faixas, para não confundir com uma frase solta com peso e dose.
+ */
+export function faixasDePeso(esquema: EsquemaAdministracaoFtn): FaixaPesoDose[] {
+  const t = normalizar(esquema.texto);
+  const faixas = [...t.matchAll(PADRAO_FAIXA_PESO)]
+    .map((m) => ({ pesoMin: numero(m[1]), pesoMax: numero(m[2]), doseMg: numero(m[3]) }))
+    .filter((f) => f.pesoMin < f.pesoMax && f.doseMg > 0);
+  return faixas.length >= 2 ? faixas.sort((a, b) => a.pesoMin - b.pesoMin) : [];
+}
+
+/** Faixa da tabela para o peso; o fim de uma faixa e o início da seguinte (8 e 9 kg) cobrem o peso quebrado entre eles. */
+export function faixaDoPeso(faixas: FaixaPesoDose[], pesoKg: number): FaixaPesoDose | null {
+  return faixas.find((f, i) => pesoKg >= f.pesoMin && (pesoKg <= f.pesoMax || (faixas[i + 1] !== undefined && pesoKg < faixas[i + 1].pesoMin))) ?? null;
+}
+
+/** Via parenteral citada no esquema (a tabela da dipirona no FTN é intramuscular/intravenosa). */
+export function esquemaParenteral(esquema: EsquemaAdministracaoFtn): boolean {
+  const t = normalizar(esquema.texto);
+  return /parenteral|intramuscular|intravenos|endovenos/.test(t) && !/via oral|por via oral/.test(t);
+}
+
+export interface FormulacaoSolida {
+  rotulo: string;
+  /** mg por comprimido/cápsula */
+  mgPorUnidade: number;
+  unidade: 'comprimido' | 'cápsula';
+  origem: 'sus' | 'ftn';
+}
+
+/** Comprimidos e cápsulas do SUS (RENAME 2024) e do FTN, um por dose em mg ("Comprimidos 200 mg, 300 mg e 600 mg" vira três). */
+export function formulacoesSolidas(monografia: MonografiaFtn): FormulacaoSolida[] {
+  if (monografia.nome.includes('+')) return [];
+  const candidatos = [
+    ...monografia.rename_2024.map((item) => ({ texto: `${item.forma_farmaceutica} ${item.concentracao}`, origem: 'sus' as const })),
+    ...monografia.apresentacoes.map((texto) => ({ texto, origem: 'ftn' as const })),
+  ];
+  const lista: FormulacaoSolida[] = [];
+  for (const { texto, origem } of candidatos) {
+    const t = normalizar(texto);
+    const forma = /comprimido|dragea/.test(t) ? 'comprimido' : /capsula/.test(t) ? 'cápsula' : null;
+    if (!forma || /\/\s*\d*\s*ml|\+/.test(t)) continue;
+    for (const m of t.matchAll(/(\d+(?:[.,]\d+)?)\s*(?:mg\b|(?=\s*(?:,|e)\s*\d+(?:[.,]\d+)?\s*mg\b))/g)) {
+      const mg = numero(m[1]);
+      if (!(mg > 0) || lista.some((f) => f.unidade === forma && f.mgPorUnidade === mg)) continue;
+      lista.push({ rotulo: `${forma} ${m[1].replace('.', ',')} mg`, mgPorUnidade: mg, unidade: forma, origem });
+    }
+  }
+  return lista;
 }
 
 export interface FormulacaoDisponivel {
